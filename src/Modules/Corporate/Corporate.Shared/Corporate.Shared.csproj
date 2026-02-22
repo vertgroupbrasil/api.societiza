@@ -11,8 +11,4 @@
     <ProjectReference Include="..\Corporate.Domain\Corporate.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Errors\" />
-  </ItemGroup>
-
 </Project>

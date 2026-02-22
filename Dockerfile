@@ -1,0 +1,43 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+WORKDIR /src
+
+# Copy solution and project files first (layer caching)
+COPY MeuSocietario.sln ./
+COPY src/Core/Core.Shared/Core.Shared.csproj src/Core/Core.Shared/
+COPY src/Core/Core.Domain/Core.Domain.csproj src/Core/Core.Domain/
+COPY src/Core/Core.Application/Core.Application.csproj src/Core/Core.Application/
+COPY src/Core/Core.Endpoints/Core.Endpoints.csproj src/Core/Core.Endpoints/
+COPY src/Core/Core.Infrastructure/Core.Infrastructure.csproj src/Core/Core.Infrastructure/
+COPY src/Core/Core.Persistence/Core.Persistence.csproj src/Core/Core.Persistence/
+COPY src/Modules/Corporate/Corporate.Domain/Corporate.Domain.csproj src/Modules/Corporate/Corporate.Domain/
+COPY src/Modules/Corporate/Corporate.Application/Corporate.Application.csproj src/Modules/Corporate/Corporate.Application/
+COPY src/Modules/Corporate/Corporate.Persistence/Corporate.Persistence.csproj src/Modules/Corporate/Corporate.Persistence/
+COPY src/Modules/Corporate/Corporate.Infrastructure/Corporate.Infrastructure.csproj src/Modules/Corporate/Corporate.Infrastructure/
+COPY src/Modules/Corporate/Corporate.Shared/Corporate.Shared.csproj src/Modules/Corporate/Corporate.Shared/
+COPY src/Web/Web.csproj src/Web/
+
+# Restore dependencies (cached unless .csproj files change)
+RUN dotnet restore src/Web/Web.csproj
+
+# Copy source code
+COPY src/ src/
+
+# Publish
+RUN dotnet publish src/Web/Web.csproj -c Release -o /app --no-restore
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Configure environment
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+COPY --from=build /app .
+
+USER appuser
+ENTRYPOINT ["dotnet", "Web.dll"]

@@ -1,16 +1,16 @@
-﻿using Core.Infrastructure.Configurations;
-using Core.Infrastructure.Extensions;
+﻿using Core.Application.EventBus;
+using Core.Infrastructure.Configurations;
+using Core.Infrastructure.EventBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Corporate.Infrastructure.ServiceInstallers;
 
-public sealed class InfrastructureServiceInstaller : IServiceInstaller
+internal sealed class InfrastructureServiceInstaller : IServiceInstaller
 {
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScopedAsMatchingInterfaces(AssemblyReference.Assembly);
-        services.AddSingletonAsMatchingInterfaces(AssemblyReference.Assembly);
-        services.AddTransientAsMatchingInterfaces(AssemblyReference.Assembly);
+        services.TryAddTransient<IEventBus, EventBus>();
     }
 }

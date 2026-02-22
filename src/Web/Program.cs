@@ -1,13 +1,20 @@
+using Asp.Versioning;
 using Core.Infrastructure.Extensions;
-using Core.Persistence.Context;
-using CorrelationId.DependencyInjection;
-using Finbuckle.MultiTenant;
-using Microsoft.OpenApi.Models;
+using DotNetEnv;
 using Serilog;
 using Serilog.Events;
-using System.Reflection;
-using Web.Configurations;
-using Web.Middlewares;
+using Web.Extensions;
+
+// Load environment variables (in order: .env first, then .env.local for overrides)
+if (File.Exists(".env"))
+{
+    Env.Load();
+}
+
+if (File.Exists(".env.local"))
+{
+    Env.Load(".env.local");
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +25,6 @@ builder.Host.UseSerilog((context, configuration) =>
 // Services Core
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddCorrelationId();
-builder.Services.AddEndpointsApiExplorer();
 
 builder.Services
     .AddControllers()
@@ -31,10 +37,9 @@ if (builder.Environment.IsDevelopment())
     {
         logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
 
-        logging.RequestHeaders.Add("X-Tenant-ID");
         logging.RequestHeaders.Add("Authorization");
-
         logging.ResponseHeaders.Add("Content-Type");
+
         logging.MediaTypeOptions.AddText("application/json");
 
         logging.RequestBodyLogLimit = 4096;
@@ -42,49 +47,30 @@ if (builder.Environment.IsDevelopment())
     });
 }
 
-// Swagger
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new()
-    {
-        Title = "MeuSocietario API",
-        Version = "v1",
-        Description = "API for managing corporate processes",
-        Contact = new OpenApiContact
-        {
-            Name = "Vert Contábil",
-            Email = "contato@vertgroup.com"
-        }
-    });
-
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
-
-    c.EnableAnnotations();
-    c.OperationFilter<TenantHeaderOperationFilter>();
-});
-
 builder.Services
     .InstallServicesFromAssemblies(
         builder.Configuration,
         Web.AssemblyReference.Assembly,
-        Core.Persistence.AssemblyReference.Assembly,
-        Core.Infrastructure.AssemblyReference.Assembly)
+        Core.Persistence.AssemblyReference.Assembly)
     .InstallModulesFromAssemblies(
         builder.Configuration,
-        Identity.Infrastructure.AssemblyReference.Assembly,
-        Corporate.Infrastructure.AssemblyReference.Assembly,
-        Subscription.Infrastructure.AssemblyReference.Assembly,
-        Payment.Infrastructure.AssemblyReference.Assembly);
+        Corporate.Infrastructure.AssemblyReference.Assembly);
 
-// Multi-tenant
-builder.Services.AddMultiTenant<Core.Domain.Entities.Tenant>()
-    .WithEFCoreStore<ApplicationDbContext, Core.Domain.Entities.Tenant>()
-    .WithHeaderStrategy("X-Tenant-ID");
+builder.Services
+    .AddApiVersioning(options =>
+    {
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.ReportApiVersions = true;
+        options.ApiVersionReader = ApiVersionReader.Combine(
+            new UrlSegmentApiVersionReader(),
+            new HeaderApiVersionReader("X-Api-Version"));
+    })
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 // CORS
 builder.Services.AddCors(options =>
@@ -100,9 +86,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Middleware pipeline
-app.UsePathBase("/api");
-app.UseRequestTimestamp();
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddlewares();
 
 // Add HTTP loggin for development
 if (app.Environment.IsDevelopment())
@@ -127,7 +111,6 @@ app.UseSerilogRequestLogging(options =>
 });
 
 app.UseHttpsRedirection();
-app.UseMultiTenant();
 app.UseCors("AllowAll");
 
 app.UseAuthentication();

@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Finbuckle.MultiTenant" Version="9.4.2" />
     <PackageReference Include="MediatR" Version="14.0.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.5.2" />
   </ItemGroup>
 
   <ItemGroup>

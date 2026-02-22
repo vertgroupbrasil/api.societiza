@@ -15,9 +15,11 @@
 
   <ItemGroup>
     <PackageReference Include="Ardalis.ApiEndpoints" Version="4.1.0" />
+    <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.1" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
     <PackageReference Include="CorrelationId" Version="3.0.1" />
-    <PackageReference Include="Finbuckle.MultiTenant.AspNetCore" Version="9.4.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -32,13 +34,10 @@
     <ProjectReference Include="..\Core\Core.Endpoints\Core.Endpoints.csproj" />
     <ProjectReference Include="..\Core\Core.Persistence\Core.Persistence.csproj" />
     <ProjectReference Include="..\Modules\Corporate\Corporate.Infrastructure\Corporate.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\Identity\Identity.Infrastructure\Identity.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\Payment\Payment.Infrastructure\Payment.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\Subscription\Subscription.Infrastructure\Subscription.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Endpoints\Identity\" />
+    <Folder Include="Endpoints\Corporate\Accountancy\Requests\" />
   </ItemGroup>
 
 </Project>

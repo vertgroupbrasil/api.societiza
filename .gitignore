@@ -6,10 +6,17 @@
 .claude
 .claude/
 
+# Specify Developer Kit files
+.specify/
+.github/agents/
+.github/prompts/
+
 # Documentation (local only)
 docs/
+copilot/
 
 # Legacy code builds (keep source, ignore builds)
+legacy/
 legacy/**/bin/
 legacy/**/obj/
 legacy/**/*.user
@@ -507,11 +514,6 @@ FodyWeavers.xsd
 
 # Secrets
 secrets.json
-appsettings.Local.json
-appsettings.Development.json
-appsettings.Production.json
-appsettings.Staging.json
-connectionstrings.json
 
 # Certificates & Keys
 *.pfx

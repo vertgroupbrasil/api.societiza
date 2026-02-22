@@ -1,4 +1,5 @@
 ﻿using Core.Application.ServiceLifetimes;
+using Core.Application.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -7,7 +8,6 @@ namespace Core.Persistence.UnitOfWork;
 public class UnitOfWork<TContext>(TContext dbContext) : IUnitOfWork<TContext>, IScoped
         where TContext : DbContext
 {
-    private readonly TContext _dbContext = dbContext;
     private readonly DatabaseFacade _database = dbContext.Database;
 
     public Task ExecuteAsync(Func<CancellationToken, Task> operationAsync, CancellationToken cancellationToken)
@@ -17,8 +17,15 @@ public class UnitOfWork<TContext>(TContext dbContext) : IUnitOfWork<TContext>, I
     {
         await using var transaction = await _database.BeginTransactionAsync(cancellationToken);
 
-        await operationAsync(cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        try
+        {
+            await operationAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

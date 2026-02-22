@@ -1,15 +1,22 @@
 ﻿using Core.Application.Behaviors;
 using Core.Infrastructure.Configurations;
+using Core.Shared.Extensions;
+using Corporate.Application.Services;
+using Corporate.Infrastructure.Services;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Corporate.Infrastructure.ServiceInstallers;
 
-public sealed class ApplicationServiceInstaller : IServiceInstaller
+internal sealed class ApplicationServiceInstaller : IServiceInstaller
 {
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
+        services.Tap(services.TryAddTransient<ICorporateApplicationService, CorporateApplicationService>);
+        //services.AddEventInteractors();
+
         services.AddMediatR(config =>
         {
             config.RegisterServicesFromAssembly(Application.AssemblyReference.Assembly);

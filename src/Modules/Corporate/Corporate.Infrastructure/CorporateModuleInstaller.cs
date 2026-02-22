@@ -7,8 +7,16 @@ namespace Corporate.Infrastructure;
 
 public sealed class CorporateModuleInstaller : IModuleInstaller
 {
-    public void Install(IServiceCollection services, IConfiguration configuration) =>
-        services.InstallServicesFromAssemblies(
-            configuration, 
-            AssemblyReference.Assembly);
+    public void Install(IServiceCollection services, IConfiguration configuration)
+    {
+        services.InstallServicesFromAssemblies(configuration, AssemblyReference.Assembly);
+
+        services
+            .AddTransientAsMatchingInterfaces(AssemblyReference.Assembly)
+            .AddScopedAsMatchingInterfaces(AssemblyReference.Assembly);
+
+        services
+            .AddTransientAsMatchingInterfaces(Persistence.AssemblyReference.Assembly)
+            .AddScopedAsMatchingInterfaces(Persistence.AssemblyReference.Assembly);
+    }
 }

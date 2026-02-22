@@ -59,9 +59,9 @@ public sealed class RequestLoggingPipelineBehavior<TRequest, TResponse> : IPipel
         }
     }
 
-    private static string GetModuleName(string fullName)
+    private static string GetModuleName(string requestName)
     {
-        var parts = fullName.Split('.');
+        var parts = requestName.Split('.');
         return parts.Length > 1 ? parts[^2] : "Unknown";
     }
 }

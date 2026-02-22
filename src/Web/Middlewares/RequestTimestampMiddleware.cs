@@ -26,14 +26,3 @@ public class RequestTimestampMiddleware
         await _next(context);
     }
 }
-
-/// <summary>
-/// Extension class to register the middleware
-/// </summary>
-public static class RequestTimestampMiddlewareExtensions
-{
-    public static IApplicationBuilder UseRequestTimestamp(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<RequestTimestampMiddleware>();
-    }
-}
