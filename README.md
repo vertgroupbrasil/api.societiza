@@ -5,7 +5,7 @@
 ### 1. Subir a infraestrutura local
 
 ```bash
-docker compose -f Docker/docker-compose.Infrastructure.Development.yaml up -d
+docker-compose -f Docker/docker-compose.Infrastructure.Development.yaml up -d
 ```
 
 ### 2. Configurar credenciais
@@ -39,4 +39,5 @@ docker run --rm -p 5258:8080 \
 ```
 
 - API: **http://localhost:5258/api**
+
 - Swagger: **http://localhost:5258/api/swagger**
