@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Accountancy.Persistence\Accountancy.Persistence.csproj" />
+    <ProjectReference Include="..\Accountancy.Shared\Accountancy.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="UseCases\Commands\" />
+    <Folder Include="UseCases\Events\" />
+    <Folder Include="UseCases\Queries\" />
+  </ItemGroup>
+
+</Project>

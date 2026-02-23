@@ -7,13 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Endpoints\Routes\**" />
-    <Content Remove="Endpoints\Routes\**" />
-    <EmbeddedResource Remove="Endpoints\Routes\**" />
-    <None Remove="Endpoints\Routes\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Ardalis.ApiEndpoints" Version="4.1.0" />
     <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.1" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
@@ -33,11 +26,8 @@
     <ProjectReference Include="..\Core\Core.Domain\Core.Domain.csproj" />
     <ProjectReference Include="..\Core\Core.Endpoints\Core.Endpoints.csproj" />
     <ProjectReference Include="..\Core\Core.Persistence\Core.Persistence.csproj" />
-    <ProjectReference Include="..\Modules\Corporate\Corporate.Infrastructure\Corporate.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Endpoints\Corporate\Accountancy\Requests\" />
+    <ProjectReference Include="..\Modules\Accountancy\Accountancy.Infrastructure\Accountancy.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Accountancy\Accountancy.Shared\Accountancy.Shared.csproj" />
   </ItemGroup>
 
 </Project>

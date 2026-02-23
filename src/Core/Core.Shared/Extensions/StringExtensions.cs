@@ -69,7 +69,7 @@ public static partial class StringExtensions
         return cnpj.EndsWith(digito);
     }
 
-    public static bool IsValidPostalCode(string postalCode)
+    public static bool IsValidPostalCode(this string postalCode)
     {
         if (string.IsNullOrWhiteSpace(postalCode))
             return false;
@@ -86,7 +86,7 @@ public static partial class StringExtensions
 
     }
 
-    public static bool IsValidPhoneNumber(string phoneNumber)
+    public static bool IsValidPhoneNumber(this string phoneNumber)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
             return false;

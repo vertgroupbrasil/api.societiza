@@ -54,7 +54,7 @@ builder.Services
         Core.Persistence.AssemblyReference.Assembly)
     .InstallModulesFromAssemblies(
         builder.Configuration,
-        Corporate.Infrastructure.AssemblyReference.Assembly);
+        Accountancy.Infrastructure.AssemblyReference.Assembly);
 
 builder.Services
     .AddApiVersioning(options =>

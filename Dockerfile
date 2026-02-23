@@ -10,11 +10,11 @@ COPY src/Core/Core.Application/Core.Application.csproj src/Core/Core.Application
 COPY src/Core/Core.Endpoints/Core.Endpoints.csproj src/Core/Core.Endpoints/
 COPY src/Core/Core.Infrastructure/Core.Infrastructure.csproj src/Core/Core.Infrastructure/
 COPY src/Core/Core.Persistence/Core.Persistence.csproj src/Core/Core.Persistence/
-COPY src/Modules/Corporate/Corporate.Domain/Corporate.Domain.csproj src/Modules/Corporate/Corporate.Domain/
-COPY src/Modules/Corporate/Corporate.Application/Corporate.Application.csproj src/Modules/Corporate/Corporate.Application/
-COPY src/Modules/Corporate/Corporate.Persistence/Corporate.Persistence.csproj src/Modules/Corporate/Corporate.Persistence/
-COPY src/Modules/Corporate/Corporate.Infrastructure/Corporate.Infrastructure.csproj src/Modules/Corporate/Corporate.Infrastructure/
-COPY src/Modules/Corporate/Corporate.Shared/Corporate.Shared.csproj src/Modules/Corporate/Corporate.Shared/
+COPY src/Modules/Accountancy/Accountancy.Domain/Accountancy.Domain.csproj src/Modules/Accountancy/Accountancy.Domain/
+COPY src/Modules/Accountancy/Accountancy.Application/Accountancy.Application.csproj src/Modules/Accountancy/Accountancy.Application/
+COPY src/Modules/Accountancy/Accountancy.Persistence/Accountancy.Persistence.csproj src/Modules/Accountancy/Accountancy.Persistence/
+COPY src/Modules/Accountancy/Accountancy.Infrastructure/Accountancy.Infrastructure.csproj src/Modules/Accountancy/Accountancy.Infrastructure/
+COPY src/Modules/Accountancy/Accountancy.Shared/Accountancy.Shared.csproj src/Modules/Accountancy/Accountancy.Shared/
 COPY src/Web/Web.csproj src/Web/
 
 # Restore dependencies (cached unless .csproj files change)
