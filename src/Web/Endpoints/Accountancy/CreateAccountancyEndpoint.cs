@@ -7,7 +7,7 @@ using Core.Shared.Results;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Web.Endpoints.Accountancy.Requests;
+using Web.Endpoints.Accountancy.Requests.Commands;
 using Web.Endpoints.Routes;
 
 namespace Web.Endpoints.Accountancy;
@@ -20,9 +20,10 @@ public sealed class CreateAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
     [HttpPost(AccountancyRoutes.CreateAccountancy)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
-            Summary = "",
-            Description = "",
+            Summary = "Criar uma nova contabilidade",
+            Description = "Cadastra uma nova contabilidade no sistema. O CNPJ deve ser único — retorna 409 (Conflict) caso já exista uma contabilidade com o mesmo CNPJ. Em caso de sucesso, retorna o identificador (GUID) da contabilidade criada.",
             Tags = [Tags.Accountancy])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(CreateAccountancyRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)

@@ -11,8 +11,4 @@
     <ProjectReference Include="..\Accountancy.Shared\Accountancy.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="UseCases\Queries\" />
-  </ItemGroup>
-
 </Project>

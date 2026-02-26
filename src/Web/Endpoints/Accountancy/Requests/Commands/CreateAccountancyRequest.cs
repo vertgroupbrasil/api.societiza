@@ -1,4 +1,4 @@
-﻿namespace Web.Endpoints.Accountancy.Requests;
+﻿namespace Web.Endpoints.Accountancy.Requests.Commands;
 
 public sealed class CreateAccountancyRequest
 {

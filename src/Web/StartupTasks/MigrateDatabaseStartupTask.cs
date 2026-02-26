@@ -17,6 +17,9 @@ internal sealed class MigrateDatabaseStartupTask(IServiceProvider provider) : Ba
     {
         TDbContext dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
-        await dbContext.Database.MigrateAsync(cancellationToken);
+        if (dbContext.Database.GetMigrations().Any())
+            await dbContext.Database.MigrateAsync(cancellationToken);
+        else
+            await dbContext.Database.EnsureCreatedAsync(cancellationToken);
     }
 }

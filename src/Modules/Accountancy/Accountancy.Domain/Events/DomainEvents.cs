@@ -35,4 +35,9 @@ public static class DomainEvents
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record AccountancyDeleted(
+        Guid Id,
+        ulong Version
+    ) : Message, IDomainEvent;
 }

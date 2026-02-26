@@ -12,11 +12,11 @@ public class Projection<TProjection>(IMongoDbContext context) : IProjection<TPro
 {
     private readonly IMongoCollection<TProjection> _collection = context.GetCollection<TProjection>();
 
-    public Task<TProjection> GetByIdAsync<TId>(TId id, CancellationToken cancellationToken = default) where TId : struct
+    public Task<TProjection?> GetByIdAsync<TId>(TId id, CancellationToken cancellationToken = default) where TId : struct
         => FindAsync(projection => projection.Id.Equals(id), cancellationToken);
 
-    public Task<TProjection> FindAsync(Expression<Func<TProjection, bool>> predicate, CancellationToken cancellationToken = default)
-        => _collection.AsQueryable().Where(predicate).FirstOrDefaultAsync(cancellationToken)!;
+    public Task<TProjection?> FindAsync(Expression<Func<TProjection, bool>> predicate, CancellationToken cancellationToken = default)
+        => _collection.AsQueryable().Where(predicate).FirstOrDefaultAsync(cancellationToken);
 
     public Task<List<TProjection>> ListAsync(CancellationToken cancellationToken = default)
         => _collection.AsQueryable().ToListAsync(cancellationToken: cancellationToken);

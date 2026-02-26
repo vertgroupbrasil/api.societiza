@@ -16,6 +16,7 @@ public static class ProjectionModel
         string Phone,
         string? Email,
         DateTimeOffset CreatedAt,
-        DateTimeOffset? UpdatedAt
+        DateTimeOffset? UpdatedAt,
+        bool IsDeleted = false
     ) : IProjectionModel { };
 }

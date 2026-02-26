@@ -1,6 +1,7 @@
-﻿using Core.Domain.Events.Interfaces;
+﻿using Accountancy.Domain.Events;
+using Core.Domain.Events.Interfaces;
 using Core.Domain.Primitives;
-using Accountancy.Domain.Events;
+using Core.Shared.Extensions;
 
 namespace Accountancy.Domain.Aggregates;
 
@@ -22,14 +23,14 @@ public class Accountancy : AggregateRoot
 
         accountancy.RaiseEvent<DomainEvents.AccountancyCreated>(version => new(
             Id: accountancy.Id,
-            CNPJ: cnpj,
+            CNPJ: cnpj.OnlyDigits(),
             LegalName: legalName,
             TradeName: tradeName,
             Address: address,
             City: city,
             State: state,
-            PostalCode: postalCode,
-            Phone: phone,
+            PostalCode: postalCode.OnlyDigits(),
+            Phone: phone.OnlyDigits(),
             Email: email,
             CreatedAt: accountancy.CreatedAt,
             Version: version
@@ -42,20 +43,23 @@ public class Accountancy : AggregateRoot
     {
         RaiseEvent<DomainEvents.AccountancyUpdated>(version => new(
             Id: Id,
-            CNPJ: cnpj,
+            CNPJ: cnpj.OnlyDigits(),
             LegalName: legalName,
             TradeName: tradeName,
             Address: address,
             City: city,
             State: state,
-            PostalCode: postalCode,
-            Phone: phone,
+            PostalCode: postalCode.OnlyDigits(),
+            Phone: phone.OnlyDigits(),
             Email: email,
             CreatedAt: CreatedAt,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
     }
+
+    public void Delete()
+        => RaiseEvent<DomainEvents.AccountancyDeleted>(version => new(Id: Id, Version: version));
 
     protected override void ApplyEvent(IDomainEvent @event)
         => When(@event as dynamic);
@@ -86,4 +90,7 @@ public class Accountancy : AggregateRoot
         Phone = @event.Phone;
         Email = @event.Email;
     }
+
+    private void When(DomainEvents.AccountancyDeleted @event)
+        => IsDeleted = true;
 }

@@ -3,6 +3,7 @@ using Accountancy.Domain.Projection;
 using Accountancy.Persistence.Projection;
 using Accountancy.Shared.Commands;
 using Core.Application.Messaging.Commands;
+using Core.Shared.Extensions;
 using Core.Shared.Response;
 using Core.Shared.Results;
 
@@ -16,11 +17,11 @@ public class CreateAccountancyHandler(
 {
     public async Task<Result<IdentifierResponse>> Handle(CreateAccountancyCommand request, CancellationToken cancellationToken)
     {
-        var existingAccountancy = await accountancyProjection.FindAsync(x => x.CNPJ == request.CNPJ, cancellationToken);
+        var existingAccountancy = await accountancyProjection.FindAsync(x => x.CNPJ == request.CNPJ.OnlyDigits(), cancellationToken);
 
         if (existingAccountancy is not null)
-            return Result.Failure<IdentifierResponse>(new Core.Shared.Errors.Error(
-                "CNPJAlreadyExists", "An accountancy with the same CNPJ already exists"));
+            return Result.Failure<IdentifierResponse>(new Core.Shared.Errors.ConflictError(new(
+                "CNPJAlreadyExists", "An accountancy with the same CNPJ already exists")));
 
         var accountancy = AccountancyAggregate.Create(
             cnpj: request.CNPJ,

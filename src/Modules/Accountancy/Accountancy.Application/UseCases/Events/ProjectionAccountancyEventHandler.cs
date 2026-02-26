@@ -2,17 +2,18 @@
 using Accountancy.Domain.Projection;
 using Accountancy.Persistence.Projection;
 using Core.Application.EventBus;
-using DnsClient.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace Accountancy.Application.UseCases.Events;
 
 public interface IProjectionAccountancyEventHandler :
     IEventHandler<DomainEvents.AccountancyCreated>,
-    IEventHandler<DomainEvents.AccountancyUpdated>;
+    IEventHandler<DomainEvents.AccountancyUpdated>,
+    IEventHandler<DomainEvents.AccountancyDeleted>;
 
 public class ProjectionAccountancyEventHandler(
     IAccountancyProjection<ProjectionModel.Accountancy> accountancyProjection,
-    ILogger logger) : IProjectionAccountancyEventHandler
+    ILogger<ProjectionAccountancyEventHandler> logger) : IProjectionAccountancyEventHandler
 {
     public async Task Handle(DomainEvents.AccountancyCreated @event, CancellationToken cancellationToken = default)
     {
@@ -63,6 +64,23 @@ public class ProjectionAccountancyEventHandler(
         {
             logger.LogError(ex, "Failed to update accountancy: {Id}.", @event.Id);
             throw new InvalidOperationException($"Failed to update accountancy: {@event.Id}.", ex);
+        }
+    }
+
+    public async Task Handle(DomainEvents.AccountancyDeleted @event, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await accountancyProjection.UpdateOneFieldAsync(
+                @event.Id,
+                x => x.IsDeleted,
+                true,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to delete accountancy: {Id}.", @event.Id);
+            throw new InvalidOperationException($"Failed to delete accountancy: {@event.Id}.", ex);
         }
     }
 }

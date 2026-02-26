@@ -6,7 +6,7 @@ using Core.Shared.Results;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Web.Endpoints.Accountancy.Requests;
+using Web.Endpoints.Accountancy.Requests.Commands;
 using Web.Endpoints.Routes;
 
 namespace Web.Endpoints.Accountancy;
@@ -16,26 +16,26 @@ public sealed class UpdateAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
     .WithActionResult
 {
     [ApiVersion("1.0")]
-    [HttpPost(AccountancyRoutes.UpdateAccountancy)]
+    [HttpPut(AccountancyRoutes.UpdateAccountancy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [SwaggerOperation(
-            Summary = "",
-            Description = "",
+            Summary = "Atualizar dados de uma contabilidade",
+            Description = "Atualiza os dados cadastrais de uma contabilidade existente a partir do seu identificador único (GUID). Todos os campos editáveis devem ser enviados no body da requisição.",
             Tags = [Tags.Accountancy])]
     public override async Task<ActionResult> HandleAsync(UpdateAccountancyRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new UpdateAccountancyCommand(
                 Id: request.Id,
-                CNPJ: request.CNPJ,
-                LegalName: request.LegalName,
-                TradeName: request.TradeName,
-                Address: request.Address,
-                City: request.City,
-                State: request.State,
-                PostalCode: request.PostalCode,
-                Phone: request.Phone,
-                Email: request.Email))
+                CNPJ: request.Body.CNPJ,
+                LegalName: request.Body.LegalName,
+                TradeName: request.Body.TradeName,
+                Address: request.Body.Address,
+                City: request.Body.City,
+                State: request.Body.State,
+                PostalCode: request.Body.PostalCode,
+                Phone: request.Body.Phone,
+                Email: request.Body.Email))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

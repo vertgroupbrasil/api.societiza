@@ -13,8 +13,6 @@ public static class RabbitMqBusFactoryConfiguratorExtensions
                 queueName: $"webbff.{module}.{typeof(TConsumer).ToKebabCaseString()}.{typeof(TMessage).ToKebabCaseString()}",
                 configureEndpoint: endpoint =>
                 {
-                    endpoint.ConfigureConsumeTopology = false;
-                    endpoint.Bind<TMessage>();
                     endpoint.ConfigureConsumer<TConsumer>(context);
                 });
 }

@@ -4,9 +4,9 @@ using FluentValidation;
 
 namespace Accountancy.Application.UseCases.Validators;
 
-internal sealed class UpdateAccountancyValidator : AbstractValidator<UpdateAccountancyCommand>
+public sealed class UpdateAccountancyValidator : AbstractValidator<UpdateAccountancyCommand>
 {
-    internal UpdateAccountancyValidator()
+    public UpdateAccountancyValidator()
     {
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("Id is required")
@@ -18,18 +18,18 @@ internal sealed class UpdateAccountancyValidator : AbstractValidator<UpdateAccou
 
         RuleFor(x => x.LegalName)
             .NotEmpty().WithMessage("Legal name is required")
-            .Length(5, 150).WithMessage("Legal name must be between 5 and 150 characters");
+            .MaximumLength(150).WithMessage("Legal name cannot exceed 150 characters");
 
         RuleFor(x => x.TradeName)
-            .Length(0, 150).WithMessage("Trade name cannot exceed 150 characters");
+            .MaximumLength(150).WithMessage("Trade name cannot exceed 150 characters");
 
         RuleFor(x => x.Address)
             .NotEmpty().WithMessage("Address is required")
-            .Length(5, 200).WithMessage("Address must be between 5 and 200 characters");
+            .MaximumLength(200).WithMessage("Address cannot exceed 200 characters");
 
         RuleFor(x => x.City)
             .NotEmpty().WithMessage("City is required")
-            .Length(2, 100).WithMessage("City must be between 2 and 100 characters");
+            .MaximumLength(100).WithMessage("City cannot exceed 100 characters");
 
         RuleFor(x => x.State)
             .NotEmpty().WithMessage("State is required")

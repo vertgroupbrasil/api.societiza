@@ -7,8 +7,8 @@ namespace Core.Domain.Projection;
 public interface IProjection<TProjection>
     where TProjection : IProjectionModel
 {
-    Task<TProjection> GetByIdAsync<TId>(TId id, CancellationToken cancellationToken = default) where TId : struct;
-    Task<TProjection> FindAsync(Expression<Func<TProjection, bool>> predicate, CancellationToken cancellationToken = default);
+    Task<TProjection?> GetByIdAsync<TId>(TId id, CancellationToken cancellationToken = default) where TId : struct;
+    Task<TProjection?> FindAsync(Expression<Func<TProjection, bool>> predicate, CancellationToken cancellationToken = default);
 
     Task<List<TProjection>> ListAsync(CancellationToken cancellationToken = default);
     Task<List<TProjection>> ListAsync(Expression<Func<TProjection, bool>> predicate, CancellationToken cancellationToken = default);
