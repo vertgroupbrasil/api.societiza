@@ -6,26 +6,27 @@ using Core.Shared.Results;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Web.Endpoints.Corporate.Requests;
+using Web.Endpoints.Accountancy.Requests;
 using Web.Endpoints.Routes;
 
-namespace Web.Endpoints.Corporate;
+namespace Web.Endpoints.Accountancy;
 
-public sealed class CreateAccountancyEndpoint(ISender sender) : EndpointBaseAsync
-    .WithRequest<CreateAccountancyRequest>
+public sealed class UpdateAccountancyEndpoint(ISender sender) : EndpointBaseAsync
+    .WithRequest<UpdateAccountancyRequest>
     .WithActionResult
 {
     [ApiVersion("1.0")]
-    [HttpPost(CorporateRoutes.CreateAccountancy)]
+    [HttpPost(AccountancyRoutes.UpdateAccountancy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [SwaggerOperation(
             Summary = "",
             Description = "",
             Tags = [Tags.Accountancy])]
-    public override async Task<ActionResult> HandleAsync(CreateAccountancyRequest request, CancellationToken cancellationToken) =>
-        await Result.Create(request)
-            .Map(request => new CreateAccountancyCommand(
+    public override async Task<ActionResult> HandleAsync(UpdateAccountancyRequest request, CancellationToken cancellationToken = default)
+        => await Result.Create(request)
+            .Map(request => new UpdateAccountancyCommand(
+                Id: request.Id,
                 CNPJ: request.CNPJ,
                 LegalName: request.LegalName,
                 TradeName: request.TradeName,

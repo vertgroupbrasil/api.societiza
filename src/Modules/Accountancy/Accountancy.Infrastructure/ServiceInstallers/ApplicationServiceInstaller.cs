@@ -7,6 +7,7 @@ using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Accountancy.Application.DependencyInjection;
 
 namespace Accountancy.Infrastructure.ServiceInstallers;
 
@@ -15,7 +16,7 @@ internal sealed class ApplicationServiceInstaller : IServiceInstaller
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
         services.Tap(services.TryAddTransient<IAccountancyApplicationService, AccountancyApplicationService>);
-        //services.AddEventInteractors();
+        services.AddEventInteractors();
 
         services.AddMediatR(config =>
         {

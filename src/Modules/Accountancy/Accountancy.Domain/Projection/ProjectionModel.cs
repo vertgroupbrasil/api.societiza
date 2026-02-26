@@ -6,8 +6,8 @@ public static class ProjectionModel
 {
     public record Accountancy(
         Guid Id,
-        string LegalName,
         string CNPJ,
+        string LegalName,
         string? TradeName,
         string Address,
         string City,

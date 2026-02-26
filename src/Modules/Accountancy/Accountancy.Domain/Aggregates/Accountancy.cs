@@ -16,14 +16,14 @@ public class Accountancy : AggregateRoot
     public string Phone { get; private set; } = string.Empty;
     public string? Email { get; private set; } = string.Empty;
 
-    public static Accountancy Create(string legalName, string cnpj, string? tradeName, string address, string city, string state, string postalCode, string phone, string? email)
+    public static Accountancy Create(string cnpj, string legalName, string? tradeName, string address, string city, string state, string postalCode, string phone, string? email)
     {
         Accountancy accountancy = new();
 
         accountancy.RaiseEvent<DomainEvents.AccountancyCreated>(version => new(
             Id: accountancy.Id,
-            LegalName: legalName,
             CNPJ: cnpj,
+            LegalName: legalName,
             TradeName: tradeName,
             Address: address,
             City: city,
@@ -38,12 +38,12 @@ public class Accountancy : AggregateRoot
         return accountancy;
     }
 
-    public void Update(string legalName, string cnpj, string? tradeName, string address, string city, string state, string postalCode, string phone, string? email)
+    public void Update(string cnpj, string legalName, string? tradeName, string address, string city, string state, string postalCode, string phone, string? email)
     {
         RaiseEvent<DomainEvents.AccountancyUpdated>(version => new(
             Id: Id,
-            LegalName: legalName,
             CNPJ: cnpj,
+            LegalName: legalName,
             TradeName: tradeName,
             Address: address,
             City: city,
@@ -51,17 +51,9 @@ public class Accountancy : AggregateRoot
             PostalCode: postalCode,
             Phone: phone,
             Email: email,
+            CreatedAt: CreatedAt,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
-         ));
-    }
-
-    public void Delete()
-    {
-        RaiseEvent<DomainEvents.AccountancyDeleted>(version => new(
-            Id: Id, 
-            UpdatedAt: DateTimeOffset.UtcNow,
-            version
         ));
     }
 
@@ -71,8 +63,8 @@ public class Accountancy : AggregateRoot
     private void When(DomainEvents.AccountancyCreated @event)
     {
         Id = @event.Id;
-        LegalName = @event.LegalName;
         CNPJ = @event.CNPJ;
+        LegalName = @event.LegalName;
         TradeName = @event.TradeName;
         Address = @event.Address;
         City = @event.City;
@@ -84,8 +76,8 @@ public class Accountancy : AggregateRoot
 
     private void When(DomainEvents.AccountancyUpdated @event)
     {
-        LegalName = @event.LegalName;
         CNPJ = @event.CNPJ;
+        LegalName = @event.LegalName;
         TradeName = @event.TradeName;
         Address = @event.Address;
         City = @event.City;
@@ -93,12 +85,5 @@ public class Accountancy : AggregateRoot
         PostalCode = @event.PostalCode;
         Phone = @event.Phone;
         Email = @event.Email;
-        UpdatedAt = @event.UpdatedAt;
-    }
-
-    private void When(DomainEvents.AccountancyDeleted @event)
-    {
-        IsDeleted = true;
-        UpdatedAt = @event.UpdatedAt;
     }
 }

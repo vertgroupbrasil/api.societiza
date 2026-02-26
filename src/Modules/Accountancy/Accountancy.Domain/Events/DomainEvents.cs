@@ -7,8 +7,8 @@ public static class DomainEvents
 {
     public sealed record AccountancyCreated(
         Guid Id,
-        string LegalName,
         string CNPJ,
+        string LegalName,
         string? TradeName,
         string Address,
         string City,
@@ -22,8 +22,8 @@ public static class DomainEvents
 
     public sealed record AccountancyUpdated(
         Guid Id,
-        string LegalName,
         string CNPJ,
+        string LegalName,
         string? TradeName,
         string Address,
         string City,
@@ -31,12 +31,7 @@ public static class DomainEvents
         string PostalCode,
         string Phone,
         string? Email,
-        DateTimeOffset UpdatedAt,
-        ulong Version
-    ) : Message, IDomainEvent;
-
-    public sealed record AccountancyDeleted(
-        Guid Id,
+        DateTimeOffset CreatedAt,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
