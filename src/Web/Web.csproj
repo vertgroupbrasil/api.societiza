@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Core\Core.Persistence\Core.Persistence.csproj" />
     <ProjectReference Include="..\Modules\Accountancy\Accountancy.Infrastructure\Accountancy.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Accountancy\Accountancy.Shared\Accountancy.Shared.csproj" />
+    <ProjectReference Include="..\Modules\Workflow\Workflow.Infrastructure\Workflow.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

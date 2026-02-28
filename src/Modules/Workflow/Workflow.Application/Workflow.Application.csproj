@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="DependencyInjection\" />
+    <Folder Include="UseCases\Commands\" />
+    <Folder Include="UseCases\Events\" />
+    <Folder Include="UseCases\Validators\" />
+    <Folder Include="UseCases\Queries\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Core\Core.Application\Core.Application.csproj" />
+    <ProjectReference Include="..\Workflow.Persistence\Workflow.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>
