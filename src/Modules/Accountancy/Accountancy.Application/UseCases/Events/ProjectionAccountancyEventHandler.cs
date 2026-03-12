@@ -45,19 +45,17 @@ public class ProjectionAccountancyEventHandler(
     {
         try
         {
-            await accountancyProjection.ReplaceInsertAsync(new(
-                @event.Id,
-                @event.CNPJ,
-                @event.LegalName,
-                @event.TradeName,
-                @event.Address,
-                @event.City,
-                @event.State,
-                @event.PostalCode,
-                @event.Phone,
-                @event.Email,
-                @event.CreatedAt,
-                @event.UpdatedAt),
+            await accountancyProjection.UpdateFieldsAsync(@event.Id, builder => builder
+                .Set(x => x.CNPJ, @event.CNPJ)
+                .Set(x => x.LegalName, @event.LegalName)
+                .Set(x => x.TradeName, @event.TradeName)
+                .Set(x => x.Address, @event.Address)
+                .Set(x => x.City, @event.City)
+                .Set(x => x.State, @event.State)
+                .Set(x => x.PostalCode, @event.PostalCode)
+                .Set(x => x.Phone, @event.Phone)
+                .Set(x => x.Email, @event.Email)
+                .Set(x => x.UpdatedAt, @event.UpdatedAt),
             cancellationToken);
         }
         catch (Exception ex)

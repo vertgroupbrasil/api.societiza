@@ -24,6 +24,8 @@ public interface IProjection<TProjection>
 
     Task UpdateManyFieldAsync<TField>(Expression<Func<TProjection, bool>> filter, Expression<Func<TProjection, TField>> field, TField value, CancellationToken cancellationToken = default);
 
+    Task UpdateFieldsAsync<TId>(TId id, Action<FieldUpdateBuilder<TProjection>> buildUpdates, CancellationToken cancellationToken = default) where TId : struct;
+
     Task DeleteAsync<TId>(TId id, CancellationToken cancellationToken = default) where TId : struct;
     Task DeleteAsync(Expression<Func<TProjection, bool>> filter, CancellationToken cancellationToken = default);
 

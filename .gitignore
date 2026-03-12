@@ -5,6 +5,7 @@
 # Claude AI files
 .claude
 .claude/
+claude_context/
 
 # Specify Developer Kit files
 .specify/

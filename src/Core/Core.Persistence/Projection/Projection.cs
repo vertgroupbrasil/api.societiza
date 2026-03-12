@@ -54,6 +54,16 @@ public class Projection<TProjection>(IMongoDbContext context) : IProjection<TPro
     public ValueTask RebuildInsertAsync(TProjection replacement, Expression<Func<TProjection, bool>> filter, CancellationToken cancellationToken = default)
         => OnReplaceAsync(replacement, filter, cancellationToken);
 
+    public async Task UpdateFieldsAsync<TId>(TId id, Action<FieldUpdateBuilder<TProjection>> buildUpdates, CancellationToken cancellationToken = default) where TId : struct
+    {
+        var builder = new FieldUpdateBuilder<TProjection>();
+        buildUpdates(builder);
+
+        var updateDefinition = builder.Build();
+        if (updateDefinition is not null)
+            await _collection.UpdateOneAsync(projection => projection.Id.Equals(id), updateDefinition, cancellationToken: cancellationToken);
+    }
+
     public Task DeleteAsync<TId>(TId id, CancellationToken cancellationToken = default) where TId : struct
         => _collection.DeleteOneAsync(projection => projection.Id.Equals(id), cancellationToken);
 

@@ -3,17 +3,13 @@ using Core.Infrastructure.Extensions;
 using DotNetEnv;
 using Serilog;
 using Serilog.Events;
+using User.Domain.Aggregates;
 using Web.Extensions;
 
 // Load environment variables (in order: .env first, then .env.local for overrides)
 if (File.Exists(".env"))
 {
     Env.Load();
-}
-
-if (File.Exists(".env.local"))
-{
-    Env.Load(".env.local");
 }
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,8 +50,10 @@ builder.Services
         Core.Persistence.AssemblyReference.Assembly)
     .InstallModulesFromAssemblies(
         builder.Configuration,
+        User.Infrastructure.AssemblyReference.Assembly,
         Accountancy.Infrastructure.AssemblyReference.Assembly,
-        Workflow.Infrastructure.AssemblyReference.Assembly);
+        WorkflowProcess.Infrastructure.AssemblyReference.Assembly,
+        WorkflowTemplate.Infrastructure.AssemblyReference.Assembly);
 
 builder.Services
     .AddApiVersioning(options =>

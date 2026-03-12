@@ -52,7 +52,6 @@ public class Accountancy : AggregateRoot
             PostalCode: postalCode.OnlyDigits(),
             Phone: phone.OnlyDigits(),
             Email: email,
-            CreatedAt: CreatedAt,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -89,6 +88,7 @@ public class Accountancy : AggregateRoot
         PostalCode = @event.PostalCode;
         Phone = @event.Phone;
         Email = @event.Email;
+        UpdatedAt = @event.UpdatedAt;
     }
 
     private void When(DomainEvents.AccountancyDeleted @event)

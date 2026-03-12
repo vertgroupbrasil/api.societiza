@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Endpoints\Modules\WorkflowTemplate\Step\**" />
+    <Content Remove="Endpoints\Modules\WorkflowTemplate\Step\**" />
+    <EmbeddedResource Remove="Endpoints\Modules\WorkflowTemplate\Step\**" />
+    <None Remove="Endpoints\Modules\WorkflowTemplate\Step\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Ardalis.ApiEndpoints" Version="4.1.0" />
     <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.1" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
@@ -28,7 +35,13 @@
     <ProjectReference Include="..\Core\Core.Persistence\Core.Persistence.csproj" />
     <ProjectReference Include="..\Modules\Accountancy\Accountancy.Infrastructure\Accountancy.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Accountancy\Accountancy.Shared\Accountancy.Shared.csproj" />
-    <ProjectReference Include="..\Modules\Workflow\Workflow.Infrastructure\Workflow.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\User\User.Infrastructure\User.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\WorkflowProcess\WorkflowProcess.Infrastructure\WorkflowProcess.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\WorkflowTemplate\WorkflowTemplate.Infrastructure\WorkflowTemplate.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Endpoints\Modules\WorkflowTemplate\Template\Requests\Queries\" />
   </ItemGroup>
 
 </Project>

@@ -31,7 +31,6 @@ public static class DomainEvents
         string PostalCode,
         string Phone,
         string? Email,
-        DateTimeOffset CreatedAt,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
