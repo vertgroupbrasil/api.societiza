@@ -20,10 +20,10 @@ public sealed class UpdateWorkflowTemplateStepTaskEndpoint(ISender sender) : End
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [SwaggerOperation(
+        [SwaggerOperation(
             Summary = "Atualizar uma tarefa de uma etapa do template",
             Description = "Atualiza o título, descrição, tipo, configuração e ordem de uma tarefa (task) existente em uma etapa (step) do template de workflow.",
-            Tags = [Tags.WorkflowTemplate])]
+                Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult> HandleAsync(UpdateWorkflowTemplateStepTaskRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new UpdateWorkflowTemplateStepTaskCommand(

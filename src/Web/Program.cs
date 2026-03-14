@@ -3,7 +3,6 @@ using Core.Infrastructure.Extensions;
 using DotNetEnv;
 using Serilog;
 using Serilog.Events;
-using User.Domain.Aggregates;
 using Web.Extensions;
 
 // Load environment variables (in order: .env first, then .env.local for overrides)
@@ -50,9 +49,7 @@ builder.Services
         Core.Persistence.AssemblyReference.Assembly)
     .InstallModulesFromAssemblies(
         builder.Configuration,
-        User.Infrastructure.AssemblyReference.Assembly,
         Accountancy.Infrastructure.AssemblyReference.Assembly,
-        WorkflowProcess.Infrastructure.AssemblyReference.Assembly,
         WorkflowTemplate.Infrastructure.AssemblyReference.Assembly);
 
 builder.Services

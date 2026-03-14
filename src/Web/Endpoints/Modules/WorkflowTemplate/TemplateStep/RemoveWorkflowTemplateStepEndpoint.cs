@@ -20,9 +20,9 @@ public sealed class RemoveWorkflowTemplateStepEndpoint(ISender sender) : Endpoin
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [SwaggerOperation(
-            Summary = "Remover uma etapa do template de workflow",
-            Description = "Remove uma etapa (step) existente do template de workflow especificado.",
+        [SwaggerOperation(
+                Summary = "Remover uma etapa do template de workflow",
+                Description = "Remove uma etapa (step) existente do template de workflow especificado.",
             Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult> HandleAsync(RemoveWorkflowTemplateStepRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)

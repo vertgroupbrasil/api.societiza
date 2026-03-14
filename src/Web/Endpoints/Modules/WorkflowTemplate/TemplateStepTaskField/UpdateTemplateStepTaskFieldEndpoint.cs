@@ -20,7 +20,7 @@ public sealed class UpdateTemplateStepTaskFieldEndpoint(ISender sender) : Endpoi
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [SwaggerOperation(
+        [SwaggerOperation(
             Summary = "Atualizar um campo de uma tarefa de uma etapa do template",
             Description = "Atualiza o label, tipo e opções de um campo (field) existente em uma tarefa (task) de uma etapa (step) do template de workflow.",
             Tags = [Tags.WorkflowTemplate])]

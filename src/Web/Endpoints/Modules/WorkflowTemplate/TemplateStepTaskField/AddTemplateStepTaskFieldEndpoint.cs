@@ -21,7 +21,7 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [SwaggerOperation(
+        [SwaggerOperation(
             Summary = "Adicionar um campo a uma tarefa de uma etapa do template",
             Description = "Adiciona um novo campo (field) a uma tarefa (task) de uma etapa (step) do template de workflow especificado. Retorna o identificador (GUID) do campo criado.",
             Tags = [Tags.WorkflowTemplate])]

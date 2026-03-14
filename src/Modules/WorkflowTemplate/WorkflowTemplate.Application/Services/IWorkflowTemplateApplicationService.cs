@@ -5,4 +5,5 @@ namespace WorkflowTemplate.Application.Services;
 
 public interface IWorkflowTemplateApplicationService : IApplicationService<WorkflowTemplateDbContext>
 {
+    
 }

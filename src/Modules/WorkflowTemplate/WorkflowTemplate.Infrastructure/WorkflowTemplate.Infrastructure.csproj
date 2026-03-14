@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Core\Core.Infrastructure\Core.Infrastructure.csproj" />
     <ProjectReference Include="..\WorkflowTemplate.Application\WorkflowTemplate.Application.csproj" />
+    <ProjectReference Include="..\WorkflowTemplate.Persistence\WorkflowTemplate.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

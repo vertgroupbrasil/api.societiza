@@ -21,10 +21,10 @@ public sealed class AddWorkflowTemplateStepTaskEndpoint(ISender sender) : Endpoi
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [SwaggerOperation(
+        [SwaggerOperation(
             Summary = "Adicionar uma tarefa a uma etapa do template",
             Description = "Adiciona uma nova tarefa (task) a uma etapa (step) do template de workflow especificado. Retorna o identificador (GUID) da tarefa criada.",
-            Tags = [Tags.WorkflowTemplate])]
+                Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddWorkflowTemplateStepTaskRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new AddWorkflowTemplateStepTaskCommand(

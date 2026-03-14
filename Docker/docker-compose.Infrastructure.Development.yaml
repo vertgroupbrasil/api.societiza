@@ -1,14 +1,14 @@
-name: meusocietario-dev
+name: societiza-dev
 
 services:
   postgres:
     image: postgres:latest
-    container_name: meusocietario-postgres-dev
+    container_name: societiza-postgres-dev
     restart: on-failure
     environment:
-      POSTGRES_USER: meusocietario
-      POSTGRES_PASSWORD: meusocietario
-      POSTGRES_DB: meusocietario
+      POSTGRES_USER: societiza
+      POSTGRES_PASSWORD: societiza
+      POSTGRES_DB: societiza
     ports:
       - "5432:5432"
     volumes:
@@ -20,11 +20,11 @@ services:
 
   mongodb:
     image: mongo:latest
-    container_name: meusocietario-mongodb-dev
+    container_name: societiza-mongodb-dev
     restart: on-failure
     environment:
-      MONGO_INITDB_ROOT_USERNAME: meusocietario
-      MONGO_INITDB_ROOT_PASSWORD: meusocietario
+      MONGO_INITDB_ROOT_USERNAME: societiza
+      MONGO_INITDB_ROOT_PASSWORD: societiza
     ports:
       - "27017:27017"
     volumes:
@@ -36,8 +36,8 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
-    container_name: meusocietario-rabbitmq-dev
-    hostname: meusocietario-rmq
+    container_name: societiza-rabbitmq-dev
+    hostname: societiza-rmq
     restart: on-failure
     environment:
       RABBITMQ_DEFAULT_USER: guest
@@ -62,4 +62,4 @@ volumes:
 
 networks:
   default:
-    name: meusocietario-dev
+    name: societiza-dev

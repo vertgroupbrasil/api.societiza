@@ -20,7 +20,7 @@ public sealed class RemoveTemplateStepTaskFieldEndpoint(ISender sender) : Endpoi
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [SwaggerOperation(
+        [SwaggerOperation(
             Summary = "Remover um campo de uma tarefa de uma etapa do template",
             Description = "Remove um campo (field) existente de uma tarefa (task) de uma etapa (step) do template de workflow especificado.",
             Tags = [Tags.WorkflowTemplate])]

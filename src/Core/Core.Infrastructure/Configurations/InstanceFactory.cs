@@ -8,7 +8,7 @@ internal static class InstanceFactory
         assemblies
             .SelectMany(assembly => assembly.DefinedTypes)
             .Where(IsAssignableToType<T>)
-            .Select(Activator.CreateInstance)
+            .Select(type => (T)Activator.CreateInstance(type)!)
             .Cast<T>();
 
     private static bool IsAssignableToType<T>(TypeInfo typeInfo) =>

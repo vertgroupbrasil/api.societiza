@@ -4,7 +4,7 @@ using Web.ServiceInstallers.EventBus.Extensions;
 
 namespace Web.ServiceInstallers.EventBus.Consumers.WorkflowTemplateModule;
 
-using WorkflowDomainEvent = WorkflowTemplate.Domain.Events.DomainEvents;
+using WorkflowTemplateDomainEvent = WorkflowTemplate.Domain.Events.DomainEvents;
 
 internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
 {
@@ -12,21 +12,25 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
 
     public void AddEventReceiveEndpoints(IRabbitMqBusFactoryConfigurator rabbitMqBusFactoryConfigurator, IRegistrationContext registrationContext)
     {
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowDomainEvent.WorkflowTemplateCreated>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowDomainEvent.WorkflowTemplateCreated>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowDomainEvent.WorkflowTemplateActivated>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowDomainEvent.WorkflowTemplateArchived>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateCreated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateUpdated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateActivated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateArchived>(registrationContext, MODULE_NAME);
 
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepConsumer, WorkflowDomainEvent.WorkflowTemplateStepAdded>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepConsumer, WorkflowDomainEvent.WorkflowTemplateStepUpdated>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepConsumer, WorkflowDomainEvent.WorkflowTemplateStepRemoved>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepAdded>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepUpdated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepRemoved>(registrationContext, MODULE_NAME);
 
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepTaskConsumer, WorkflowDomainEvent.WorkflowTemplateStepTaskAdded>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepTaskConsumer, WorkflowDomainEvent.WorkflowTemplateStepTaskUpdated>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepTaskConsumer, WorkflowDomainEvent.WorkflowTemplateStepTaskRemoved>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepTaskConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskAdded>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepTaskConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskUpdated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateStepTaskConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskRemoved>(registrationContext, MODULE_NAME);
 
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepFieldConsumer, WorkflowDomainEvent.WorkflowTemplateStepFieldAdded>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepFieldConsumer, WorkflowDomainEvent.WorkflowTemplateStepFieldUpdated>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepFieldConsumer, WorkflowDomainEvent.WorkflowTemplateStepFieldRemoved>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepFieldAdded>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepFieldUpdated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepFieldRemoved>(registrationContext, MODULE_NAME);
+
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepTaskFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskFieldAdded>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepTaskFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskFieldUpdated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepTaskFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskFieldRemoved>(registrationContext, MODULE_NAME);
     }
 }

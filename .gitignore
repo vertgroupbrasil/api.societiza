@@ -2,26 +2,8 @@
 # Project Specific
 ###############################################################################
 
-# Claude AI files
-.claude
-.claude/
-claude_context/
-
-# Specify Developer Kit files
-.specify/
-.github/agents/
-.github/prompts/
-
 # Documentation (local only)
-docs/
-copilot/
-
-# Legacy code builds (keep source, ignore builds)
-legacy/
-legacy/**/bin/
-legacy/**/obj/
-legacy/**/*.user
-legacy/**/.vs/
+docs/GaliLearn
 
 # Backup files
 *.backup

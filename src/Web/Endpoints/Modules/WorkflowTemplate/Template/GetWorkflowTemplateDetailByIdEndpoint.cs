@@ -5,6 +5,7 @@ using Core.Shared.Results;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using Web.Endpoints.Modules.WorkflowTemplate.Template.Requests.Queries;
 using Web.Endpoints.Routes;
 using WorkflowTemplate.Shared.Queries.Template;
 using WorkflowTemplate.Shared.Response.Template;
@@ -12,7 +13,7 @@ using WorkflowTemplate.Shared.Response.Template;
 namespace Web.Endpoints.Modules.WorkflowTemplate.Template;
 
 public sealed class GetWorkflowTemplateDetailByIdEndpoint(ISender sender) : EndpointBaseAsync
-    .WithRequest<GetWorkflowTemplateDetailByIdQuery>
+    .WithRequest<GetWorkflowTemplateDetailByIdRequest>
     .WithActionResult<WorkflowTemplateDetailResponse>
 {
     [ApiVersion("1.0")]
@@ -23,9 +24,9 @@ public sealed class GetWorkflowTemplateDetailByIdEndpoint(ISender sender) : Endp
     [SwaggerOperation(
            Summary = "Obter detalhes de um template por Id",
            Description = "Retorna os dados completos de um template específico a partir do seu identificador único (GUID). Retorna 404 caso o template não seja encontrado.",
-           Tags = [Tags.Accountancy])]
+           Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult<WorkflowTemplateDetailResponse>> HandleAsync(
-        GetWorkflowTemplateDetailByIdQuery request, 
+        GetWorkflowTemplateDetailByIdRequest request, 
         CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new GetWorkflowTemplateDetailByIdQuery(request.Id))

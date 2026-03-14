@@ -35,8 +35,6 @@
     <ProjectReference Include="..\Core\Core.Persistence\Core.Persistence.csproj" />
     <ProjectReference Include="..\Modules\Accountancy\Accountancy.Infrastructure\Accountancy.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Accountancy\Accountancy.Shared\Accountancy.Shared.csproj" />
-    <ProjectReference Include="..\Modules\User\User.Infrastructure\User.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\WorkflowProcess\WorkflowProcess.Infrastructure\WorkflowProcess.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\WorkflowTemplate\WorkflowTemplate.Infrastructure\WorkflowTemplate.Infrastructure.csproj" />
   </ItemGroup>
 

@@ -1,4 +1,4 @@
-# MeuSocietário
+# Societiza
 
 ## Executar o projeto localmente
 
@@ -26,18 +26,17 @@ Os serviços estarão disponíveis nas portas:
 ### 3. Buildar a imagem da API
 
 ```bash
-docker build -t meusocietario-api .
+docker build --no-cache -t societiza-api .
 ```
 
 ### 4. Executar a API
 
 ```bash
 docker run --rm -p 5258:8080 \
-  --network meusocietario-dev \
+  --network societiza-dev \
   --env-file .env.local \
-  meusocietario-api
+  societiza-api
 ```
 
 - API: **http://localhost:5258/api**
-
 - Swagger: **http://localhost:5258/api/swagger**
