@@ -48,7 +48,7 @@ public class GetWorkflowTemplateDetailByIdHandler(
             template.Status,
             template.CreatedAt,
             template.UpdatedAt,
-            steps.Select(step => new WorkflowTemplateStepDetailResponse(
+            steps.OrderBy(step => step.Order).Select(step => new WorkflowTemplateStepDetailResponse(
                 step.Id,
                 step.Title,
                 step.Description,
@@ -59,21 +59,23 @@ public class GetWorkflowTemplateDetailByIdHandler(
                         field.FieldType,
                         field.Options
                     )).ToList(),
-                tasks.Where(task => task.StepId == step.Id).Select(task => new WorkflowTemplateStepTaskDetailResponse(
-                    task.Id,
-                    task.Title,
-                    task.Description,
-                    task.Type,
-                    task.Configuration,
-                    task.Order,
-                    task.IsOptional,
-                    taskFields.Where(field => field.TaskId == task.Id).Select(field => new WorkflowTemplateStepTaskFieldDetailResponse(
-                        field.Id,
-                        field.Label,
-                        field.FieldType,
-                        field.Options
+                tasks.Where(task => task.StepId == step.Id)
+                    .OrderBy(task => task.Order)
+                    .Select(task => new WorkflowTemplateStepTaskDetailResponse(
+                        task.Id,
+                        task.Title,
+                        task.Description,
+                        task.Type,
+                        task.Configuration,
+                        task.Order,
+                        task.IsOptional,
+                        taskFields.Where(field => field.TaskId == task.Id).Select(field => new WorkflowTemplateStepTaskFieldDetailResponse(
+                            field.Id,
+                            field.Label,
+                            field.FieldType,
+                            field.Options
+                        )).ToList()
                     )).ToList()
-                )).ToList()
             )).ToList()
         );
 

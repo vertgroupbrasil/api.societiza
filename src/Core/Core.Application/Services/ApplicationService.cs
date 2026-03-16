@@ -35,27 +35,33 @@ public class ApplicationService<TContext>(
         return Result.Success(aggregate);
     }
 
-    public Task AppendEventsAsync<TAggregate>(TAggregate aggregate, CancellationToken cancellationToken)
+    public async Task AppendEventsAsync<TAggregate>(TAggregate aggregate, CancellationToken cancellationToken)
         where TAggregate : IAggregateRoot
-            => unitOfWork.ExecuteAsync(
-                operationAsync: async ct =>
+    {
+        var eventsToPublish = new List<IEvent>();
+
+        await unitOfWork.ExecuteAsync(
+            operationAsync: async ct =>
+            {
+                while (aggregate.TryDequeueEvent(out var @event))
                 {
-                    while (aggregate.TryDequeueEvent(out var @event))
+                    var storeEvent = StoreEvent<TAggregate>.Create(aggregate, @event);
+                    await eventStore.AppendAsync(storeEvent, ct);
+
+                    if (storeEvent.Version % 10 is 0)
                     {
-                        var storeEvent = StoreEvent<TAggregate>.Create(aggregate, @event);
-                        await eventStore.AppendAsync(storeEvent, ct);
-
-                        if (storeEvent.Version % 10 is 0)
-                        {
-                            var snapshot = Snapshot<TAggregate>.Create(aggregate, storeEvent);
-                            await eventStore.AppendAsync(snapshot, ct);
-                        }
-
-                        await eventBusGateway.PublishAsync(@event, ct);
+                        var snapshot = Snapshot<TAggregate>.Create(aggregate, storeEvent);
+                        await eventStore.AppendAsync(snapshot, ct);
                     }
 
-                },
-                cancellationToken: cancellationToken);
+                    eventsToPublish.Add(@event);
+                }
+            },
+            cancellationToken: cancellationToken);
+
+        foreach (var @event in eventsToPublish)
+            await eventBusGateway.PublishAsync(@event, cancellationToken);
+    }
 
     public IAsyncEnumerable<Guid> StreamAggregatesId<TAggregate>()
         where TAggregate : IAggregateRoot

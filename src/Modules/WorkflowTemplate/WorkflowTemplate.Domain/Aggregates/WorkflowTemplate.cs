@@ -54,8 +54,10 @@ public class WorkflowTemplate : AggregateRoot
     #region Workflow Template Step Methods
     public Guid AddStep(string title, string description, int order)
     {
-        var stepId = Guid.NewGuid();
+        if (Steps.Any(s => s.Title == title))
+            throw new Exceptions.DuplicateEntityException("Step", "Title", title);
 
+        var stepId = Guid.NewGuid();
         RaiseEvent<DomainEvents.WorkflowTemplateStepAdded>(version => new(
             TemplateId: Id,
             StepId: stepId,
@@ -65,7 +67,6 @@ public class WorkflowTemplate : AggregateRoot
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
-
         return stepId;
     }
 
@@ -106,8 +107,13 @@ public class WorkflowTemplate : AggregateRoot
     #region Workflow Template Step Tasks Methods
     public Guid AddTask(Guid stepId, string title, string description, TaskType type, string configuration, int order, bool isOptional)
     {
-        var taskId = Guid.NewGuid();
+        var step = Steps.FirstOrDefault(s => s.Id == stepId);
+        if (step == null)
+            throw new ArgumentException($"Step {stepId} não encontrado.");
+        if (step.Tasks.Any(t => t.Title == title))
+            throw new Exceptions.DuplicateEntityException("Task", "Title", title);
 
+        var taskId = Guid.NewGuid();
         RaiseEvent<DomainEvents.WorkflowTemplateStepTaskAdded>(version => new(
             TemplateId: Id,
             StepId: stepId,
@@ -121,7 +127,6 @@ public class WorkflowTemplate : AggregateRoot
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
-
         return taskId;
     }
 
@@ -160,8 +165,13 @@ public class WorkflowTemplate : AggregateRoot
     #region Workflow Template Step Field Methods
     public Guid AddStepField(Guid stepId, string label, FieldType fieldType, string? options)
     {
-        var fieldId = Guid.NewGuid();
+        var step = Steps.FirstOrDefault(s => s.Id == stepId);
+        if (step == null)
+            throw new ArgumentException($"Step {stepId} não encontrado.");
+        if (step.Fields.Any(f => f.Label == label))
+            throw new Exceptions.DuplicateEntityException("Field", "Label", label);
 
+        var fieldId = Guid.NewGuid();
         RaiseEvent<DomainEvents.WorkflowTemplateStepFieldAdded>(version => new(
             TemplateId: Id,
             StepId: stepId,
@@ -172,7 +182,6 @@ public class WorkflowTemplate : AggregateRoot
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
-
         return fieldId;
     }
 
@@ -197,8 +206,16 @@ public class WorkflowTemplate : AggregateRoot
     #region Workflow Template Step Task Field Methods
     public Guid AddTaskField(Guid stepId, Guid taskId, string label, FieldType fieldType, string? options)
     {
-        var fieldId = Guid.NewGuid();
+        var step = Steps.FirstOrDefault(s => s.Id == stepId);
+        if (step == null)
+            throw new ArgumentException($"Step {stepId} não encontrado.");
+        var task = step.Tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task == null)
+            throw new ArgumentException($"Task {taskId} não encontrada.");
+        if (task.Fields.Any(f => f.Label == label))
+            throw new Exceptions.DuplicateEntityException("Field", "Label", label);
 
+        var fieldId = Guid.NewGuid();
         RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldAdded>(version => new(
             TemplateId: Id,
             StepId: stepId,
@@ -210,7 +227,6 @@ public class WorkflowTemplate : AggregateRoot
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
-
         return fieldId;
     }
 
