@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using WorkflowTemplate.Application.DependencyInjection;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Infrastructure.Services;
+using WorkflowTemplate.Application.UseCases.Events;
 
 namespace WorkflowTemplate.Infrastructure.ServiceInstallers;
 
@@ -17,6 +18,7 @@ internal sealed class ApplicationServiceInstaller : IServiceInstaller
     {
         services.Tap(services.TryAddTransient<IWorkflowTemplateApplicationService, WorkflowTemplateApplicationService>);
         services.AddEventInteractors();
+        services.AddTransient<IProjectionWorkflowTemplateCascadeDeleteEventHandler, ProjectionWorkflowTemplateCascadeDeleteEventHandler>();
 
         services.AddMediatR(config =>
         {
