@@ -32,8 +32,5 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepTaskFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskFieldAdded>(registrationContext, MODULE_NAME);
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepTaskFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskFieldUpdated>(registrationContext, MODULE_NAME);
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionTemplateStepTaskFieldConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskFieldRemoved>(registrationContext, MODULE_NAME);
-
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateCascadeDeleteConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepCascadeDeleted>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowTemplateCascadeDeleteConsumer, WorkflowTemplateDomainEvent.WorkflowTemplateStepTaskCascadeDeleted>(registrationContext, MODULE_NAME);
     }
 }

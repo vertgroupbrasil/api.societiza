@@ -6,27 +6,30 @@ using WorkflowTemplate.Persistence.Projection;
 
 namespace WorkflowTemplate.Application.UseCases.Events;
 
-public interface IProjectionWorkflowTemplateStepEventHandler : 
+public interface IProjectionWorkflowTemplateStepEventHandler :
     IEventHandler<DomainEvents.WorkflowTemplateStepAdded>,
     IEventHandler<DomainEvents.WorkflowTemplateStepUpdated>,
     IEventHandler<DomainEvents.WorkflowTemplateStepRemoved>;
 
 public class ProjectionWorkflowTemplateStepEventHandler(
-    IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplateStep> workflowProjection,
+    IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplateStep> stepProjection,
+    IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplateStepTask> taskProjection,
+    IWorkflowTemplateProjection<ProjectionModel.TemplateStepField> stepFieldProjection,
+    IWorkflowTemplateProjection<ProjectionModel.TemplateStepTaskField> taskFieldProjection,
     ILogger<ProjectionWorkflowTemplateStepEventHandler> logger) : IProjectionWorkflowTemplateStepEventHandler
 {
     public async Task Handle(DomainEvents.WorkflowTemplateStepAdded @event, CancellationToken cancellationToken = default)
     {
         try
         {
-            await workflowProjection.ReplaceInsertAsync(new(
+            await stepProjection.ReplaceInsertAsync(new(
                 @event.StepId,
                 @event.TemplateId,
                 @event.Title,
                 @event.Description,
                 @event.Order,
                 @event.CreatedAt,
-                null), 
+                null),
             cancellationToken);
         }
         catch (Exception ex)
@@ -40,7 +43,7 @@ public class ProjectionWorkflowTemplateStepEventHandler(
     {
         try
         {
-            await workflowProjection.UpdateFieldsAsync(@event.StepId, builder => builder
+            await stepProjection.UpdateFieldsAsync(@event.StepId, builder => builder
                 .Set(x => x.Title, @event.Title)
                 .Set(x => x.Description, @event.Description)
                 .Set(x => x.Order, @event.Order)
@@ -57,7 +60,16 @@ public class ProjectionWorkflowTemplateStepEventHandler(
     {
         try
         {
-            await workflowProjection.DeleteAsync(@event.StepId, cancellationToken);
+            await stepProjection.DeleteAsync(x => x.Id == @event.StepId, cancellationToken);
+
+            if (@event.FieldIds.Count > 0)
+                await stepFieldProjection.DeleteAsync(x => @event.FieldIds.Contains(x.Id), cancellationToken);
+
+            if (@event.TaskIds.Count > 0)
+                await taskProjection.DeleteAsync(x => @event.TaskIds.Contains(x.Id), cancellationToken);
+
+            if (@event.TaskFieldIds.Count > 0)
+                await taskFieldProjection.DeleteAsync(x => @event.TaskFieldIds.Contains(x.Id), cancellationToken);
         }
         catch (Exception ex)
         {

@@ -58,13 +58,8 @@ public static class DomainEvents
         ulong Version
     ) : Message, IDomainEvent;
 
-    public record WorkflowTemplateStepRemoved(
-        Guid TemplateId,
-        Guid StepId,
-        ulong Version
-    ) : Message, IDomainEvent;
 
-    public record WorkflowTemplateStepCascadeDeleted(
+    public record WorkflowTemplateStepRemoved(
         Guid TemplateId,
         Guid StepId,
         List<Guid> FieldIds,
@@ -103,14 +98,8 @@ public static class DomainEvents
         ulong Version
     ) : Message, IDomainEvent;
 
-    public record WorkflowTemplateStepTaskRemoved(
-        Guid TemplateId,
-        Guid StepId,
-        Guid TaskId,
-        ulong Version
-    ) : Message, IDomainEvent;
 
-    public record WorkflowTemplateStepTaskCascadeDeleted(
+    public record WorkflowTemplateStepTaskRemoved(
         Guid TemplateId,
         Guid StepId,
         Guid TaskId,
