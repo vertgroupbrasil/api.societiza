@@ -1,4 +1,5 @@
 using Accountancy.Persistence.Context;
+using Identity.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using WorkflowTemplate.Persistence.Context;
 
@@ -11,6 +12,7 @@ internal sealed class MigrateDatabaseStartupTask(IServiceProvider provider) : Ba
         using IServiceScope scope = provider.CreateScope();
 
         await MigrateDatabaseAsync<AccountancyDbContext>(scope, stoppingToken);
+        await MigrateDatabaseAsync<IdentityDbContext>(scope, stoppingToken);
         await MigrateDatabaseAsync<WorkflowTemplateDbContext>(scope, stoppingToken);
     }
 
