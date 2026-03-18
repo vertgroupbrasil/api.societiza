@@ -57,10 +57,14 @@ public static class DomainEvents
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
-    
+
+
     public record WorkflowTemplateStepRemoved(
         Guid TemplateId,
         Guid StepId,
+        List<Guid> FieldIds,
+        List<Guid> TaskIds,
+        List<Guid> TaskFieldIds,
         ulong Version
     ) : Message, IDomainEvent;
     #endregion
@@ -94,10 +98,12 @@ public static class DomainEvents
         ulong Version
     ) : Message, IDomainEvent;
 
+
     public record WorkflowTemplateStepTaskRemoved(
         Guid TemplateId,
         Guid StepId,
         Guid TaskId,
+        List<Guid> TaskFieldIds,
         ulong Version
     ) : Message, IDomainEvent;
     #endregion

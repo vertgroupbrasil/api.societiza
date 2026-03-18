@@ -89,18 +89,18 @@ public class WorkflowTemplate : AggregateRoot
 
         if (step is null) return;
 
-        foreach (var field in step.Fields.ToList())
-            RaiseEvent<DomainEvents.WorkflowTemplateStepFieldRemoved>(version => new(TemplateId: Id, StepId: stepId, FieldId: field.Id, Version: version));
+        var fieldIds = step.Fields.Select(f => f.Id).ToList();
+        var taskIds = step.Tasks.Select(t => t.Id).ToList();
+        var taskFieldIds = step.Tasks.SelectMany(t => t.Fields).Select(f => f.Id).ToList();
 
-        foreach (var task in step.Tasks.ToList())
-        {
-            foreach (var taskField in task.Fields.ToList())
-                RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldRemoved>(version => new(TemplateId: Id, StepId: stepId, TaskId: task.Id, FieldId: taskField.Id, Version: version));
-
-            RaiseEvent<DomainEvents.WorkflowTemplateStepTaskRemoved>(version => new(TemplateId: Id, StepId: stepId, TaskId: task.Id, Version: version));
-        }
-
-        RaiseEvent<DomainEvents.WorkflowTemplateStepRemoved>(version => new(TemplateId: Id, StepId: stepId, Version: version));
+        RaiseEvent<DomainEvents.WorkflowTemplateStepRemoved>(version => new(
+            TemplateId: Id,
+            StepId: stepId,
+            FieldIds: fieldIds,
+            TaskIds: taskIds,
+            TaskFieldIds: taskFieldIds,
+            Version: version
+        ));
     }
     #endregion
 
@@ -152,13 +152,15 @@ public class WorkflowTemplate : AggregateRoot
         var step = Steps.FirstOrDefault(s => s.Id == stepId);
         var task = step?.Tasks.FirstOrDefault(t => t.Id == taskId);
 
-        if (task is not null)
-        {
-            foreach (var field in task.Fields.ToList())
-                RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldRemoved>(version => new(TemplateId: Id, StepId: stepId, TaskId: taskId, FieldId: field.Id, Version: version));
-        }
+        var taskFieldIds = task?.Fields.Select(f => f.Id).ToList() ?? [];
 
-        RaiseEvent<DomainEvents.WorkflowTemplateStepTaskRemoved>(version => new(TemplateId: Id, StepId: stepId, TaskId: taskId, Version: version));
+        RaiseEvent<DomainEvents.WorkflowTemplateStepTaskRemoved>(version => new(
+            TemplateId: Id,
+            StepId: stepId,
+            TaskId: taskId,
+            TaskFieldIds: taskFieldIds,
+            Version: version
+        ));
     }
     #endregion
 

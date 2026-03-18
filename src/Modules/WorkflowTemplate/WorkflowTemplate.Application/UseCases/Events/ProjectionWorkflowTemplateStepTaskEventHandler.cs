@@ -12,14 +12,15 @@ public interface IProjectionWorkflowTemplateStepTaskEventHandler :
     IEventHandler<DomainEvents.WorkflowTemplateStepTaskRemoved>;
 
 public class ProjectionWorkflowTemplateStepTaskEventHandler(
-    IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplateStepTask> workflowProjection,
+    IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplateStepTask> taskProjection,
+    IWorkflowTemplateProjection<ProjectionModel.TemplateStepTaskField> taskFieldProjection,
     ILogger<ProjectionWorkflowTemplateStepTaskEventHandler> logger) : IProjectionWorkflowTemplateStepTaskEventHandler
 {
     public async Task Handle(DomainEvents.WorkflowTemplateStepTaskAdded @event, CancellationToken cancellationToken = default)
     {
         try
         {
-            await workflowProjection.ReplaceInsertAsync(new(
+            await taskProjection.ReplaceInsertAsync(new(
                 @event.TaskId,
                 @event.TemplateId,
                 @event.StepId,
@@ -44,7 +45,7 @@ public class ProjectionWorkflowTemplateStepTaskEventHandler(
     {
         try
         {
-            await workflowProjection.UpdateFieldsAsync(@event.TaskId, builder => builder
+            await taskProjection.UpdateFieldsAsync(@event.TaskId, builder => builder
                 .Set(x => x.Title, @event.Title)
                 .Set(x => x.Description, @event.Description)
                 .Set(x => x.Type, @event.Type)
@@ -64,7 +65,10 @@ public class ProjectionWorkflowTemplateStepTaskEventHandler(
     {
         try
         {
-            await workflowProjection.DeleteAsync(@event.TaskId, cancellationToken);
+            await taskProjection.DeleteAsync(x => x.Id == @event.TaskId, cancellationToken);
+
+            if (@event.TaskFieldIds.Count > 0)
+                await taskFieldProjection.DeleteAsync(x => @event.TaskFieldIds.Contains(x.Id), cancellationToken);
         }
         catch (Exception ex)
         {
