@@ -50,6 +50,7 @@ builder.Services
     .InstallModulesFromAssemblies(
         builder.Configuration,
         Accountancy.Infrastructure.AssemblyReference.Assembly,
+        Identity.Infrastructure.AssemblyReference.Assembly,
         WorkflowTemplate.Infrastructure.AssemblyReference.Assembly);
 
 builder.Services
