@@ -40,7 +40,7 @@ public static class DomainEvents
     #region Workflow Template Step Events
     public record WorkflowTemplateStepAdded(
         Guid TemplateId,
-        Guid StepId,
+        Guid StepId,                        
         string Title,
         string Description,
         int Order,
