@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
 
 # Copy solution and project files first (layer caching)
-COPY MeuSocietario.sln ./
+COPY Societiza.sln ./
 COPY src/Core/Core.Application/Core.Application.csproj src/Core/Core.Application/
 COPY src/Core/Core.Domain/Core.Domain.csproj src/Core/Core.Domain/
 COPY src/Core/Core.Infrastructure/Core.Infrastructure.csproj src/Core/Core.Infrastructure/
