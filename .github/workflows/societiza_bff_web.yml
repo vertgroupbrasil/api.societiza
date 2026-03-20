@@ -1,0 +1,20 @@
+name: Societiza BFF Web
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, closed]
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build.yml
+
+  test:
+    needs: build
+    uses: ./.github/workflows/_test.yml
+
+  docker:
+    needs: test
+    uses: ./.github/workflows/_docker_build.yml

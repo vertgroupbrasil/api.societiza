@@ -15,7 +15,7 @@ internal sealed class SwaggerGenOptionsConfiguration(IApiVersionDescriptionProvi
         {
             options.SwaggerDoc(description.GroupName, new OpenApiInfo
             {
-                Title = "MeuSocietario API",
+                Title = "Societiza API",
                 Version = description.ApiVersion.ToString(),
                 Description = "API for managing corporate processes",
                 Contact = new OpenApiContact

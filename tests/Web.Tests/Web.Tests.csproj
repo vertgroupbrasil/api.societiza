@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Accountancy\Accountancy.Application\Accountancy.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accountancy\Accountancy.Domain\Accountancy.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accountancy\Accountancy.Persistence\Accountancy.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accountancy\Accountancy.Shared\Accountancy.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Modules\WorkflowTemplate\WorkflowTemplate.Application\WorkflowTemplate.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\WorkflowTemplate\WorkflowTemplate.Domain\WorkflowTemplate.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\WorkflowTemplate\WorkflowTemplate.Persistence\WorkflowTemplate.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Modules\WorkflowTemplate\WorkflowTemplate.Shared\WorkflowTemplate.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Core\Core.Shared\Core.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Modules\Accountancy\Application\Commands\" />
+    <Folder Include="Modules\Accountancy\Application\Events\" />
+    <Folder Include="Modules\Accountancy\Application\Queries\" />
+    <Folder Include="Modules\Accountancy\Domain\Aggregates\" />
+  </ItemGroup>
+
+</Project>
