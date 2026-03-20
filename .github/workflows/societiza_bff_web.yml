@@ -12,7 +12,9 @@ jobs:
     uses: ./.github/workflows/_build.yml
 
   test:
+    needs: build
     uses: ./.github/workflows/_test.yml
 
   docker:
+    needs: test
     uses: ./.github/workflows/_docker_build.yml
