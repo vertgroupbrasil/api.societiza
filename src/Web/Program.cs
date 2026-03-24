@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Core.Infrastructure.Extensions;
 using DotNetEnv;
+using Identity.Infrastructure.Options;
 using Serilog;
 using Serilog.Events;
 using Web.Extensions;
@@ -46,12 +47,16 @@ builder.Services
     .InstallServicesFromAssemblies(
         builder.Configuration,
         Web.AssemblyReference.Assembly,
+        Core.Infrastructure.AssemblyReference.Assembly,
         Core.Persistence.AssemblyReference.Assembly)
     .InstallModulesFromAssemblies(
         builder.Configuration,
         Accountancy.Infrastructure.AssemblyReference.Assembly,
         Identity.Infrastructure.AssemblyReference.Assembly,
         WorkflowTemplate.Infrastructure.AssemblyReference.Assembly);
+
+builder.Services.Configure<JwtOptions>(
+    builder.Configuration.GetSection("JwtOptions"));
 
 builder.Services
     .AddApiVersioning(options =>

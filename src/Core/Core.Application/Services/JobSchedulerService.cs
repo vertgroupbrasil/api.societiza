@@ -18,6 +18,12 @@ public class JobSchedulerService : IJobSchedulerService
         client.Enqueue<MediatorHangfireBridge>(bridge => bridge.Send(request));
     }
 
+    public void Enqueue<T>(IRequest<T> request)
+    {
+        var client = new BackgroundJobClient();
+        client.Enqueue<MediatorHangfireBridge>(bridge => bridge.Send(request));
+    }
+
     public void Schedule(string jobName, TimeSpan scheduleAt, IRequest request)
     {
         var client = new BackgroundJobClient();

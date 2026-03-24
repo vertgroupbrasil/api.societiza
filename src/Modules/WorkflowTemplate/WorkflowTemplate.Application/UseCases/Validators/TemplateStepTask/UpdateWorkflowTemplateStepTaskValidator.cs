@@ -30,7 +30,7 @@ public sealed class UpdateWorkflowTemplateStepTaskValidator : AbstractValidator<
         RuleFor(x => x.Type)
             .NotEmpty().WithMessage("Type is required")
             .Must(type => Enum.TryParse<WorkflowTemplate.Domain.Enumerations.TaskType>(type, out _))
-            .WithMessage("Type must be a valid TaskType (Manual, Automatic, Approval)");
+            .WithMessage($"Type must be one of: {string.Join(", ", Enum.GetNames<WorkflowTemplate.Domain.Enumerations.TaskType>())}");
 
         RuleFor(x => x.Configuration)
             .NotNull().WithMessage("Configuration is required");
