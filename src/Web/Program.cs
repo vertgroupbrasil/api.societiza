@@ -112,8 +112,12 @@ app.UseSerilogRequestLogging(options =>
     };
 });
 
-app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
