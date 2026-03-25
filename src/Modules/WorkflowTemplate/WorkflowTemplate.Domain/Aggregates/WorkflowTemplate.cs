@@ -12,7 +12,7 @@ public class WorkflowTemplate : AggregateRoot
     public string Name { get; private set; } = null!;
     public string Description { get; private set; } = null!;
     public TemplateVersion TemplateVersion { get; private set; } = new TemplateVersion(1, 0);
-    public TemplateStatus Status { get; private set; }
+    public TemplateStatus Status { get; private set; } = TemplateStatus.Draft;
     public List<WorkflowTemplateStep> Steps { get; private set; } = [];
 
     #region Workflow Template Methods
@@ -25,7 +25,7 @@ public class WorkflowTemplate : AggregateRoot
             Name: name,
             Description: description,
             TemplateVersion: workflowTemplate.TemplateVersion.ToString(),
-            Status: TemplateStatus.Draft.ToString(),
+            Status: workflowTemplate.Status.ToString(),
             CreatedAt: workflowTemplate.CreatedAt,
             Version: version
         ));

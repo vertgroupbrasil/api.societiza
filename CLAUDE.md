@@ -76,10 +76,11 @@ HTTP Request
 
 - **CQRS via MediatR**: Commands mutate state; queries read from MongoDB projections.
 - **Ardalis API Endpoints**: One class per route in `src/Web/Endpoints/Modules/{Module}/`.
-- **Modular Service Registration**: Each layer exposes an `IServiceInstaller` implementation; `Program.cs` discovers them via Scrutor assembly scanning (`InstallServicesFromAssemblies()`).
+- **Service Registration**: Modules registram serviços via `IServiceInstaller` (descoberto por reflexão em `InstallModulesFromAssemblies()`). Core registra via `InfrastructureServiceInstaller` com registros explícitos — sem Scrutor scan. `Program.cs` passa os assemblies manualmente para `InstallServicesFromAssemblies()`.
 - **Module Contracts**: The `*.Shared` project in each module holds commands/queries/responses used across module boundaries.
 - **Unit of Work + Repository**: Persistence abstractions wrap EF Core; transactions commit via `IUnitOfWork`.
 - **MassTransit**: Abstracts the event bus (RabbitMQ transport in all environments). Consumer registration follows the MassTransit convention scanning pattern.
+- **Background Jobs via Hangfire**: Operações assíncronas (ex: envio de email) usam `IJobSchedulerService.Enqueue(command)`. O `MediatorHangfireBridge` despacha o command via MediatR. Jobs são persistidos no PostgreSQL com retry automático.
 
 ### Databases
 
@@ -103,3 +104,32 @@ All routes are prefixed with `/api` (configured via `PathBase` middleware). API 
 ### Logging & Observability
 
 Serilog is configured for structured logging. `CorrelationId` middleware injects a correlation ID into all requests. `RequestTimestampMiddleware` stamps request timing.
+
+## Email
+
+- **Provider**: Brevo via SMTP relay — no SDK or external package. Chosen for its generous free tier (300 emails/day) and no verified domain requirement initially.
+- **Integration**: native `System.Net.Mail.SmtpClient` only; do not add external email packages.
+- **Development**: use Brevo SMTP with a personal email as both sender and recipient for testing.
+- **Production**: Brevo SMTP relay at `smtp-relay.brevo.com`, port `587`, SSL enabled.
+- **Future**: when `societiza.com.br` is available, update `FromEmail` to `noreply@societiza.com.br`.
+- **Security**: the Brevo SMTP Key must **never** be committed. Store it in `.env.local` (already in `.gitignore`).
+
+### Padrão de uso
+
+`IEmailService` é uma abstração de entrega genérica com um único método `SendAsync(toEmail, toName, subject, body, ct)`. Ele **não conhece conceitos de domínio** como "convite" ou "boas-vindas" — isso é responsabilidade de cada módulo.
+
+**Nunca injete `IEmailService` diretamente em handlers de negócio.** O envio deve sempre ser assíncrono via Hangfire:
+
+1. Cada módulo cria seus próprios commands de email em `{Module}.Application/Emails/`
+2. Os handlers desses commands injetam `IEmailService`, constroem subject e body HTML, e chamam `SendAsync`
+3. Handlers de negócio injetam `IJobSchedulerService` e enfileiram: `_jobScheduler.Enqueue(new SendXxxEmailCommand(...))`
+
+```
+// Estrutura por módulo
+{Module}.Application/
+└── Emails/
+    ├── Send{Action}EmailCommand.cs        // sealed record, apenas primitivos (string, Guid)
+    └── Send{Action}EmailCommandHandler.cs // injeta IEmailService, constrói subject/body
+```
+
+Commands de email devem conter **apenas tipos primitivos** nos parâmetros para garantir serialização pelo Hangfire.

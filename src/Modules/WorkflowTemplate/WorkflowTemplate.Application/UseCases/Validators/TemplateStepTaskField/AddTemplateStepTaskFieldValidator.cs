@@ -26,6 +26,6 @@ public sealed class AddTemplateStepTaskFieldValidator : AbstractValidator<AddTem
         RuleFor(x => x.FieldType)
             .NotEmpty().WithMessage("FieldType is required")
             .Must(type => Enum.TryParse<Domain.Enumerations.FieldType>(type, out _))
-            .WithMessage("FieldType must be a valid FieldType (Text, Boolean, Integer, Select, Date)");
+            .WithMessage($"FieldType must be one of: {string.Join(", ", Enum.GetNames<Domain.Enumerations.FieldType>())}");
     }
 }

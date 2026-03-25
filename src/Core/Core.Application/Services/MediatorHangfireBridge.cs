@@ -9,6 +9,9 @@ public class MediatorHangfireBridge(IMediator mediator)
     public async Task Send(IRequest command)
         => await _mediator.Send(command);
 
+    public async Task Send<T>(IRequest<T> command)
+        => await _mediator.Send(command);
+
     [DisplayName("{0}")]
     public async Task Send(string _, IRequest command)
         => await _mediator.Send(command);
