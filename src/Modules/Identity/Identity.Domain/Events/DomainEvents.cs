@@ -5,23 +5,64 @@ namespace Identity.Domain.Events;
 
 public static class DomainEvents
 {
-    public sealed record UserInvited(
+    #region UserInvite Events
+    public sealed record UserInviteCreated(
         Guid Id,
-        string Name,
         string Email,
-        string PasswordHash,
         string Role,
-        string Status,
         Guid? AccountancyId,
+        string TokenHash,
+        string Status,
+        DateTimeOffset ExpiresAt,
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
 
-    public sealed record UserRegistrationCompleted(
+    public sealed record UserInviteResent(
         Guid Id,
-        string PasswordHash,
-        string Status,
+        string TokenHash,
+        DateTimeOffset ExpiresAt,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record UserInviteAccepted(
+        Guid Id,
+        string Status,
+        DateTimeOffset UsedAt,
+        DateTimeOffset UpdatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserInviteRevoked(
+        Guid Id,
+        string Status,
+        DateTimeOffset UsedAt,
+        DateTimeOffset UpdatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserInviteExpired(
+        Guid Id,
+        string Status,
+        DateTimeOffset UsedAt,
+        DateTimeOffset UpdatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+    #endregion
+
+    #region User Events
+    public sealed record UserRegistrationCompleted(
+        Guid Id,
+        Guid InviteId,
+        string FirstName,
+        string LastName,
+        string Email,
+        string PasswordHash,
+        string Role,
+        Guid? AccountancyId,
+        DateTimeOffset CreatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+    #endregion
 }

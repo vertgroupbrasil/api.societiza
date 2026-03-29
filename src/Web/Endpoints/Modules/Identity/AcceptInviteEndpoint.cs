@@ -23,12 +23,14 @@ public sealed class AcceptInviteEndpoint(ISender sender) : EndpointBaseAsync
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
         Summary = "Aceitar convite e concluir cadastro",
-        Description = "Valida o token de convite, define a senha do usuário e ativa a conta. Retorna 400 caso o token seja inválido ou expirado, as senhas não coincidam, ou a senha não atenda os requisitos mínimos.",
+        Description = "Valida o token de convite, define a senha do usuário e cria a conta. Retorna 400 caso o token seja inválido ou expirado, as senhas não coincidam, ou a senha não atenda os requisitos mínimos.",
         Tags = [Tags.Identity])]
     public override async Task<ActionResult> HandleAsync(AcceptInviteRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)
             .Map(request => new AcceptInviteCommand(
                 Token: request.Token,
+                FirstName: request.FirstName,
+                LastName: request.LastName,
                 Password: request.Password,
                 ConfirmPassword: request.ConfirmPassword))
             .Bind(command => sender.Send(command, cancellationToken))

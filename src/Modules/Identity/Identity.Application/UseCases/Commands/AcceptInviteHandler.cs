@@ -1,41 +1,64 @@
+using System.Security.Cryptography;
+using System.Text;
 using Core.Application.Messaging.Commands;
 using Core.Shared.Errors;
 using Core.Shared.Results;
 using Identity.Application.Services;
 using Identity.Domain.Aggregates;
 using Identity.Domain.Enumerations;
+using Identity.Domain.Projection;
+using Identity.Persistence.Projection;
 using Identity.Shared.Commands;
 
 namespace Identity.Application.UseCases.Commands;
 
-internal sealed class AcceptInviteHandler(
+public sealed class AcceptInviteHandler(
     IIdentityApplicationService applicationService,
-    IPasswordService passwordService,
-    IJwtTokenService jwtTokenService
+    IIdentityProjection<ProjectionModel.UserInvite> inviteProjection,
+    IPasswordService passwordService
 ) : ICommandHandler<AcceptInviteCommand>
 {
     public async Task<Result> Handle(AcceptInviteCommand request, CancellationToken cancellationToken)
     {
-        var tokenClaims = jwtTokenService.ValidatePasswordResetToken(request.Token);
+        var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(request.Token)));
 
-        if (tokenClaims is null)
-            return Result.Failure(new Error("Token.Invalid", "Invalid or expired token"));
+        var inviteProjectionModel = await inviteProjection.FindAsync(
+            x => x.TokenHash == tokenHash,
+            cancellationToken);
 
-        var userResult = await applicationService.LoadAggregateAsync<User>(tokenClaims.Value.UserId, cancellationToken);
+        if (inviteProjectionModel is null)
+            return Result.Failure(new NotFoundError(new("Invite.NotFound", "Invite not found or token is invalid")));
 
-        if (!userResult.IsSuccess)
-            return Result.Failure(userResult.Error);
+        var inviteResult = await applicationService.LoadAggregateAsync<UserInvite>(inviteProjectionModel.Id, cancellationToken);
 
-        if (userResult.Value.Status != UserStatus.PendingInvite)
-            return Result.Failure(new Error("Token.Expired", "Token has already been used or is no longer valid"));
+        if (!inviteResult.IsSuccess)
+            return Result.Failure(inviteResult.Error);
+
+        var invite = inviteResult.Value;
+
+        if (invite.Status != InviteStatus.Pending)
+            return Result.Failure(new ConflictError(new("Invite.NotPending", "Invite is not in a pending state")));
+
+        if (invite.ExpiresAt <= DateTimeOffset.UtcNow)
+            return Result.Failure(new Error("Invite.Expired", "Invite has expired"));
 
         var passwordHash = passwordService.HashPassword(request.Password);
-        var completeResult = userResult.Value.CompleteRegistration(passwordHash);
 
-        if (!completeResult.IsSuccess)
-            return completeResult;
+        var user = User.Create(
+            inviteId: invite.Id,
+            firstName: request.FirstName,
+            lastName: request.LastName,
+            email: invite.Email,
+            passwordHash: passwordHash,
+            role: invite.Role,
+            accountancyId: invite.AccountancyId
+        );
 
-        await applicationService.AppendEventsAsync(userResult.Value, cancellationToken);
+        invite.Accept();
+
+        await applicationService.AppendEventsAsync(user, cancellationToken);
+        await applicationService.AppendEventsAsync(invite, cancellationToken);
+
         return Result.Success();
     }
 }

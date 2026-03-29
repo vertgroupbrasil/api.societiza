@@ -43,6 +43,26 @@ namespace Identity.Persistence.Migrations
                     b.ToTable("UserSnapshots", "identity");
                 });
 
+            modelBuilder.Entity("Core.Domain.EventStore.Snapshot<Identity.Domain.Aggregates.UserInvite>", b =>
+                {
+                    b.Property<decimal>("Version")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Aggregate")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Version", "AggregateId");
+
+                    b.ToTable("UserInviteSnapshots", "identity");
+                });
+
             modelBuilder.Entity("Core.Domain.EventStore.StoreEvent<Identity.Domain.Aggregates.User>", b =>
                 {
                     b.Property<decimal>("Version")
@@ -67,6 +87,32 @@ namespace Identity.Persistence.Migrations
                     b.HasKey("Version", "AggregateId");
 
                     b.ToTable("UserStoreEvents", "identity");
+                });
+
+            modelBuilder.Entity("Core.Domain.EventStore.StoreEvent<Identity.Domain.Aggregates.UserInvite>", b =>
+                {
+                    b.Property<decimal>("Version")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Version", "AggregateId");
+
+                    b.ToTable("UserInviteStoreEvents", "identity");
                 });
 #pragma warning restore 612, 618
         }

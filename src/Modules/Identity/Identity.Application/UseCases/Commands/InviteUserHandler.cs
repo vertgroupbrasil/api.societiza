@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Core.Application.Messaging.Commands;
 using Core.Application.Services.Interfaces;
 using Core.Infrastructure.Options;
@@ -17,43 +19,49 @@ namespace Identity.Application.UseCases.Commands;
 
 public class InviteUserHandler(
     IIdentityApplicationService applicationService,
+    IIdentityProjection<ProjectionModel.UserInvite> inviteProjection,
     IIdentityProjection<ProjectionModel.User> userProjection,
-    IPasswordService passwordService,
-    IJwtTokenService jwtTokenService,
     IJobSchedulerService jobScheduler,
     IOptions<FrontendOptions> frontendOptions
 ) : ICommandHandler<InviteUserCommand, IdentifierResponse>
 {
     public async Task<Result<IdentifierResponse>> Handle(InviteUserCommand request, CancellationToken cancellationToken)
     {
+        var pendingInvite = await inviteProjection.FindAsync(
+            x => x.Email == request.Email && x.Status == InviteStatus.Pending.Name,
+            cancellationToken);
+
+        if (pendingInvite is not null)
+            return Result.Failure<IdentifierResponse>(new ConflictError(new(
+                "Invite.AlreadyPending", "There is already a pending invite for this email")));
+
         var existingUser = await userProjection.FindAsync(x => x.Email == request.Email, cancellationToken);
 
         if (existingUser is not null)
             return Result.Failure<IdentifierResponse>(new ConflictError(new(
-                "EmailAlreadyExists", "A user with this email already exists")));
+                "User.AlreadyExists", "A user with this email already exists")));
 
-        var role = Enum.Parse<UserRole>(request.Role);
-        var passwordHash = passwordService.HashPassword(passwordService.GenerateRandomPassword());
+        UserRole role = request.Role;
+        var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
 
-        var user = User.Invite(
-            name: request.Name,
+        var invite = UserInvite.Create(
             email: request.Email,
-            passwordHash: passwordHash,
             role: role,
-            accountancyId: request.AccountancyId
+            accountancyId: request.AccountancyId,
+            tokenHash: tokenHash
         );
 
-        await applicationService.AppendEventsAsync(user, cancellationToken);
+        await applicationService.AppendEventsAsync(invite, cancellationToken);
 
-        var token = jwtTokenService.GeneratePasswordResetToken(user.Id, request.Email);
-        var inviteLink = $"{frontendOptions.Value.BaseUrl}/auth/set-password?token={token}";
+        var inviteLink = $"{frontendOptions.Value.BaseUrl}/auth/accept-invite?token={rawToken}";
 
         jobScheduler.Enqueue(new SendInviteEmailCommand(
             ToEmail: request.Email,
-            ToName: request.Name,
+            ToName: request.Email,
             InviteLink: inviteLink
         ));
 
-        return Result.Success(new IdentifierResponse(user.Id));
+        return Result.Success(new IdentifierResponse(invite.Id));
     }
 }
