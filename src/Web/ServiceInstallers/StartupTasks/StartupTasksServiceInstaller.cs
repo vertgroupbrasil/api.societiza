@@ -5,5 +5,9 @@ namespace Web.ServiceInstallers.StartupTasks;
 
 internal sealed class StartupTasksServiceInstaller : IServiceInstaller
 {
-    public void Install(IServiceCollection services, IConfiguration configuration) => services.AddHostedService<MigrateDatabaseStartupTask>();
+    public void Install(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddHostedService<MigrateDatabaseStartupTask>();
+        services.AddHostedService<RegisterRecurringJobsStartupTask>();
+    }
 }

@@ -12,7 +12,14 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
 
     public void AddEventReceiveEndpoints(IRabbitMqBusFactoryConfigurator rabbitMqBusFactoryConfigurator, IRegistrationContext registrationContext)
     {
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserConsumer, IdentityDomainEvent.UserInvited>(registrationContext, MODULE_NAME);
+        // User events
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserConsumer, IdentityDomainEvent.UserRegistrationCompleted>(registrationContext, MODULE_NAME);
+
+        // UserInvite events
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer, IdentityDomainEvent.UserInviteCreated>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer, IdentityDomainEvent.UserInviteResent>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer, IdentityDomainEvent.UserInviteAccepted>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer, IdentityDomainEvent.UserInviteRevoked>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer, IdentityDomainEvent.UserInviteExpired>(registrationContext, MODULE_NAME);
     }
 }

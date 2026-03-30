@@ -1,7 +1,5 @@
 using Core.Domain.Events.Interfaces;
 using Core.Domain.Primitives;
-using Core.Shared.Errors;
-using Core.Shared.Results;
 using Identity.Domain.Enumerations;
 using Identity.Domain.Events;
 
@@ -9,24 +7,25 @@ namespace Identity.Domain.Aggregates;
 
 public class User : AggregateRoot
 {
-    public string Name { get; private set; } = string.Empty;
+    public string FirstName { get; private set; } = string.Empty;
+    public string LastName { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
-    public string PasswordHash { get; private set; } = string.Empty;
+    public string? PasswordHash { get; private set; }
     public UserRole Role { get; private set; }
-    public UserStatus Status { get; private set; } = UserStatus.PendingInvite;
     public Guid? AccountancyId { get; private set; }
 
-    public static User Invite(string name, string email, string passwordHash, UserRole role, Guid? accountancyId)
+    public static User Create(Guid inviteId, string firstName, string lastName, string email, string passwordHash, UserRole role, Guid? accountancyId)
     {
         User user = new();
 
-        user.RaiseEvent<DomainEvents.UserInvited>(version => new(
+        user.RaiseEvent<DomainEvents.UserRegistrationCompleted>(version => new(
             Id: user.Id,
-            Name: name,
+            InviteId: inviteId,
+            FirstName: firstName,
+            LastName: lastName,
             Email: email,
             PasswordHash: passwordHash,
-            Role: role.ToString(),
-            Status: user.Status.ToString(),
+            Role: role.Name,
             AccountancyId: accountancyId,
             CreatedAt: user.CreatedAt,
             Version: version
@@ -35,39 +34,17 @@ public class User : AggregateRoot
         return user;
     }
 
-    public Result CompleteRegistration(string passwordHash)
-    {
-        if (Status != UserStatus.PendingInvite)
-            return Result.Failure(new ConflictError(new("User.AlreadyActive", "User registration is already completed")));
-
-        RaiseEvent<DomainEvents.UserRegistrationCompleted>(version => new(
-            Id: Id,
-            PasswordHash: passwordHash,
-            Status: UserStatus.Active.ToString(),
-            UpdatedAt: DateTimeOffset.UtcNow,
-            Version: version
-        ));
-
-        return Result.Success();
-    }
-
     protected override void ApplyEvent(IDomainEvent @event)
         => When(@event as dynamic);
 
-    private void When(DomainEvents.UserInvited @event)
-    {
-        Id = @event.Id;
-        Name = @event.Name;
-        Email = @event.Email;
-        PasswordHash = @event.PasswordHash;
-        Role = Enum.Parse<UserRole>(@event.Role);
-        Status = Enum.Parse<UserStatus>(@event.Status);
-        AccountancyId = @event.AccountancyId;
-    }
-
     private void When(DomainEvents.UserRegistrationCompleted @event)
     {
+        Id = @event.Id;
+        FirstName = @event.FirstName;
+        LastName = @event.LastName;
+        Email = @event.Email;
         PasswordHash = @event.PasswordHash;
-        Status = Enum.Parse<UserStatus>(@event.Status);
+        Role = UserRole.FromName(@event.Role);
+        AccountancyId = @event.AccountancyId;
     }
 }
