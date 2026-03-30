@@ -3,7 +3,7 @@
 ###############################################################################
 
 # Documentation (local only)
-docs/GaliLearn
+docs/claude-work-guide
 
 # Backup files
 *.backup
