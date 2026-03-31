@@ -1,31 +1,36 @@
 # Domain Model — Societiza
 
-> Documento gerado em 25/03/2026 a partir do diagrama visual (`Domain_Model_-_Societiza.excalidraw`) e do mapeamento textual (`SOCIETIZA_DOMAIN_MODEL.md`).
-> Atualizado em 29/03/2026 com a implementação real do módulo Identity.
-> Serve como referência canônica para desenvolvimento, revisão de arquitetura e contexto para o Claude Code.
+> Generated on 2026-03-25.
+> Updated on 2026-03-31 to reflect the full verified implementation of all modules.
+> Serves as the canonical reference for development, architecture review, and Claude Code context.
 
 ---
 
-## Visão Geral dos Módulos
+## Module Overview
 
 ```
-Core.Domain           → Primitivos compartilhados (Entity, AggregateRoot)
+Core.Domain           → Shared primitives (Entity, AggregateRoot)
 Modules/
-  ├── Accountancy      → Escritório de contabilidade
-  ├── Identity         → Usuários, convites e autenticação
-  └── WorkflowTemplate → Templates de fluxo societário
+  ├── Accountancy      → Accounting firm (tenant root)
+  ├── Identity         → Users, invitations, and authentication
+  └── WorkflowTemplate → Corporate workflow templates
 ```
 
 ---
 
-## Core.Domain — Primitivos
+## Core.Domain — Primitives
 
-Todos os aggregates e entidades herdam destes tipos base.
+All aggregates and entities inherit from these base types.
 
-| Tipo | Nome | Propriedades |
-|---|---|---|
-| Base | `Entity` | `Guid Id`, `DateTimeOffset CreatedAt`, `DateTimeOffset? UpdatedAt`, `bool IsDeleted` |
-| Base | `AggregateRoot` | Herda `Entity` + `ulong Version`, queue de `IDomainEvent` |
+**`Entity`**
+- `Id` (`Guid`)
+- `CreatedAt` (`DateTimeOffset`)
+- `UpdatedAt` (`DateTimeOffset?`)
+- `IsDeleted` (`bool`)
+
+**`AggregateRoot`** — inherits `Entity`
+- `Version` (`ulong`)
+- Queue of `IDomainEvent`
 
 ---
 
@@ -35,30 +40,52 @@ Todos os aggregates e entidades herdam destes tipos base.
 
 #### `Accountancy` — `<<AggregateRoot>>`
 
-Representa um escritório de contabilidade. É o tenant raiz do sistema — todos os processos e usuários pertencem a um escritório.
+Represents an accounting firm. It is the tenant root of the system — all processes and users belong to a firm.
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `CNPJ` | `string` | Identificador fiscal do escritório |
-| `LegalName` | `string` | Razão social |
-| `TradeName` | `string?` | Nome fantasia (opcional) |
-| `Address` | `string` | Endereço completo |
-| `City` | `string` | Município |
-| `State` | `string` | UF |
-| `PostalCode` | `string` | CEP |
-| `Phone` | `string` | Telefone de contato |
-| `Email` | `string?` | E-mail de contato (opcional) |
+- `Id` (`Guid`): inherited from `Entity`
+- `CNPJ` (`string`): fiscal identifier of the firm
+- `LegalName` (`string`): legal name
+- `TradeName` (`string?`): trade name (optional)
+- `Address` (`string`): full address
+- `City` (`string`): city
+- `State` (`string`): state (UF)
+- `PostalCode` (`string`): postal code
+- `Phone` (`string`): contact phone
+- `Email` (`string?`): contact email (optional)
+
+**Factory method:** `Accountancy.Create(cnpj, legalName, tradeName, address, city, state, postalCode, phone, email)` — fires `AccountancyCreated`.
+
+**Behavior methods:**
+- `Update(cnpj, legalName, tradeName, address, city, state, postalCode, phone, email)` — fires `AccountancyUpdated`
+- `Delete()` — fires `AccountancyDeleted`
+
+---
+
+### Domain Events
+
+All events are `sealed record : Message, IDomainEvent`.
+
+- `AccountancyCreated`: `Id, CNPJ, LegalName, TradeName, Address, City, State, PostalCode, Phone, Email, CreatedAt, Version`
+- `AccountancyUpdated`: `Id, CNPJ, LegalName, TradeName, Address, City, State, PostalCode, Phone, Email, UpdatedAt, Version`
+- `AccountancyDeleted`: `Id, Version`
+
+---
+
+### Projection Models
+
+Read models for MongoDB, all `record : IProjectionModel`.
+
+- `ProjectionModel.Accountancy`: `Id, CNPJ, LegalName, TradeName, Address, City, State, PostalCode, Phone, Email, CreatedAt, UpdatedAt, IsDeleted`
 
 ---
 
 ## Module: Identity
 
-### Visão Geral
+### Overview
 
-O módulo Identity gerencia o ciclo de vida completo de acesso ao sistema: convite, registro e autenticação. O fluxo canônico é `UserInvite → User` — um `User` só pode ser criado a partir de um convite aceito.
+The Identity module manages the complete access lifecycle: invitation, registration, and authentication. The canonical flow is `UserInvite → User` — a `User` can only be created from an accepted invitation.
 
-### Agregados e Relacionamentos
+### Aggregates and Relationships
 
 ```
 UserInvite (AggregateRoot)   ──── (0..1) User (AggregateRoot)
@@ -70,82 +97,70 @@ UserInvite (AggregateRoot)   ──── (0..1) User (AggregateRoot)
 
 #### `User` — `<<AggregateRoot>>`
 
-Representa um contador ou administrador que opera o sistema. **Criado exclusivamente via `User.Create()` após a aceitação de um `UserInvite`.** Sempre vinculado a um escritório, exceto `SystemAdmin`.
+Represents a accountant or administrator who operates the system. **Created exclusively via `User.Create()` after a `UserInvite` is accepted.** Always linked to a firm, except `SystemAdmin`.
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `FirstName` | `string` | Primeiro nome |
-| `LastName` | `string` | Sobrenome |
-| `Email` | `string` | E-mail de login (único no sistema) |
-| `PasswordHash` | `string?` | Senha hasheada (nullable) |
-| `Role` | `UserRole` | Perfil de acesso (SmartEnum) |
-| `AccountancyId` | `Guid?` | Referência ao escritório (null para `SystemAdmin`) |
+- `Id` (`Guid`): inherited from `Entity`
+- `FirstName` (`string`): first name
+- `LastName` (`string`): last name
+- `Email` (`string`): login email (unique in the system)
+- `PasswordHash` (`string?`): hashed password (nullable)
+- `Role` (`UserRole`): access profile (SmartEnum)
+- `AccountancyId` (`Guid?`): reference to the firm (null for `SystemAdmin`)
 
-> **Nota de implementação:** `Name` foi substituído por `FirstName` + `LastName`. `Status` (UserStatus) foi removido do aggregate — o estado de acesso é gerenciado pelo `UserInvite`. `PasswordHash` é `string?` (nullable).
+**Factory method:** `User.Create(inviteId, firstName, lastName, email, passwordHash, role, accountancyId)` — fires `UserRegistrationCompleted`.
 
-**Factory method:** `User.Create(inviteId, firstName, lastName, email, passwordHash, role, accountancyId)` — instancia o aggregate e dispara `UserRegistrationCompleted`.
-
-**Reconstituição de estado:** `ApplyEvent` delega para `When(@event as dynamic)`. O único handler `When(UserRegistrationCompleted)` popula todas as propriedades, convertendo `Role` com `UserRole.FromName()`.
+**State reconstitution:** `ApplyEvent` delegates to `When(@event as dynamic)`. The single handler `When(UserRegistrationCompleted)` populates all properties, converting `Role` with `UserRole.FromName()`.
 
 ---
 
 #### `UserInvite` — `<<AggregateRoot>>`
 
-Representa um convite enviado a um futuro usuário do sistema. Controla o ciclo de vida de acesso: geração do token, expiração, aceitação e revogação.
+Represents an invitation sent to a future system user. Controls the access lifecycle: token generation, expiry, acceptance, and revocation.
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `Email` | `string` | E-mail do convidado |
-| `Role` | `UserRole` | Perfil que será atribuído ao usuário |
-| `AccountancyId` | `Guid?` | Escritório ao qual o usuário será vinculado |
-| `TokenHash` | `string` | Hash SHA-256 do token de convite (nunca o raw token) |
-| `Status` | `InviteStatus` | Estado atual do convite (SmartEnum) |
-| `ExpiresAt` | `DateTimeOffset` | Expiração: `UtcNow + 72h` a partir da criação ou reenvio |
-| `UsedAt` | `DateTimeOffset?` | Momento da aceitação ou revogação |
+- `Id` (`Guid`): inherited from `Entity`
+- `Email` (`string`): invitee's email
+- `Role` (`UserRole`): profile to be assigned to the user
+- `AccountancyId` (`Guid?`): firm the user will be linked to
+- `TokenHash` (`string`): SHA-256 hash of the invitation token (never the raw token)
+- `Status` (`InviteStatus`): current state (SmartEnum)
+- `ExpiresAt` (`DateTimeOffset`): expiry — `UtcNow + 72h` from creation or resend
+- `UsedAt` (`DateTimeOffset?`): moment of acceptance or revocation
 
-**Factory method:** `UserInvite.Create(email, role, accountancyId, tokenHash)` — instancia com `Status = Pending` e `ExpiresAt = UtcNow + 72h`, dispara `UserInviteCreated`.
+**Factory method:** `UserInvite.Create(email, role, accountancyId, tokenHash)` — instantiates with `Status = Pending` and `ExpiresAt = UtcNow + 72h`, fires `UserInviteCreated`.
 
-**Métodos de comportamento:**
+**Behavior methods:**
 
-| Método | Transição | Evento disparado |
-|---|---|---|
-| `IsValid()` | — (consulta) | `Status == Pending && ExpiresAt > UtcNow` |
-| `Accept()` | `Pending → Accepted` | `UserInviteAccepted` |
-| `Revoke()` | `Pending → Revoked` | `UserInviteRevoked` |
-| `Expire()` | `Pending → Expired` | `UserInviteExpired` |
-| `Resend(newTokenHash)` | — (renova token) | `UserInviteResent` (novo hash + `ExpiresAt = UtcNow + 72h`) |
+- `IsValid()` — query; returns `true` if `Status == Pending && ExpiresAt > UtcNow`
+- `Accept()` — transition `Pending → Accepted`; fires `UserInviteAccepted`
+- `Revoke()` — transition `Pending → Revoked`; fires `UserInviteRevoked`
+- `Expire()` — transition `Pending → Expired`; fires `UserInviteExpired`
+- `Resend(newTokenHash)` — renews token and resets `ExpiresAt = UtcNow + 72h`; fires `UserInviteResent`
 
-**Reconstituição de estado:** 5 handlers `When(...)`, um por evento de `UserInvite`.
+**State reconstitution:** 5 `When(...)` handlers, one per `UserInvite` event.
 
 ---
 
 ### Domain Events
 
-Todos os eventos são `sealed record : Message, IDomainEvent`. `Role` e `Status` são transportados como `string` nos eventos — a conversão para SmartEnum ocorre nos handlers `When(...)` dos aggregates.
+All events are `sealed record : Message, IDomainEvent`. `Role` and `Status` are transported as `string` in events — conversion to SmartEnum occurs in the aggregates' `When(...)` handlers.
 
-| Evento | Campos |
-|---|---|
-| `UserInviteCreated` | `Id, Email, Role, AccountancyId, TokenHash, Status, ExpiresAt, CreatedAt, Version` |
-| `UserInviteResent` | `Id, TokenHash, ExpiresAt, UpdatedAt, Version` |
-| `UserInviteAccepted` | `Id, Status, UsedAt, UpdatedAt, Version` |
-| `UserInviteRevoked` | `Id, Status, UsedAt, UpdatedAt, Version` |
-| `UserInviteExpired` | `Id, Status, UsedAt, UpdatedAt, Version` |
-| `UserRegistrationCompleted` | `Id, InviteId, FirstName, LastName, Email, PasswordHash, Role, AccountancyId, CreatedAt, Version` |
+- `UserInviteCreated`: `Id, Email, Role, AccountancyId, TokenHash, Status, ExpiresAt, CreatedAt, Version`
+- `UserInviteResent`: `Id, TokenHash, ExpiresAt, UpdatedAt, Version`
+- `UserInviteAccepted`: `Id, Status, UsedAt, UpdatedAt, Version`
+- `UserInviteRevoked`: `Id, Status, UsedAt, UpdatedAt, Version`
+- `UserInviteExpired`: `Id, Status, UsedAt, UpdatedAt, Version`
+- `UserRegistrationCompleted`: `Id, InviteId, FirstName, LastName, Email, PasswordHash, Role, AccountancyId, CreatedAt, Version`
 
 ---
 
 ### Projection Models
 
-Modelos de leitura para MongoDB, ambos `record : IProjectionModel`.
+Read models for MongoDB, all `record : IProjectionModel`.
 
-| Modelo | Campos |
-|---|---|
-| `ProjectionModel.User` | `Id, FirstName, LastName, Email, Role, AccountancyId, CreatedAt, UpdatedAt, IsDeleted` |
-| `ProjectionModel.UserInvite` | `Id, Email, Role, AccountancyId, TokenHash, Status, ExpiresAt, UsedAt, CreatedAt, UpdatedAt, IsDeleted` |
+- `ProjectionModel.User`: `Id, FirstName, LastName, Email, Role, AccountancyId, CreatedAt, UpdatedAt, IsDeleted`
+- `ProjectionModel.UserInvite`: `Id, Email, Role, AccountancyId, TokenHash, Status, ExpiresAt, UsedAt, CreatedAt, UpdatedAt, IsDeleted`
 
-> `TokenHash` é armazenado na projeção (hash SHA-256), nunca o raw token.
+> `TokenHash` is stored in the projection (SHA-256 hash), never the raw token.
 
 ---
 
@@ -153,36 +168,30 @@ Modelos de leitura para MongoDB, ambos `record : IProjectionModel`.
 
 #### `UserRole` — `<<SmartEnum>>`
 
-Implementado com `Ardalis.SmartEnum`. Conversões implícitas de/para `string` (via `Name`) e `int` (via `Value`). Cada valor é uma subclasse interna `sealed`.
+Implemented with `Ardalis.SmartEnum`. Implicit conversions to/from `string` (via `Name`) and `int` (via `Value`). Each value is an internal `sealed` subclass.
 
-| Valor | Value | Descrição |
-|---|---|---|
-| `SystemAdmin` | 0 | Administrador global da plataforma Societiza |
-| `AccountingAdmin` | 1 | Administrador do escritório de contabilidade |
-| `AccountingEmployee` | 2 | Colaborador do escritório |
-
-> **Nota:** `UserStatus` foi **removido** do modelo — substituído por `InviteStatus` no aggregate `UserInvite`.
+- `SystemAdmin` (0): global platform administrator of Societiza
+- `AccountingAdmin` (1): accounting firm administrator
+- `AccountingEmployee` (2): firm employee
 
 #### `InviteStatus` — `<<SmartEnum>>`
 
-Controla o ciclo de vida do `UserInvite`. Mesmo padrão SmartEnum + conversões implícitas `string`/`int`.
+Controls the lifecycle of `UserInvite`. Same SmartEnum pattern + implicit `string`/`int` conversions.
 
-| Valor | Value | Descrição |
-|---|---|---|
-| `Pending` | 0 | Convite enviado, aguardando aceitação |
-| `Accepted` | 1 | Convite aceito, usuário criado |
-| `Expired` | 2 | Prazo de 72h expirado sem aceitação |
-| `Revoked` | 3 | Convite cancelado manualmente |
+- `Pending` (0): invitation sent, awaiting acceptance
+- `Accepted` (1): invitation accepted, user created
+- `Expired` (2): 72h window expired without acceptance
+- `Revoked` (3): invitation manually cancelled
 
 ---
 
 ## Module: WorkflowTemplate
 
-### Visão Geral
+### Overview
 
-Módulo responsável pela definição dos templates de fluxo societário. Um template define as etapas, tarefas e campos que compõem um tipo de processo (ex: abertura de empresa). Os templates são reutilizados para criar instâncias de processo.
+Module responsible for defining corporate workflow templates. A template defines the steps, tasks, and fields that make up a type of process (e.g. company opening). Templates are reused to create process instances.
 
-### Agregados e Entidades
+### Aggregates and Entities
 
 ```
 WorkflowTemplate (AggregateRoot)
@@ -196,77 +205,86 @@ WorkflowTemplate (AggregateRoot)
 
 #### `WorkflowTemplate` — `<<AggregateRoot>>`
 
-Define um template completo de fluxo societário (ex: "Abertura de MEI", "Alteração de Sócio").
+Defines a complete corporate workflow template (e.g. "MEI Opening", "Partner Change").
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `Name` | `string` | Nome do template |
-| `Description` | `string` | Descrição do propósito do template |
-| `Version` | `TemplateVersion` | Versionamento semântico do template |
-| `Status` | `TemplateStatus` | Ciclo de vida do template |
-| `Steps` | `List<WorkflowTemplateStep>` | Etapas ordenadas do fluxo |
+- `Id` (`Guid`): inherited from `Entity`
+- `Name` (`string`): template name
+- `Description` (`string`): description of the template's purpose
+- `Version` (`TemplateVersion`): semantic versioning of the template
+- `Status` (`TemplateStatus`): template lifecycle state
+- `Steps` (`List<WorkflowTemplateStep>`): ordered workflow steps
+
+**Factory method:** `WorkflowTemplate.Create(name, description)` — fires `WorkflowTemplateCreated`.
+
+**Behavior methods:**
+- `Update(name, description)` — fires `WorkflowTemplateUpdated`
+- `Activate()` — transition `Draft → Active`; fires `WorkflowTemplateActivated`
+- `Archive()` — transition `Active → Archived`; fires `WorkflowTemplateArchived`
+- `AddStep(title, description, order)` — fires `WorkflowTemplateStepAdded`
+- `UpdateStep(stepId, title, description, order)` — fires `WorkflowTemplateStepUpdated`
+- `RemoveStep(stepId)` — fires `WorkflowTemplateStepRemoved`
+- `AddTask(stepId, title, description, type, configuration, order, isOptional)` — fires `WorkflowTemplateStepTaskAdded`
+- `UpdateTask(stepId, taskId, title, description, type, configuration, order, isOptional)` — fires `WorkflowTemplateStepTaskUpdated`
+- `RemoveTask(stepId, taskId)` — fires `WorkflowTemplateStepTaskRemoved`
+- `AddStepField(stepId, label, fieldType, options)` — fires `WorkflowTemplateStepFieldAdded`
+- `UpdateStepField(stepId, fieldId, label, fieldType, options)` — fires `WorkflowTemplateStepFieldUpdated`
+- `RemoveStepField(stepId, fieldId)` — fires `WorkflowTemplateStepFieldRemoved`
+- `AddTaskField(stepId, taskId, label, fieldType, options)` — fires `WorkflowTemplateStepTaskFieldAdded`
+- `UpdateTaskField(stepId, taskId, fieldId, label, fieldType, options)` — fires `WorkflowTemplateStepTaskFieldUpdated`
+- `RemoveTaskField(stepId, taskId, fieldId)` — fires `WorkflowTemplateStepTaskFieldRemoved`
 
 ---
 
 #### `WorkflowTemplateStep` — `<<Entity>>`
 
-Representa uma etapa dentro do template (ex: "Viabilidade", "Registro", "Alvará"). Pertence a um único `WorkflowTemplate`.
+Represents a step within the template (e.g. "Viability Check", "Registration", "Operating Licence"). Belongs to a single `WorkflowTemplate`.
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `TemplateId` | `Guid` | FK para o template pai |
-| `Title` | `string` | Título da etapa |
-| `Description` | `string` | Descrição da etapa |
-| `Order` | `int` | Posição no fluxo (ordenação) |
-| `Fields` | `List<TemplateStepField>` | Campos de dados da etapa |
-| `Tasks` | `List<WorkflowTemplateStepTask>` | Tarefas a executar nesta etapa |
+- `Id` (`Guid`): inherited from `Entity`
+- `TemplateId` (`Guid`): FK to the parent template
+- `Title` (`string`): step title
+- `Description` (`string`): step description
+- `Order` (`int`): position in the flow (ordering)
+- `Fields` (`List<TemplateStepField>`): data fields for the step
+- `Tasks` (`List<WorkflowTemplateStepTask>`): tasks to execute at this step
 
 ---
 
 #### `WorkflowTemplateStepTask` — `<<Entity>>`
 
-Representa uma tarefa dentro de uma etapa (ex: "Preencher formulário de viabilidade", "Enviar DARE"). Pode ser manual, automática ou de aprovação.
+Represents a task within a step (e.g. "Fill out viability form", "Submit DARE"). Can be manual, automatic, or approval-based.
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `Title` | `string` | Título da tarefa |
-| `Description` | `string` | Descrição do que deve ser feito |
-| `Type` | `TaskType` | Natureza da execução da tarefa |
-| `Configuration` | `string` | Configuração serializada (ex: parâmetros de automação) |
-| `Order` | `int` | Posição dentro da etapa |
-| `IsOptional` | `bool` | Se a tarefa pode ser pulada |
-| `Fields` | `List<TemplateStepTaskField>` | Campos de dados da tarefa |
+- `Id` (`Guid`): inherited from `Entity`
+- `Title` (`string`): task title
+- `Description` (`string`): description of what must be done
+- `Type` (`TaskType`): nature of task execution
+- `Configuration` (`string`): serialized configuration (e.g. automation parameters); defaults to `{}`
+- `Order` (`int`): position within the step
+- `IsOptional` (`bool`): whether the task can be skipped
+- `Fields` (`List<TemplateStepTaskField>`): data fields for the task
 
 ---
 
 #### `TemplateStepField` — `<<Entity>>`
 
-Campo de dado associado a uma etapa do template. Define o schema dos dados coletados naquela etapa.
+Data field associated with a template step. Defines the schema of data collected at that step.
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `StepId` | `Guid` | FK para a etapa pai |
-| `Label` | `string` | Rótulo exibido ao usuário |
-| `FieldType` | `FieldType` | Tipo do dado |
-| `Options` | `string?` | Opções serializadas (usado quando `FieldType = Select`) |
+- `Id` (`Guid`): inherited from `Entity`
+- `StepId` (`Guid`): FK to the parent step
+- `Label` (`string`): label displayed to the user
+- `FieldType` (`FieldType`): data type
+- `Options` (`string?`): serialized options (used when `FieldType = Select`)
 
 ---
 
 #### `TemplateStepTaskField` — `<<Entity>>`
 
-Campo de dado associado a uma tarefa do template. Funciona de forma análoga ao `TemplateStepField`, mas no escopo de uma tarefa específica.
+Data field associated with a template task. Functions analogously to `TemplateStepField`, but scoped to a specific task.
 
-| Propriedade | Tipo | Observação |
-|---|---|---|
-| `Id` | `Guid` | Herdado de `Entity` |
-| `TaskId` | `Guid` | FK para a tarefa pai |
-| `Label` | `string` | Rótulo exibido ao usuário |
-| `FieldType` | `FieldType` | Tipo do dado |
-| `Options` | `string?` | Opções serializadas (usado quando `FieldType = Select`) |
+- `Id` (`Guid`): inherited from `Entity`
+- `TaskId` (`Guid`): FK to the parent task
+- `Label` (`string`): label displayed to the user
+- `FieldType` (`FieldType`): data type
+- `Options` (`string?`): serialized options (used when `FieldType = Select`)
 
 ---
 
@@ -274,12 +292,56 @@ Campo de dado associado a uma tarefa do template. Funciona de forma análoga ao 
 
 #### `TemplateVersion` — `<<ValueObject>>`
 
-Versionamento semântico de um template. Imutável. Permite rastrear evoluções do template sem quebrar processos em andamento.
+Semantic versioning of a template. Immutable. Allows tracking template evolutions without breaking in-progress processes.
 
-| Propriedade | Tipo |
-|---|---|
-| `Major` | `int` |
-| `Minor` | `int` |
+- `Major` (`int`)
+- `Minor` (`int`)
+
+> `ToString()` returns `"v{Major}.{Minor}"`. Use `Parse()` for deserialization.
+
+---
+
+### Domain Events
+
+All events are `sealed record : Message, IDomainEvent`. `Status` and `Type` are transported as `string` — conversion to enumerations occurs in the projection handlers.
+
+**Template lifecycle:**
+- `WorkflowTemplateCreated`: `Id, Name, Description, TemplateVersion, Status, CreatedAt, Version`
+- `WorkflowTemplateUpdated`: `Id, Name, Description, UpdatedAt, Version`
+- `WorkflowTemplateActivated`: `Id, UpdatedAt, Version`
+- `WorkflowTemplateArchived`: `Id, UpdatedAt, Version`
+
+**Steps:**
+- `WorkflowTemplateStepAdded`: `TemplateId, StepId, Title, Description, Order, CreatedAt, Version`
+- `WorkflowTemplateStepUpdated`: `TemplateId, StepId, Title, Description, Order, UpdatedAt, Version`
+- `WorkflowTemplateStepRemoved`: `TemplateId, StepId, FieldIds, TaskIds, TaskFieldIds, Version`
+
+**Tasks:**
+- `WorkflowTemplateStepTaskAdded`: `TemplateId, StepId, TaskId, Title, Description, Type, Configuration, Order, IsOptional, CreatedAt, Version`
+- `WorkflowTemplateStepTaskUpdated`: `TemplateId, StepId, TaskId, Title, Description, Type, Configuration, Order, IsOptional, UpdatedAt, Version`
+- `WorkflowTemplateStepTaskRemoved`: `TemplateId, StepId, TaskId, TaskFieldIds, Version`
+
+**Step fields:**
+- `WorkflowTemplateStepFieldAdded`: `TemplateId, StepId, FieldId, Label, FieldType, Options, CreatedAt, Version`
+- `WorkflowTemplateStepFieldUpdated`: `TemplateId, StepId, FieldId, Label, FieldType, Options, UpdatedAt, Version`
+- `WorkflowTemplateStepFieldRemoved`: `TemplateId, StepId, FieldId, Version`
+
+**Task fields:**
+- `WorkflowTemplateStepTaskFieldAdded`: `TemplateId, StepId, TaskId, FieldId, Label, FieldType, Options, CreatedAt, Version`
+- `WorkflowTemplateStepTaskFieldUpdated`: `TemplateId, StepId, TaskId, FieldId, Label, FieldType, Options, UpdatedAt, Version`
+- `WorkflowTemplateStepTaskFieldRemoved`: `TemplateId, StepId, TaskId, FieldId, Version`
+
+---
+
+### Projection Models
+
+Read models for MongoDB, all `record : IProjectionModel`.
+
+- `ProjectionModel.WorkflowTemplate`: `Id, Name, Description, TemplateVersion (string), Status (string), CreatedAt, UpdatedAt, IsDeleted`
+- `ProjectionModel.WorkflowTemplateStep`: `Id, TemplateId, Title, Description, Order, CreatedAt, UpdatedAt`
+- `ProjectionModel.WorkflowTemplateStepTask`: `Id, TemplateId, StepId, Title, Description, Type (string), Configuration, Order, IsOptional, CreatedAt, UpdatedAt`
+- `ProjectionModel.TemplateStepField`: `Id, TemplateId, StepId, Label, FieldType (string), Options, CreatedAt, UpdatedAt`
+- `ProjectionModel.TemplateStepTaskField`: `Id, TemplateId, StepId, TaskId, Label, FieldType (string), Options, CreatedAt, UpdatedAt`
 
 ---
 
@@ -287,62 +349,56 @@ Versionamento semântico de um template. Imutável. Permite rastrear evoluções
 
 #### `TemplateStatus`
 
-| Valor | Descrição |
-|---|---|
-| `Draft` | Em construção, não disponível para uso |
-| `Active` | Publicado e disponível para criar processos |
-| `Archived` | Descontinuado, somente leitura |
+- `Draft` (0): under construction, not available for use
+- `Active` (1): published and available to create processes
+- `Archived` (2): discontinued, read-only
 
 #### `TaskType`
 
-| Valor | Descrição |
-|---|---|
-| `Manual` | Executada manualmente pelo operador |
-| `Automatic` | Executada automaticamente pelo sistema (ex: automação de portal) |
-| `Approval` | Requer aprovação explícita antes de avançar |
+- `Manual` (0): executed manually by the operator
+- `Automatic` (1): executed automatically by the system (e.g. portal automation)
+- `Approval` (2): requires explicit approval before advancing
 
 #### `FieldType`
 
-| Valor | Descrição |
-|---|---|
-| `Text` | Texto livre |
-| `Boolean` | Verdadeiro / Falso |
-| `Integer` | Número inteiro |
-| `Select` | Seleção a partir de opções pré-definidas |
-| `Date` | Data |
+- `Text` (0): free text
+- `Boolean` (1): true / false
+- `Integer` (2): whole number
+- `Select` (3): selection from pre-defined options
+- `Date` (4): date
 
 ---
 
-## Resumo do Modelo
+## Model Summary
 
-| Tipo | Quantidade |
-|---|---|
-| Módulos | 3 (Accountancy, Identity, WorkflowTemplate) |
-| Aggregates | 4 (Accountancy, User, UserInvite, WorkflowTemplate) |
-| Entities | 4 (WorkflowTemplateStep, WorkflowTemplateStepTask, TemplateStepField, TemplateStepTaskField) |
-| Value Objects | 1 (TemplateVersion) |
-| Enumerations | 6 (UserRole, InviteStatus, TemplateStatus, TaskType, FieldType) — *SmartEnum em Identity* |
-| Domain Events | 6 (5 de UserInvite + 1 de User) |
-| Projection Models | 2 (ProjectionModel.User, ProjectionModel.UserInvite) |
+3 modules (Accountancy, Identity, WorkflowTemplate), 4 aggregates (Accountancy, User, UserInvite, WorkflowTemplate), 4 entities (WorkflowTemplateStep, WorkflowTemplateStepTask, TemplateStepField, TemplateStepTaskField), 1 value object (TemplateVersion), 5 enumerations (UserRole, InviteStatus, TemplateStatus, TaskType, FieldType — SmartEnum in Identity), 25 domain events (3 Accountancy + 6 Identity + 16 WorkflowTemplate), 8 projection models (1 Accountancy + 2 Identity + 5 WorkflowTemplate).
 
 ---
 
-## Regras de Domínio Relevantes
+## Domain Rules
+
+### Accountancy
+- An `Accountancy` firm is the tenant root — all processes and users belong to a firm.
 
 ### Identity
-- `User` só pode ser criado via `User.Create()` após a aceitação de um `UserInvite` — não existe criação direta.
-- `User.AccountancyId` é `null` apenas para `SystemAdmin`. Toda outra role exige vínculo com um escritório.
-- `UserStatus` foi **removido** — o estado de acesso é gerenciado pelo `UserInvite.Status` (`InviteStatus`).
-- `User.Name` foi **substituído** por `FirstName` + `LastName`.
-- `UserInvite.IsValid()` retorna `true` apenas se `Status == Pending && ExpiresAt > UtcNow`.
-- O token de convite **nunca é armazenado em texto puro** — apenas o hash SHA-256 (`TokenHash`), tanto no aggregate quanto na projeção.
-- `UserInvite.Resend()` renova o `TokenHash` e redefine `ExpiresAt = UtcNow + 72h`, mantendo o mesmo aggregate.
-- `Role` e `Status` trafegam como `string` nos domain events; a conversão para SmartEnum ocorre nos handlers `When(...)` dos aggregates.
-- Enumerações do módulo Identity usam `Ardalis.SmartEnum` com conversões implícitas `string`/`int`.
+- `User` can only be created via `User.Create()` after a `UserInvite` is accepted — no direct creation.
+- `User.AccountancyId` is `null` only for `SystemAdmin`. Every other role requires a firm link.
+- `UserStatus` was **removed** — access state is managed by `UserInvite.Status` (`InviteStatus`).
+- `User.Name` was **replaced** by `FirstName` + `LastName`.
+- `UserInvite.IsValid()` returns `true` only if `Status == Pending && ExpiresAt > UtcNow`.
+- The invitation token is **never stored in plain text** — only the SHA-256 hash (`TokenHash`), both in the aggregate and the projection.
+- `UserInvite.Resend()` renews the `TokenHash` and resets `ExpiresAt = UtcNow + 72h`, keeping the same aggregate.
+- `Role` and `Status` travel as `string` in domain events; conversion to SmartEnum occurs in the aggregates' `When(...)` handlers.
+- Identity module enumerations use `Ardalis.SmartEnum` with implicit `string`/`int` conversions.
 
 ### WorkflowTemplate
-- Um `WorkflowTemplate` em status `Draft` não pode ser usado para criar processos.
-- `TemplateVersion` é um Value Object imutável — qualquer alteração estrutural deve gerar uma nova versão.
-- `WorkflowTemplateStepTask.Configuration` armazena configuração serializada (JSON) específica por `TaskType`. Para tarefas `Automatic`, contém os parâmetros da automação.
-- A ordenação de etapas e tarefas é controlada pelo campo `Order` (inteiro). A lógica de reordenação é responsabilidade da camada de Application.
-- `TemplateStepField.Options` e `TemplateStepTaskField.Options` são usados exclusivamente quando `FieldType = Select`. O formato de serialização deve ser definido e documentado na camada de Application.
+- A `WorkflowTemplate` in `Draft` status cannot be used to create processes.
+- `TemplateVersion` is an immutable Value Object — any structural change must generate a new version.
+- `WorkflowTemplateStepTask.Configuration` stores serialized (JSON) configuration specific to each `TaskType`. For `Automatic` tasks, it contains the automation parameters.
+- Step and task ordering is controlled by the `Order` field (integer). Reordering logic is the Application layer's responsibility.
+- `TemplateStepField.Options` and `TemplateStepTaskField.Options` are used exclusively when `FieldType = Select`. The serialization format must be defined and documented in the Application layer.
+- `WorkflowTemplateStepRemoved` carries `FieldIds`, `TaskIds`, and `TaskFieldIds` to allow cascading deletion in projections.
+
+---
+
+*Updated on 2026-03-31.*

@@ -6,8 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Always import the following documents at the start of every conversation. They are the canonical references for the project and domain:
 
-- [`docs/societiza-context.md`](docs/societiza-context.md) — Product context, business rules, glossary, and tech stack overview.
-- [`docs/domain-model.md`](docs/domain-model.md) — Canonical domain model: aggregates, entities, value objects, domain events, projection models and enumerations.
+- @docs/societiza-context.md — Product context, business rules, glossary, and tech stack overview.
+- @docs/domain-model.md — Canonical domain model: aggregates, entities, value objects, domain events, projection models and enumerations.
+
+---
+
+## Skills
+
+Project skills are located in `.claude/skills/`. Read the relevant skill before starting any task:
+
+- @.claude/skills/architecture/SKILL.md — required before touching any `.cs` or `.csproj`.
+- @.claude/skills/infrastructure/SKILL.md — required before running migrations or Docker commands.
 
 ---
 
@@ -95,39 +104,13 @@ HTTP Request
   → Event Handlers → MongoDB projections (reads)
 ```
 
-### Key Patterns
-
-- **CQRS via MediatR**: Commands mutate state; queries read from MongoDB projections. Handlers implement `ICommandHandler<TCommand, TResponse>` or `IQueryHandler<TQuery, TResponse>` — abstractions over MediatR's `IRequestHandler<>` defined in `Core.Application`. Never implement `IRequestHandler` directly.
-- **Ardalis API Endpoints**: One class per route in `src/Web/Endpoints/Modules/{Module}/`.
-- **Service Registration**: Modules registram serviços via `IServiceInstaller` (descoberto por reflexão em `InstallModulesFromAssemblies()`). Core registra via `InfrastructureServiceInstaller` com registros explícitos — sem Scrutor scan. `Program.cs` passa os assemblies manualmente para `InstallServicesFromAssemblies()`.
-- **Module Contracts**: The `*.Shared` project in each module holds commands/queries/responses used across module boundaries.
-- **Unit of Work + Repository**: Persistence abstractions wrap EF Core; transactions commit via `IUnitOfWork`.
-- **MassTransit**: Abstracts the event bus (RabbitMQ transport in all environments). Consumers are registered explicitly via `ConsumerConfiguration` classes in `src/Web/ServiceInstallers/EventBus/Consumers/{Module}/`. Each module has its own consumer classes that delegate to projection handlers in `{Module}.Persistence`.
-- **Background Jobs via Hangfire**: Operações assíncronas (ex: envio de email) usam `IJobSchedulerService.Enqueue(command)`. O `MediatorHangfireBridge` despacha o command via MediatR. Jobs são persistidos no PostgreSQL com retry automático.
-- **StartupTasks**: Tarefas de inicialização implementam `IStartupTask` e são executadas durante o startup da aplicação. Usadas para registrar Hangfire recurring jobs. Criar em `src/Web/StartupTasks/` e registrar via `StartupTasksServiceInstaller`. Exemplo: `RegisterRecurringJobsStartupTask` registra o job `"expire-pending-invites"` com cron `"0 * * * *"`.
+For detailed architecture patterns, layer conventions, and the feature implementation checklist, see `.claude/skills/architecture/SKILL.md`.
 
 ### Databases
 
-| Store | Purpose | Default connection target |
-|---|---|---|
-| PostgreSQL | Transactional data, Hangfire jobs | `societiza-postgres-dev:5432` |
-| MongoDB | Read projections (per module) | `societiza-mongodb-dev:27017` |
-| RabbitMQ | Event bus transport | `societiza-rabbitmq-dev:5672` |
-
-### Adding a New Endpoint
-
-1. Create `{Operation}Endpoint.cs` in `src/Web/Endpoints/Modules/{Module}/` and register the route constant in `{Module}Routes.cs` in the same folder.
-2. Create the MediatR command/query + handler in the `{Module}.Application` layer. Handlers implement `ICommandHandler<TCommand, TResponse>` or `IQueryHandler<TQuery, TResponse>`.
-3. Add validators in `{Module}.Application` — MediatR pipeline automatically runs `ValidationBehavior`.
-4. If a new read model is needed, add projection handler in `{Module}.Persistence`.
-
-### API Base Path
-
-All routes are prefixed with `/api` (configured via `PathBase` middleware). API versioning uses URL segments (e.g. `/api/v1/`).
-
-### Logging & Observability
-
-Serilog is configured for structured logging. `CorrelationId` middleware injects a correlation ID into all requests. `RequestTimestampMiddleware` stamps request timing.
+- **PostgreSQL** — transactional data + Hangfire jobs (`societiza-postgres-dev:5432`)
+- **MongoDB** — read projections per module (`societiza-mongodb-dev:27017`)
+- **RabbitMQ** — event bus transport (`societiza-rabbitmq-dev:5672`)
 
 ## Email
 
@@ -138,25 +121,25 @@ Serilog is configured for structured logging. `CorrelationId` middleware injects
 - **Future**: when `societiza.com.br` is available, update `FromEmail` to `noreply@societiza.com.br`.
 - **Security**: the Brevo SMTP Key must **never** be committed. Store it in `.env.local` (already in `.gitignore`).
 
-### Padrão de uso
+### Usage pattern
 
-`IEmailService` é uma abstração de entrega genérica com um único método `SendAsync(toEmail, toName, subject, body, ct)`. Ele **não conhece conceitos de domínio** como "convite" ou "boas-vindas" — isso é responsabilidade de cada módulo.
+`IEmailService` is a generic delivery abstraction with a single method `SendAsync(toEmail, toName, subject, body, ct)`. It **has no knowledge of domain concepts** like "invite" or "welcome" — that is each module's responsibility.
 
-**Nunca injete `IEmailService` diretamente em handlers de negócio.** O envio deve sempre ser assíncrono via Hangfire:
+**Never inject `IEmailService` directly into business handlers.** Sending must always be asynchronous via Hangfire:
 
-1. Cada módulo cria seus próprios commands de email em `{Module}.Shared/Emails/` (command record) e `{Module}.Application/UseCases/Emails/` (handler)
-2. Os handlers desses commands injetam `IEmailService`, constroem subject e body HTML, e chamam `SendAsync`
-3. Handlers de negócio injetam `IJobSchedulerService` e enfileiram: `_jobScheduler.Enqueue(new SendXxxEmailCommand(...))`
+1. Each module creates its own email commands in `{Module}.Shared/Emails/` (command record) and `{Module}.Application/UseCases/Emails/` (handler)
+2. Email command handlers inject `IEmailService`, build the subject and HTML body, and call `SendAsync`
+3. Business handlers inject `IJobSchedulerService` and enqueue: `_jobScheduler.Enqueue(new SendXxxEmailCommand(...))`
 
 ```
-// Estrutura por módulo
+// Per-module structure
 {Module}.Shared/
 └── Emails/
-    └── Send{Action}EmailCommand.cs        // sealed record, apenas primitivos (string, Guid)
+    └── Send{Action}EmailCommand.cs        // sealed record, primitives only (string, Guid)
 
 {Module}.Application/
 └── UseCases/Emails/
-    └── Send{Action}EmailCommandHandler.cs // injeta IEmailService, constrói subject/body
+    └── Send{Action}EmailCommandHandler.cs // injects IEmailService, builds subject/body
 ```
 
-O command fica em `Shared` para ser referenciável sem acoplar à camada Application. Commands de email devem conter **apenas tipos primitivos** nos parâmetros para garantir serialização pelo Hangfire.
+The command lives in `Shared` so it can be referenced without coupling to the Application layer. Email commands must contain **only primitive types** in their parameters to ensure Hangfire serialization.

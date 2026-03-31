@@ -2,8 +2,12 @@
 # Project Specific
 ###############################################################################
 
-# Documentation (local only)
-docs/claude-work-guide
+# Claude
+.claude/settings.local.json
+
+# Documentation
+docs/claude-work-guide.md
+docs/prompts/
 
 # Backup files
 *.backup

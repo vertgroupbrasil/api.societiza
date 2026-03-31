@@ -26,7 +26,6 @@ internal sealed class ApplicationServiceInstaller : IServiceInstaller
             config.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
         });
 
-        services.AddAutoMapper(Application.AssemblyReference.Assembly);
         services.AddValidatorsFromAssembly(Application.AssemblyReference.Assembly);
     }
 }

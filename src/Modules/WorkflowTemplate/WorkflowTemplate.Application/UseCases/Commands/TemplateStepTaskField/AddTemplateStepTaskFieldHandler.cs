@@ -24,7 +24,7 @@ public class AddTemplateStepTaskFieldHandler(
             request.StepId,
             request.TaskId,
             request.Label,
-            Enum.Parse<FieldType>(request.FieldType),
+            FieldType.FromName(request.FieldType),
             request.Options);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);

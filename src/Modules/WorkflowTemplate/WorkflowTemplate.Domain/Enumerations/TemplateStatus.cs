@@ -1,8 +1,28 @@
-﻿namespace WorkflowTemplate.Domain.Enumerations;
+using Ardalis.SmartEnum;
+using Newtonsoft.Json;
 
-public enum TemplateStatus
+namespace WorkflowTemplate.Domain.Enumerations;
+
+[method: JsonConstructor]
+public class TemplateStatus(string name, int value) : SmartEnum<TemplateStatus>(name, value)
 {
-    Draft, // The template is being created or modified and is not yet ready for use.
-    Active, // The template is finalized and can be used to create workflow instances.
-    Archived // The template is no longer active and should not be used for new workflow instances, but existing instances may still reference it.
+    public static readonly TemplateStatus Draft = new DraftStatus();
+    public static readonly TemplateStatus Active = new ActiveStatus();
+    public static readonly TemplateStatus Archived = new ArchivedStatus();
+
+    public static implicit operator TemplateStatus(string name)
+        => FromName(name);
+
+    public static implicit operator TemplateStatus(int value)
+        => FromValue(value);
+
+    public static implicit operator string(TemplateStatus status)
+        => status.Name;
+
+    public static implicit operator int(TemplateStatus status)
+        => status.Value;
+
+    public class DraftStatus() : TemplateStatus(nameof(Draft), 0) { }
+    public class ActiveStatus() : TemplateStatus(nameof(Active), 1) { }
+    public class ArchivedStatus() : TemplateStatus(nameof(Archived), 2) { }
 }

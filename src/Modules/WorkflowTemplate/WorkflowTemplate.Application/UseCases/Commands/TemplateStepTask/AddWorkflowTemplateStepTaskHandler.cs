@@ -24,7 +24,7 @@ public class AddWorkflowTemplateStepTaskHandler(
             request.StepId,
             request.Title,
             request.Description,
-            Enum.Parse<TaskType>(request.Type),
+            TaskType.FromName(request.Type),
             request.Configuration,
             request.Order,
             request.IsOptional);

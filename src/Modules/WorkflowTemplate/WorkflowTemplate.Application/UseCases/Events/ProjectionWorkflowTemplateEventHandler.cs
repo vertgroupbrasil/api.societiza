@@ -60,7 +60,7 @@ public class ProjectionWorkflowTemplateEventHandler(
         try
         {
             await workflowProjection.UpdateFieldsAsync(@event.Id, builder => builder
-                .Set(x => x.Status, TemplateStatus.Active.ToString())
+                .Set(x => x.Status, TemplateStatus.Active.Name)
                 .Set(x => x.UpdatedAt, @event.UpdatedAt), 
             cancellationToken);
         }
@@ -76,7 +76,7 @@ public class ProjectionWorkflowTemplateEventHandler(
         try
         {
             await workflowProjection.UpdateFieldsAsync(@event.Id, builder => builder
-                .Set(x => x.Status, TemplateStatus.Archived.ToString())
+                .Set(x => x.Status, TemplateStatus.Archived.Name)
                 .Set(x => x.UpdatedAt, @event.UpdatedAt), 
             cancellationToken);
         }

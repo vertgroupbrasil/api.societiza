@@ -64,7 +64,7 @@ public class WorkflowTemplateAggregateTests
         Assert.Equal(template.Id, @event.Id);
         Assert.Equal("My Template", @event.Name);
         Assert.Equal("My Description", @event.Description);
-        Assert.Equal(TemplateStatus.Draft.ToString(), @event.Status);
+        Assert.Equal(TemplateStatus.Draft.Name, @event.Status);
         Assert.Equal("v1.0", @event.TemplateVersion);
     }
 

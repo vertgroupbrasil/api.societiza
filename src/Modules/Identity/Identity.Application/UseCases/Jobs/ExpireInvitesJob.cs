@@ -17,27 +17,50 @@ internal sealed class ExpireInvitesHandler(
     ILogger<ExpireInvitesHandler> logger
 ) : ICommandHandler<ExpireInvitesCommand>
 {
+    private const int MaxDegreeOfParallelism = 5;
+
     public async Task<Result> Handle(ExpireInvitesCommand request, CancellationToken cancellationToken)
     {
         var expiredInvites = await inviteProjection.ListAsync(
             x => x.Status == InviteStatus.Pending.Name && x.ExpiresAt < DateTimeOffset.UtcNow,
             cancellationToken);
 
-        foreach (var expired in expiredInvites)
-        {
-            var inviteResult = await applicationService.LoadAggregateAsync<UserInvite>(expired.Id, cancellationToken);
+        int total = 0, succeeded = 0, failed = 0;
 
-            if (!inviteResult.IsSuccess)
+        await Parallel.ForEachAsync(expiredInvites,
+            new ParallelOptions
             {
-                logger.LogWarning("Failed to load invite aggregate for expiration: {Id}.", expired.Id);
-                continue;
-            }
+                MaxDegreeOfParallelism = MaxDegreeOfParallelism,
+                CancellationToken = cancellationToken
+            },
+            async (expired, ct) =>
+            {
+                Interlocked.Increment(ref total);
 
-            inviteResult.Value.Expire();
+                var inviteResult = await applicationService.LoadAggregateAsync<UserInvite>(expired.Id, ct);
 
-            await applicationService.AppendEventsAsync(inviteResult.Value, cancellationToken);
-            logger.LogInformation("Expired invite: {Id}.", expired.Id);
-        }
+                if (!inviteResult.IsSuccess)
+                {
+                    logger.LogWarning("Failed to load invite aggregate for expiration: {Id}.", expired.Id);
+                    Interlocked.Increment(ref failed);
+                    return;
+                }
+
+                if (!inviteResult.Value.IsValid())
+                {
+                    logger.LogDebug("Invite {Id} is no longer in a valid state for expiration, skipping.", expired.Id);
+                    return;
+                }
+
+                inviteResult.Value.Expire();
+
+                await applicationService.AppendEventsAsync(inviteResult.Value, ct);
+                Interlocked.Increment(ref succeeded);
+            });
+
+        logger.LogInformation(
+            "Invite expiration job completed. Processed: {Total}, Succeeded: {Succeeded}, Failed: {Failed}.",
+            total, succeeded, failed);
 
         return Result.Success();
     }
