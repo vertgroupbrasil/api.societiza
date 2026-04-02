@@ -2,11 +2,19 @@
 # Project Specific
 ###############################################################################
 
+<<<<<<< Updated upstream
 # Claude
 .claude/settings.local.json
 
 # Documentation
 docs/claude-work-guide.md
+=======
+# Claude files
+.claude/settings.local.json
+
+docs/claude-work-guide.md
+docs/prompts/
+>>>>>>> Stashed changes
 
 # Backup files
 *.backup
