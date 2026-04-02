@@ -1,9 +1,9 @@
 using Core.Application.ServiceLifetimes;
-using Identity.Application.Services;
+using Identity.Application.Services.Abstractions;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Identity.Infrastructure.Services;
+namespace Identity.Infrastructure.Services.Abstractions;
 
 public sealed class PasswordService : IPasswordService, ITransient
 {

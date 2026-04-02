@@ -1,4 +1,4 @@
-namespace Identity.Application.Services;
+namespace Identity.Application.Services.Abstractions;
 
 public interface IPasswordService
 {

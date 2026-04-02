@@ -2,6 +2,7 @@ using Core.Application.Messaging.Commands;
 using Core.Shared.Errors;
 using Core.Shared.Results;
 using Identity.Application.Services;
+using Identity.Application.Services.Abstractions;
 using Identity.Domain.Aggregates;
 using Identity.Domain.Enumerations;
 using Identity.Domain.Projection;
