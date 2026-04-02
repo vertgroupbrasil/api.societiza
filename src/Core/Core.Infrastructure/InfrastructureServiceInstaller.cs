@@ -4,6 +4,7 @@ using Core.Infrastructure.Options.Configurations;
 using Core.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Core.Infrastructure;
 
@@ -15,5 +16,7 @@ internal sealed class InfrastructureServiceInstaller : IServiceInstaller
             .ConfigureOptions<EmailOptionsConfiguration>()
             .ConfigureOptions<FrontendOptionsConfiguration>()
             .AddScoped<IEmailService, EmailService>();
+
+        services.TryAddTransient<ICurrentUserService, CurrentUserService>();
     }
 }

@@ -1,6 +1,14 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using Asp.Versioning;
 using Core.Infrastructure.Extensions;
 using DotNetEnv;
+using Identity.Application.Authorization;
+using Identity.Application.Policies;
+using Identity.Infrastructure.Options;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Web.Extensions;
@@ -53,6 +61,32 @@ builder.Services
         Accountancy.Infrastructure.AssemblyReference.Assembly,
         Identity.Infrastructure.AssemblyReference.Assembly,
         WorkflowTemplate.Infrastructure.AssemblyReference.Assembly);
+
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
+    {
+        var jwtOptions = builder.Services
+            .BuildServiceProvider() //NOSONAR
+            .GetRequiredService<IOptions<JwtOptions>>().Value;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtOptions.Key)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization(IdentityPolicies.Register);
+builder.Services.AddTransient<IAuthorizationHandler, HasRoleHandler>();
 
 builder.Services.AddCors(options =>
 {

@@ -1,73 +1,56 @@
-﻿using FluentValidation;
-using System.Net;
-using System.Text.Json;
-
+using Core.Domain.Exceptions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Web.Middlewares;
 
-/// <summary>
-/// Middleware to handle exceptions globally
-/// </summary>
-public class ExceptionHandlingMiddleware
+internal sealed class ExceptionHandlingMiddleware(
+    RequestDelegate next,
+    ILogger<ExceptionHandlingMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
-
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         try
         {
-            await _next(context);
+            await next(context);
+        }
+        catch (ForbiddenException)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "Forbidden",
+                message = "You do not have permission to access this resource."
+            });
+        }
+        catch (UnauthorizedException)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "Unauthorized",
+                message = "Authentication is required to access this resource."
+            });
+        }
+        catch (NotFoundException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "NotFound",
+                message = ex.Message
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred");
-            await HandleExceptionAsync(context, ex);
+            logger.LogError(ex, "Unhandled exception");
+
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "InternalServerError",
+                message = "An unexpected error occurred."
+            });
         }
-    }
-
-    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
-    {
-        context.Response.ContentType = "application/json";
-
-        var response = (object)(exception switch
-        {
-            ValidationException validationEx => new
-            {
-                StatusCode = (int)HttpStatusCode.BadRequest,
-                Message = "Validation failed",
-                Errors = validationEx.Errors.Select(e => new { Field = e.PropertyName, Error = e.ErrorMessage })
-            },
-            UnauthorizedAccessException => new
-            {
-                StatusCode = (int)HttpStatusCode.Unauthorized,
-                Message = "Unauthorized access"
-            },
-            KeyNotFoundException => new
-            {
-                StatusCode = (int)HttpStatusCode.NotFound,
-                Message = "Resource not found"
-            },
-            _ => new
-            {
-                StatusCode = (int)HttpStatusCode.InternalServerError,
-                Message = "An error occurred while processing your request"
-            }
-        });
-
-        context.Response.StatusCode = (int)response.GetType().GetProperty("StatusCode")!.GetValue(response)!;
-
-        var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
-
-        await context.Response.WriteAsync(jsonResponse);
     }
 }
