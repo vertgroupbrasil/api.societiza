@@ -7,7 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace Identity.Application.UseCases.Events;
 
 public interface IProjectionUserEventHandler :
-    IEventHandler<DomainEvents.UserRegistrationCompleted>;
+    IEventHandler<DomainEvents.UserRegistrationCompleted>,
+    IEventHandler<DomainEvents.UserPasswordUpdated>;
 
 public class ProjectionUserEventHandler(
     IIdentityProjection<ProjectionModel.User> userProjection,
@@ -33,6 +34,21 @@ public class ProjectionUserEventHandler(
         {
             logger.LogError(ex, "Failed to project user registration: {Id}.", @event.Id);
             throw new InvalidOperationException($"Failed to project user registration: {@event.Id}.", ex);
+        }
+    }
+
+    public async Task Handle(DomainEvents.UserPasswordUpdated @event, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await userProjection.UpdateFieldsAsync(@event.Id, builder => builder
+                .Set(x => x.UpdatedAt, @event.UpdatedAt),
+            cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to project password updated for user: {Id}.", @event.Id);
+            throw new InvalidOperationException($"Failed to project password updated for user: {@event.Id}.", ex);
         }
     }
 }

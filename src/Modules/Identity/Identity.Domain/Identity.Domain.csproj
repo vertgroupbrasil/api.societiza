@@ -7,13 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Entities\**" />
     <Compile Remove="Exceptions\**" />
     <Compile Remove="ValueObjects\**" />
-    <EmbeddedResource Remove="Entities\**" />
     <EmbeddedResource Remove="Exceptions\**" />
     <EmbeddedResource Remove="ValueObjects\**" />
-    <None Remove="Entities\**" />
     <None Remove="Exceptions\**" />
     <None Remove="ValueObjects\**" />
   </ItemGroup>

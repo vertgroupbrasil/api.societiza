@@ -29,4 +29,28 @@ public static class ProjectionModel
         DateTimeOffset? UpdatedAt,
         bool IsDeleted = false
     ) : IProjectionModel;
+
+    public record RefreshToken(
+        Guid Id,
+        Guid UserId,
+        string TokenHash,
+        DateTimeOffset ExpiresAt,
+        bool IsRevoked,
+        DateTimeOffset? RevokedAt,
+        DateTimeOffset CreatedAt,
+        DateTimeOffset? UpdatedAt,
+        bool IsDeleted = false
+    ) : IProjectionModel;
+
+    public record PasswordResetToken(
+        Guid Id,
+        Guid UserId,
+        string TokenHash,
+        DateTimeOffset ExpiresAt,
+        bool IsUsed,
+        DateTimeOffset? UsedAt,
+        DateTimeOffset CreatedAt,
+        DateTimeOffset? UpdatedAt,
+        bool IsDeleted = false
+    ) : IProjectionModel;
 }

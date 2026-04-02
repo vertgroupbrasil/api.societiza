@@ -10,4 +10,10 @@ internal static class IdentityRoutes
     internal const string AcceptInvite = $"{BaseUri}/invite/accept";
     internal const string ResendInvite = $"{BaseUri}/invite/{{{InviteId}:guid}}/resend";
     internal const string RevokeInvite = $"{BaseUri}/invite/{{{InviteId}:guid}}/revoke";
+
+    internal const string Login          = $"{BaseUri}/auth/login";
+    internal const string Refresh        = $"{BaseUri}/auth/refresh";
+    internal const string Logout         = $"{BaseUri}/auth/logout";
+    internal const string ForgotPassword = $"{BaseUri}/auth/forgot-password";
+    internal const string ResetPassword  = $"{BaseUri}/auth/reset-password";
 }

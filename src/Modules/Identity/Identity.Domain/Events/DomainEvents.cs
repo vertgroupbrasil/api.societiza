@@ -64,5 +64,44 @@ public static class DomainEvents
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record UserRefreshTokenAdded(
+        Guid UserId,
+        Guid TokenId,
+        string TokenHash,
+        DateTimeOffset ExpiresAt,
+        DateTimeOffset CreatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserRefreshTokenRevoked(
+        Guid UserId,
+        Guid TokenId,
+        DateTimeOffset RevokedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserPasswordResetTokenAdded(
+        Guid UserId,
+        Guid TokenId,
+        string TokenHash,
+        DateTimeOffset ExpiresAt,
+        DateTimeOffset CreatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserPasswordResetTokenUsed(
+        Guid UserId,
+        Guid TokenId,
+        DateTimeOffset UsedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserPasswordUpdated(
+        Guid Id,
+        string PasswordHash,
+        DateTimeOffset UpdatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
     #endregion
 }
