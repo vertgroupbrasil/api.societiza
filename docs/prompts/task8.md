@@ -10,6 +10,14 @@
 
 Este documento implementa todas as alterações da camada Application do módulo WorkflowTemplate. Depende da Task 7 (Domain) — os erros `WorkflowTemplateErrors` e os behavior methods `void` do aggregate devem estar implementados antes de executar este documento.
 
+## Skills do Codex
+
+Antes de executar esta task:
+
+- Use `$societiza-architecture` em `codex-skills/societiza-architecture`
+- Leia `docs/societiza-context.md` e `docs/domain-model.md`
+- Não use `.claude/skills/architecture/SKILL.md` para esta task
+
 **Regra arquitetural central:** o aggregate não valida nada — toda validação de estado e existência de Step/Task/Field pertence ao Handler. O padrão é uniforme: carregar aggregate → validar → chamar behavior method → persistir.
 
 ---

@@ -22,7 +22,12 @@ public sealed class ArchiveWorkflowTemplateEndpoint(ISender sender) : EndpointBa
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
             Summary = "Arquivar um template de workflow",
-            Description = "Altera o status de um template de workflow para Archived, tornando-o indisponível para novos usos.",
+            Description = """
+                Archives a workflow template.
+
+                **Allowed from:** `Draft`, `Active`
+                **Not allowed from:** `Archived`
+                """,
             Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult> HandleAsync(ArchiveWorkflowTemplateRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)

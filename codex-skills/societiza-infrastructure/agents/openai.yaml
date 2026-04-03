@@ -1,0 +1,4 @@
+interface:
+  display_name: "Societiza Infrastructure"
+  short_description: "Societiza infra, Docker, and EF ops"
+  default_prompt: "Use $societiza-infrastructure to work on Docker, EF Core migrations, or environment setup in Societiza."

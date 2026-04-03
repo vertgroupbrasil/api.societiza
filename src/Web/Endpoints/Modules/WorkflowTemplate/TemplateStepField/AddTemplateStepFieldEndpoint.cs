@@ -23,7 +23,19 @@ public sealed class AddTemplateStepFieldEndpoint(ISender sender) : EndpointBaseA
     [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "Adicionar um campo a uma etapa do template",
-            Description = "Adiciona um novo campo (field) a uma etapa (step) do template de workflow especificado. Retorna o identificador (GUID) do campo criado.",
+            Description = """
+                Adds a field to a step.
+
+                **fieldType** accepted values:
+                - `Text` - single-line text input
+                - `Boolean` - true/false toggle
+                - `Integer` - numeric input
+                - `Select` - dropdown with predefined options
+                - `Date` - date picker
+
+                `options` is required when `fieldType` is `Select`.
+                `options` must be null for all other field types.
+                """,
             Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddTemplateStepFieldRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)

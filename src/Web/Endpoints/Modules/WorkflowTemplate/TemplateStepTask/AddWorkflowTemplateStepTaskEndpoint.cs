@@ -23,7 +23,16 @@ public sealed class AddWorkflowTemplateStepTaskEndpoint(ISender sender) : Endpoi
     [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "Adicionar uma tarefa a uma etapa do template",
-            Description = "Adiciona uma nova tarefa (task) a uma etapa (step) do template de workflow especificado. Retorna o identificador (GUID) da tarefa criada.",
+            Description = """
+                Adds a task to a step.
+
+                **type** accepted values:
+                - `Manual` - task completed manually by a user
+                - `Automatic` - task executed automatically by the system
+                - `Approval` - task that requires explicit approval
+
+                If the requested `order` is already taken, existing tasks are shifted forward automatically.
+                """,
                 Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddWorkflowTemplateStepTaskRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)

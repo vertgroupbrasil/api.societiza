@@ -10,6 +10,14 @@
 
 Este documento atualiza o campo `Description` do `[SwaggerOperation]` em todos os endpoints do módulo WorkflowTemplate. O objetivo é que o frontend consiga integrar sem ambiguidade — valores aceitos, regras de preenchimento e restrições de estado descritos diretamente no Swagger UI.
 
+## Skills do Codex
+
+Antes de executar esta task:
+
+- Use `$societiza-architecture` em `codex-skills/societiza-architecture`
+- Leia `docs/societiza-context.md` e `docs/domain-model.md`
+- Não use `.claude/skills/architecture/SKILL.md` para esta task
+
 ---
 
 ## Estrutura de Arquivos

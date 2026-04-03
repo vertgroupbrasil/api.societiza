@@ -1,6 +1,7 @@
 using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
+using WorkflowTemplate.Domain.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStep;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
@@ -18,6 +19,10 @@ public class RemoveWorkflowTemplateStepHandler(
             return Result.Failure(result.Error);
 
         var template = result.Value;
+
+        if (!template.Steps.Any(step => step.Id == request.StepId))
+            return Result.Failure(WorkflowTemplateErrors.StepNotFound(request.StepId));
+
         template.RemoveStep(request.StepId);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);

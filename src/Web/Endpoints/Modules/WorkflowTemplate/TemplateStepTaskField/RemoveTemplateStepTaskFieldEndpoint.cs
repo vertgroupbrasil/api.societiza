@@ -22,7 +22,7 @@ public sealed class RemoveTemplateStepTaskFieldEndpoint(ISender sender) : Endpoi
     [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "Remover um campo de uma tarefa de uma etapa do template",
-            Description = "Remove um campo (field) existente de uma tarefa (task) de uma etapa (step) do template de workflow especificado.",
+            Description = "Removes a field from a task.",
             Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult> HandleAsync(RemoveTemplateStepTaskFieldRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)

@@ -2,6 +2,7 @@ using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Domain.Enumerations;
+using WorkflowTemplate.Domain.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStepField;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
@@ -19,6 +20,17 @@ public class UpdateTemplateStepFieldHandler(
             return Result.Failure(result.Error);
 
         var template = result.Value;
+        var step = template.Steps.FirstOrDefault(existingStep => existingStep.Id == request.StepId);
+
+        if (step is null)
+            return Result.Failure(WorkflowTemplateErrors.StepNotFound(request.StepId));
+
+        if (!step.Fields.Any(field => field.Id == request.FieldId))
+            return Result.Failure(WorkflowTemplateErrors.StepFieldNotFound(request.FieldId));
+
+        if (step.Fields.Any(field => field.Id != request.FieldId && field.Label == request.Label))
+            return Result.Failure(WorkflowTemplateErrors.StepFieldLabelAlreadyExists(request.Label));
+
         template.UpdateStepField(
             request.StepId,
             request.FieldId,
