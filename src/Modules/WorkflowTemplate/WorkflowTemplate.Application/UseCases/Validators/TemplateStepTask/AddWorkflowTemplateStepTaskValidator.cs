@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Commands.TemplateStepTask;
 
 namespace WorkflowTemplate.Application.UseCases.Validators.TemplateStepTask;
@@ -25,8 +26,8 @@ public sealed class AddWorkflowTemplateStepTaskValidator : AbstractValidator<Add
 
         RuleFor(x => x.Type)
             .NotEmpty().WithMessage("Type is required")
-            .Must(type => Enum.TryParse<WorkflowTemplate.Domain.Enumerations.TaskType>(type, out _))
-            .WithMessage($"Type must be one of: {string.Join(", ", Enum.GetNames<WorkflowTemplate.Domain.Enumerations.TaskType>())}");
+            .Must(type => WorkflowTemplateTypeParsers.TryParseTaskType(type, out _))
+            .WithMessage($"Type must be one of: {string.Join(", ", WorkflowTemplateTypeParsers.SupportedTaskTypes)}");
 
         RuleFor(x => x.Configuration)
             .NotNull().WithMessage("Configuration is required");

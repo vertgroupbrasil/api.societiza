@@ -13,7 +13,15 @@ public class CreateWorkflowTemplateHandler(
 {
     public async Task<Result<IdentifierResponse>> Handle(CreateWorkflowTemplateCommand request, CancellationToken cancellationToken)
     {
-        var template = WorkflowTemplateAggregate.Create(request.Name, request.Description);
+        var template = WorkflowTemplateAggregate.Create(
+            request.Name,
+            request.Description,
+            request.SourceTemplateId);
+
+        template.AddStep(
+            "Etapa 1",
+            "Defina aqui o processo, os campos e as tarefas desta etapa.",
+            1);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success(new IdentifierResponse(template.Id));

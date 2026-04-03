@@ -28,7 +28,8 @@ public class ProjectionWorkflowTemplateEventHandler(
                 @event.TemplateVersion,
                 @event.Status,
                 @event.CreatedAt,
-                null),
+                null,
+                @event.SourceTemplateId),
             cancellationToken);
         }
         catch (Exception ex)

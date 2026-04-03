@@ -13,7 +13,8 @@ public static class DomainEvents
         string TemplateVersion,
         string Status,
         DateTimeOffset CreatedAt,
-        ulong Version
+        ulong Version,
+        Guid? SourceTemplateId = null
     ) : Message, IDomainEvent;
 
     public sealed record WorkflowTemplateUpdated(
@@ -116,6 +117,7 @@ public static class DomainEvents
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
@@ -127,6 +129,7 @@ public static class DomainEvents
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
@@ -148,6 +151,7 @@ public static class DomainEvents
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
@@ -160,6 +164,7 @@ public static class DomainEvents
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;

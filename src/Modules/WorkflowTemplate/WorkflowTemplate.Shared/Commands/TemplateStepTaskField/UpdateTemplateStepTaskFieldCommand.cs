@@ -9,5 +9,6 @@ public sealed record UpdateTemplateStepTaskFieldCommand(
     Guid FieldId,
     string Label,
     string FieldType,
-    string? Options
+    string? Options,
+    int Order
 ) : ICommand;

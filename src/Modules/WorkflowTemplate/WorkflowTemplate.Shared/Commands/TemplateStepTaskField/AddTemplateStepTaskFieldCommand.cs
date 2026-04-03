@@ -9,5 +9,6 @@ public sealed record AddTemplateStepTaskFieldCommand(
     Guid TaskId,
     string Label,
     string FieldType,
-    string? Options
+    string? Options,
+    int Order
 ) : ICommand<IdentifierResponse>;

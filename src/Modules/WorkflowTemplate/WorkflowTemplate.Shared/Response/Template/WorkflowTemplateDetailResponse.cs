@@ -10,5 +10,7 @@ public sealed record WorkflowTemplateDetailResponse(
     string Status,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
+    Guid? SourceTemplateId,
+    bool IsDerivedDraft,
     List<WorkflowTemplateStepDetailResponse> Steps
 );

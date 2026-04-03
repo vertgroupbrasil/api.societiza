@@ -101,10 +101,11 @@ public class GetAllWorkflowTemplatesHandlerTests
         DateTimeOffset? createdAt = null) => new(
             Id: Guid.NewGuid(),
             Name: name,
-            Description: "My Description",
-            TemplateVersion: "v1.0",
-            Status: "Draft",
-            CreatedAt: createdAt ?? DateTimeOffset.UtcNow,
-            UpdatedAt: null,
-            IsDeleted: isDeleted);
+        Description: "My Description",
+        TemplateVersion: "v1.0",
+        Status: "Draft",
+        CreatedAt: createdAt ?? DateTimeOffset.UtcNow,
+        UpdatedAt: null,
+        SourceTemplateId: null,
+        IsDeleted: isDeleted);
 }

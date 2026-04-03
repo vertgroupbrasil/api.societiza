@@ -14,6 +14,8 @@ internal static class WorkflowTemplateRoutes
     internal const string UpdateWorkflowTemplate = $"{BaseUri}/{{{WorkflowTemplateId}:guid}}";
     internal const string ActivateWorkflowTemplate = $"{BaseUri}/{{{WorkflowTemplateId}:guid}}/activate";
     internal const string ArchiveWorkflowTemplate = $"{BaseUri}/{{{WorkflowTemplateId}:guid}}/archive";
+    internal const string DraftWorkflowTemplate = $"{BaseUri}/{{{WorkflowTemplateId}:guid}}/draft";
+    internal const string PublishWorkflowTemplate = $"{BaseUri}/{{{WorkflowTemplateId}:guid}}/publish";
 
     internal const string GetAllWorkflowTemplates = BaseUri;
     internal const string GetWorkflowTemplateById = $"{BaseUri}/{{{WorkflowTemplateId}:guid}}";

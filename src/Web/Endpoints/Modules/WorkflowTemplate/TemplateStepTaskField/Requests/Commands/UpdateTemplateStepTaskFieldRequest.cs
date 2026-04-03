@@ -26,4 +26,5 @@ public class UpdateTemplateStepTaskFieldBody
     public string Label { get; set; } = string.Empty;
     public string FieldType { get; set; } = string.Empty;
     public string? Options { get; set; }
+    public int Order { get; set; }
 }

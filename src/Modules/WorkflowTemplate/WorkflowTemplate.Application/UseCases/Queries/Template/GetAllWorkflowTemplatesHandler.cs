@@ -23,7 +23,9 @@ public class GetAllWorkflowTemplatesHandler(
                 t.Description,
                 t.TemplateVersion,
                 t.Status,
-                t.CreatedAt))
+                t.CreatedAt,
+                t.SourceTemplateId,
+                t.SourceTemplateId.HasValue))
             .ToList();
 
         return Result.Success(response);
