@@ -33,7 +33,8 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
                 TaskId: request.TaskId,
                 Label: request.Body.Label,
                 FieldType: request.Body.FieldType,
-                Options: request.Body.Options))
+                Options: request.Body.Options,
+                Order: request.Body.Order))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

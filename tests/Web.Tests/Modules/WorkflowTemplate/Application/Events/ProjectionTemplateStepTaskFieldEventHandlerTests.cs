@@ -106,6 +106,7 @@ public class ProjectionTemplateStepTaskFieldEventHandlerTests
         Label: "Field 1",
         FieldType: "Text",
         Options: null,
+        Order: 1,
         CreatedAt: DateTimeOffset.UtcNow,
         Version: 2);
 
@@ -117,6 +118,7 @@ public class ProjectionTemplateStepTaskFieldEventHandlerTests
         Label: "Updated Field",
         FieldType: "Boolean",
         Options: null,
+        Order: 1,
         UpdatedAt: DateTimeOffset.UtcNow,
         Version: 3);
 

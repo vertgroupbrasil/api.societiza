@@ -1,6 +1,8 @@
-﻿using FluentValidation;
+﻿using Core.Domain.Exceptions;
+using FluentValidation;
 using System.Net;
 using System.Text.Json;
+using WorkflowTemplate.Domain.Exceptions;
 
 
 namespace Web.Middlewares;
@@ -36,32 +38,41 @@ public class ExceptionHandlingMiddleware
     {
         context.Response.ContentType = "application/json";
 
-        var response = (object)(exception switch
+        var response = exception switch
         {
-            ValidationException validationEx => new
-            {
-                StatusCode = (int)HttpStatusCode.BadRequest,
-                Message = "Validation failed",
-                Errors = validationEx.Errors.Select(e => new { Field = e.PropertyName, Error = e.ErrorMessage })
-            },
-            UnauthorizedAccessException => new
-            {
-                StatusCode = (int)HttpStatusCode.Unauthorized,
-                Message = "Unauthorized access"
-            },
-            KeyNotFoundException => new
-            {
-                StatusCode = (int)HttpStatusCode.NotFound,
-                Message = "Resource not found"
-            },
-            _ => new
-            {
-                StatusCode = (int)HttpStatusCode.InternalServerError,
-                Message = "An error occurred while processing your request"
-            }
-        });
+            ValidationException validationEx => CreateErrorResponse(
+                HttpStatusCode.BadRequest,
+                "Validation failed",
+                context,
+                validationEx.Errors.Select(e => new ValidationError(e.PropertyName, e.ErrorMessage)).ToArray()),
+            DuplicateEntityException duplicateEntityException => CreateErrorResponse(
+                HttpStatusCode.Conflict,
+                duplicateEntityException.Message,
+                context),
+            AggregateIsDeletedException aggregateIsDeletedException => CreateErrorResponse(
+                HttpStatusCode.Conflict,
+                aggregateIsDeletedException.Message,
+                context),
+            ArgumentException argumentException => CreateErrorResponse(
+                HttpStatusCode.BadRequest,
+                argumentException.Message,
+                context),
+            UnauthorizedAccessException => CreateErrorResponse(
+                HttpStatusCode.Unauthorized,
+                "Unauthorized access",
+                context),
+            KeyNotFoundException keyNotFoundException => CreateErrorResponse(
+                HttpStatusCode.NotFound,
+                keyNotFoundException.Message,
+                context),
+            _ => CreateErrorResponse(
+                HttpStatusCode.InternalServerError,
+                exception.Message,
+                context,
+                exposeDetail: false)
+        };
 
-        context.Response.StatusCode = (int)response.GetType().GetProperty("StatusCode")!.GetValue(response)!;
+        context.Response.StatusCode = response.StatusCode;
 
         var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
         {
@@ -70,4 +81,28 @@ public class ExceptionHandlingMiddleware
 
         await context.Response.WriteAsync(jsonResponse);
     }
+
+    private static ErrorResponse CreateErrorResponse(
+        HttpStatusCode statusCode,
+        string message,
+        HttpContext context,
+        ValidationError[]? errors = null,
+        bool exposeDetail = true)
+        => new(
+            StatusCode: (int)statusCode,
+            Message: message,
+            Path: context.Request.Path.Value ?? string.Empty,
+            TraceId: context.TraceIdentifier,
+            Errors: errors,
+            Detail: exposeDetail ? message : "An error occurred while processing your request");
+
+    private sealed record ValidationError(string Field, string Error);
+
+    private sealed record ErrorResponse(
+        int StatusCode,
+        string Message,
+        string Path,
+        string TraceId,
+        ValidationError[]? Errors = null,
+        string? Detail = null);
 }

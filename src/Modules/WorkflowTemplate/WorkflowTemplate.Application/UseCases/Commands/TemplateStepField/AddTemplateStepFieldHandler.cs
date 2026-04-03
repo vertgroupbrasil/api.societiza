@@ -23,8 +23,9 @@ public class AddTemplateStepFieldHandler(
         var fieldId = template.AddStepField(
             request.StepId,
             request.Label,
-            Enum.Parse<FieldType>(request.FieldType),
-            request.Options);
+            WorkflowTemplateTypeParsers.ParseFieldType(request.FieldType),
+            request.Options,
+            request.Order);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success(new IdentifierResponse(fieldId));

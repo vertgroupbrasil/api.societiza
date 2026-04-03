@@ -1,4 +1,5 @@
 using FluentValidation;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Commands.TemplateStepTaskField;
 
 namespace WorkflowTemplate.Application.UseCases.Validators.TemplateStepTaskField;
@@ -29,7 +30,10 @@ public sealed class UpdateTemplateStepTaskFieldValidator : AbstractValidator<Upd
 
         RuleFor(x => x.FieldType)
             .NotEmpty().WithMessage("FieldType is required")
-            .Must(type => Enum.TryParse<Domain.Enumerations.FieldType>(type, out _))
-            .WithMessage($"FieldType must be one of: {string.Join(", ", Enum.GetNames<Domain.Enumerations.FieldType>())}");
+            .Must(type => WorkflowTemplateTypeParsers.TryParseFieldType(type, out _))
+            .WithMessage($"FieldType must be one of: {string.Join(", ", WorkflowTemplateTypeParsers.SupportedFieldTypes)}");
+
+        RuleFor(x => x.Order)
+            .GreaterThan(0).WithMessage("Order must be greater than 0");
     }
 }

@@ -5,5 +5,6 @@ namespace WorkflowTemplate.Shared.Commands.Template;
 
 public sealed record CreateWorkflowTemplateCommand(
     string Name,
-    string Description
+    string Description,
+    Guid? SourceTemplateId = null
 ) : ICommand<IdentifierResponse>;

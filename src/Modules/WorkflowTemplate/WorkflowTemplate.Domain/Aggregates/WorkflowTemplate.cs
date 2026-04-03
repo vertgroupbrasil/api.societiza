@@ -13,10 +13,14 @@ public class WorkflowTemplate : AggregateRoot
     public string Description { get; private set; } = null!;
     public TemplateVersion TemplateVersion { get; private set; } = new TemplateVersion(1, 0);
     public TemplateStatus Status { get; private set; } = TemplateStatus.Draft;
+    public Guid? SourceTemplateId { get; private set; }
     public List<WorkflowTemplateStep> Steps { get; private set; } = [];
 
     #region Workflow Template Methods
-    public static WorkflowTemplate Create(string name, string description)
+    public static WorkflowTemplate Create(
+        string name,
+        string description,
+        Guid? sourceTemplateId = null)
     {
         WorkflowTemplate workflowTemplate = new();
 
@@ -27,7 +31,8 @@ public class WorkflowTemplate : AggregateRoot
             TemplateVersion: workflowTemplate.TemplateVersion.ToString(),
             Status: workflowTemplate.Status.ToString(),
             CreatedAt: workflowTemplate.CreatedAt,
-            Version: version
+            Version: version,
+            SourceTemplateId: sourceTemplateId
         ));
 
         return workflowTemplate;
@@ -165,13 +170,11 @@ public class WorkflowTemplate : AggregateRoot
     #endregion
 
     #region Workflow Template Step Field Methods
-    public Guid AddStepField(Guid stepId, string label, FieldType fieldType, string? options)
+    public Guid AddStepField(Guid stepId, string label, FieldType fieldType, string? options, int order)
     {
         var step = Steps.FirstOrDefault(s => s.Id == stepId);
         if (step == null)
             throw new ArgumentException($"Step {stepId} não encontrado.");
-        if (step.Fields.Any(f => f.Label == label))
-            throw new Exceptions.DuplicateEntityException("Field", "Label", label);
 
         var fieldId = Guid.NewGuid();
         RaiseEvent<DomainEvents.WorkflowTemplateStepFieldAdded>(version => new(
@@ -181,13 +184,14 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.ToString(),
             Options: options,
+            Order: order,
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
         return fieldId;
     }
 
-    public void UpdateStepField(Guid stepId, Guid fieldId, string label, FieldType fieldType, string? options)
+    public void UpdateStepField(Guid stepId, Guid fieldId, string label, FieldType fieldType, string? options, int order)
     {
         RaiseEvent<DomainEvents.WorkflowTemplateStepFieldUpdated>(version => new(
             TemplateId: Id,
@@ -196,6 +200,7 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.ToString(),
             Options: options,
+            Order: order,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -206,7 +211,7 @@ public class WorkflowTemplate : AggregateRoot
     #endregion
 
     #region Workflow Template Step Task Field Methods
-    public Guid AddTaskField(Guid stepId, Guid taskId, string label, FieldType fieldType, string? options)
+    public Guid AddTaskField(Guid stepId, Guid taskId, string label, FieldType fieldType, string? options, int order)
     {
         var step = Steps.FirstOrDefault(s => s.Id == stepId);
         if (step == null)
@@ -214,8 +219,6 @@ public class WorkflowTemplate : AggregateRoot
         var task = step.Tasks.FirstOrDefault(t => t.Id == taskId);
         if (task == null)
             throw new ArgumentException($"Task {taskId} não encontrada.");
-        if (task.Fields.Any(f => f.Label == label))
-            throw new Exceptions.DuplicateEntityException("Field", "Label", label);
 
         var fieldId = Guid.NewGuid();
         RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldAdded>(version => new(
@@ -226,13 +229,14 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.ToString(),
             Options: options,
+            Order: order,
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
         return fieldId;
     }
 
-    public void UpdateTaskField(Guid stepId, Guid taskId, Guid fieldId, string label, FieldType fieldType, string? options)
+    public void UpdateTaskField(Guid stepId, Guid taskId, Guid fieldId, string label, FieldType fieldType, string? options, int order)
     {
         RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldUpdated>(version => new(
             TemplateId: Id,
@@ -242,6 +246,7 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.ToString(),
             Options: options,
+            Order: order,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -262,6 +267,7 @@ public class WorkflowTemplate : AggregateRoot
         Description = @event.Description;
         TemplateVersion = TemplateVersion.Parse(@event.TemplateVersion);
         Status = Enum.Parse<TemplateStatus>(@event.Status);
+        SourceTemplateId = @event.SourceTemplateId;
     }
 
     private void When(DomainEvents.WorkflowTemplateUpdated @event)
@@ -303,13 +309,13 @@ public class WorkflowTemplate : AggregateRoot
     private void When(DomainEvents.WorkflowTemplateStepTaskAdded @event)
     {
         var step = Steps.FirstOrDefault(s => s.Id == @event.StepId);
-        step?.AddTask(WorkflowTemplateStepTask.Create(@event.TaskId, @event.Title, @event.Description, Enum.Parse<TaskType>(@event.Type), @event.Configuration, @event.Order, @event.IsOptional));
+        step?.AddTask(WorkflowTemplateStepTask.Create(@event.TaskId, @event.Title, @event.Description, WorkflowTemplateTypeParsers.ParseTaskType(@event.Type), @event.Configuration, @event.Order, @event.IsOptional));
     }
 
     private void When(DomainEvents.WorkflowTemplateStepTaskUpdated @event)
     {
         var step = Steps.FirstOrDefault(s => s.Id == @event.StepId);
-        step?.UpdateTask(@event.TaskId, @event.Title, @event.Description, Enum.Parse<TaskType>(@event.Type), @event.Configuration, @event.Order, @event.IsOptional, @event.UpdatedAt);
+        step?.UpdateTask(@event.TaskId, @event.Title, @event.Description, WorkflowTemplateTypeParsers.ParseTaskType(@event.Type), @event.Configuration, @event.Order, @event.IsOptional, @event.UpdatedAt);
     }
 
     private void When(DomainEvents.WorkflowTemplateStepTaskRemoved @event)
@@ -323,13 +329,13 @@ public class WorkflowTemplate : AggregateRoot
     private void When(DomainEvents.WorkflowTemplateStepFieldAdded @event)
     {
         var step = Steps.FirstOrDefault(s => s.Id == @event.StepId);
-        step?.AddField(TemplateStepField.Create(@event.FieldId, @event.StepId, @event.Label, Enum.Parse<FieldType>(@event.FieldType), @event.Options));
+        step?.AddField(TemplateStepField.Create(@event.FieldId, @event.StepId, @event.Label, WorkflowTemplateTypeParsers.ParseFieldType(@event.FieldType), @event.Options, @event.Order));
     }
 
     private void When(DomainEvents.WorkflowTemplateStepFieldUpdated @event)
     {
         var step = Steps.FirstOrDefault(s => s.Id == @event.StepId);
-        step?.UpdateField(@event.FieldId, @event.Label, Enum.Parse<FieldType>(@event.FieldType), @event.Options, @event.UpdatedAt);
+        step?.UpdateField(@event.FieldId, @event.Label, WorkflowTemplateTypeParsers.ParseFieldType(@event.FieldType), @event.Options, @event.Order, @event.UpdatedAt);
     }
 
     private void When(DomainEvents.WorkflowTemplateStepFieldRemoved @event)
@@ -345,7 +351,7 @@ public class WorkflowTemplate : AggregateRoot
         var step = Steps.FirstOrDefault(s => s.Id == @event.StepId);
         var task = step?.Tasks.FirstOrDefault(t => t.Id == @event.TaskId);
 
-        task?.AddField(TemplateStepTaskField.Create(@event.FieldId, @event.TaskId, @event.Label, Enum.Parse<FieldType>(@event.FieldType), @event.Options));
+        task?.AddField(TemplateStepTaskField.Create(@event.FieldId, @event.TaskId, @event.Label, WorkflowTemplateTypeParsers.ParseFieldType(@event.FieldType), @event.Options, @event.Order));
     }
 
     private void When(DomainEvents.WorkflowTemplateStepTaskFieldUpdated @event)
@@ -353,7 +359,7 @@ public class WorkflowTemplate : AggregateRoot
         var step = Steps.FirstOrDefault(s => s.Id == @event.StepId);
         var task = step?.Tasks.FirstOrDefault(t => t.Id == @event.TaskId);
 
-        task?.UpdateField(@event.FieldId, @event.Label, Enum.Parse<FieldType>(@event.FieldType), @event.Options, @event.UpdatedAt);
+        task?.UpdateField(@event.FieldId, @event.Label, WorkflowTemplateTypeParsers.ParseFieldType(@event.FieldType), @event.Options, @event.Order, @event.UpdatedAt);
     }
 
     private void When(DomainEvents.WorkflowTemplateStepTaskFieldRemoved @event)

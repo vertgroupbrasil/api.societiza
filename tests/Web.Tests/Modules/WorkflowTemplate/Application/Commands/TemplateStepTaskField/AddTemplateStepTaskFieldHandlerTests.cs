@@ -76,5 +76,6 @@ public class AddTemplateStepTaskFieldHandlerTests
         TaskId: taskId,
         Label: "Field 1",
         FieldType: "Text",
-        Options: null);
+        Options: null,
+        Order: 1);
 }

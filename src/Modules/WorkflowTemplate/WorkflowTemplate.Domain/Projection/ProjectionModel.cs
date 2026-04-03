@@ -12,6 +12,7 @@ public static class ProjectionModel
         string Status,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt,
+        Guid? SourceTemplateId,
         bool IsDeleted = false
     ) : IProjectionModel { };
 
@@ -46,6 +47,7 @@ public static class ProjectionModel
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt
     ) : IProjectionModel { };
@@ -58,6 +60,7 @@ public static class ProjectionModel
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt
     ) : IProjectionModel { };

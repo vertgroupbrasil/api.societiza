@@ -159,6 +159,7 @@ public class GetWorkflowTemplateDetailByIdHandlerTests
         Status: "Draft",
         CreatedAt: DateTimeOffset.UtcNow,
         UpdatedAt: null,
+        SourceTemplateId: null,
         IsDeleted: false);
 
     private static ProjectionModel.WorkflowTemplateStep CreateStepProjection(Guid stepId, Guid templateId, int order) => new(

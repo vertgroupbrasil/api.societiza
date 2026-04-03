@@ -6,5 +6,7 @@ public sealed record WorkflowTemplateResponse(
     string Description,
     string Version,
     string Status,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    Guid? SourceTemplateId,
+    bool IsDerivedDraft
 );
