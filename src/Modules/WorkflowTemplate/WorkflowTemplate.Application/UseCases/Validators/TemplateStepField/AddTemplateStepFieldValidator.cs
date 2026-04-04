@@ -34,5 +34,8 @@ public sealed class AddTemplateStepFieldValidator : AbstractValidator<AddTemplat
             .Null()
             .When(x => x.FieldType != FieldType.Select.Name)
             .WithMessage("Options must be null for non-Select fields.");
+
+        RuleFor(x => x.Order)
+            .GreaterThan(0).WithMessage("Order must be greater than 0");
     }
 }

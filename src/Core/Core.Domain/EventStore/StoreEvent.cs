@@ -7,5 +7,5 @@ public record StoreEvent<TAggregate>(Guid AggregateId, string EventType, IDomain
     where TAggregate : IAggregateRoot
 {
     public static StoreEvent<TAggregate> Create(TAggregate aggregate, IDomainEvent @event)
-        => new(aggregate.Id, @event.GetType().Name, @event, aggregate.Version, @event.Timestamp);
+        => new(aggregate.Id, @event.GetType().Name, @event, @event.Version, @event.Timestamp);
 }

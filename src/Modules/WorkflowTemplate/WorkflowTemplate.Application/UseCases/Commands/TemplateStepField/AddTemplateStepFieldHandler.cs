@@ -33,7 +33,8 @@ public class AddTemplateStepFieldHandler(
             request.StepId,
             request.Label,
             FieldType.FromName(request.FieldType),
-            request.Options);
+            request.Options,
+            request.Order);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success(new IdentifierResponse(fieldId));

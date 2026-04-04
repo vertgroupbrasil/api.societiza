@@ -8,5 +8,6 @@ public sealed record AddTemplateStepFieldCommand(
     Guid StepId,
     string Label,
     string FieldType,
-    string? Options
+    string? Options,
+    int Order
 ) : ICommand<IdentifierResponse>;

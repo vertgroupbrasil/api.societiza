@@ -1,4 +1,0 @@
-interface:
-  display_name: "Societiza Architecture"
-  short_description: "Societiza backend architecture rules"
-  default_prompt: "Use $societiza-architecture to implement or review a change in the Societiza codebase."

@@ -354,7 +354,7 @@ public class WorkflowTemplateAggregateTests
     {
         var (template, stepId) = CreateTemplateWithStep();
 
-        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null);
+        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
 
         Assert.NotEqual(Guid.Empty, fieldId);
     }
@@ -364,7 +364,7 @@ public class WorkflowTemplateAggregateTests
     {
         var (template, stepId) = CreateTemplateWithStep();
 
-        template.AddStepField(stepId, "Field 1", FieldType.Text, null);
+        template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
 
         Assert.Single(template.Steps.First(s => s.Id == stepId).Fields);
     }
@@ -376,18 +376,18 @@ public class WorkflowTemplateAggregateTests
         DrainEvents(template);
 
         Assert.Throws<ArgumentException>(() =>
-            template.AddStepField(Guid.NewGuid(), "Field 1", FieldType.Text, null));
+            template.AddStepField(Guid.NewGuid(), "Field 1", FieldType.Text, null, 1));
     }
 
     [Fact]
     public void AddStepField_WithDuplicateLabel_ThrowsDuplicateEntityException()
     {
         var (template, stepId) = CreateTemplateWithStep();
-        template.AddStepField(stepId, "Field 1", FieldType.Text, null);
+        template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
         DrainEvents(template);
 
         Assert.Throws<DuplicateEntityException>(() =>
-            template.AddStepField(stepId, "Field 1", FieldType.Boolean, null));
+            template.AddStepField(stepId, "Field 1", FieldType.Boolean, null, 1));
     }
 
     #endregion
@@ -399,7 +399,7 @@ public class WorkflowTemplateAggregateTests
     {
         var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
 
-        var fieldId = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null);
+        var fieldId = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
 
         Assert.NotEqual(Guid.Empty, fieldId);
     }
@@ -411,7 +411,7 @@ public class WorkflowTemplateAggregateTests
         DrainEvents(template);
 
         Assert.Throws<ArgumentException>(() =>
-            template.AddTaskField(Guid.NewGuid(), Guid.NewGuid(), "Field 1", FieldType.Text, null));
+            template.AddTaskField(Guid.NewGuid(), Guid.NewGuid(), "Field 1", FieldType.Text, null, 1));
     }
 
     [Fact]
@@ -420,18 +420,18 @@ public class WorkflowTemplateAggregateTests
         var (template, stepId) = CreateTemplateWithStep();
 
         Assert.Throws<ArgumentException>(() =>
-            template.AddTaskField(stepId, Guid.NewGuid(), "Field 1", FieldType.Text, null));
+            template.AddTaskField(stepId, Guid.NewGuid(), "Field 1", FieldType.Text, null, 1));
     }
 
     [Fact]
     public void AddTaskField_WithDuplicateLabel_ThrowsDuplicateEntityException()
     {
         var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
-        template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null);
+        template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
         DrainEvents(template);
 
         Assert.Throws<DuplicateEntityException>(() =>
-            template.AddTaskField(stepId, taskId, "Field 1", FieldType.Boolean, null));
+            template.AddTaskField(stepId, taskId, "Field 1", FieldType.Boolean, null, 1));
     }
 
     #endregion

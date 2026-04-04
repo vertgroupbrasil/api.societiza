@@ -73,5 +73,6 @@ public class AddTemplateStepFieldHandlerTests
         StepId: stepId,
         Label: "Field 1",
         FieldType: "Text",
-        Options: null);
+        Options: null,
+        Order: 1);
 }

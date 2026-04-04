@@ -65,7 +65,7 @@ public class RemoveTemplateStepFieldHandlerTests
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
         var stepId = template.AddStep("Step 1", "Description", 1);
-        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null);
+        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
         return (template, stepId, fieldId);
     }
 }
