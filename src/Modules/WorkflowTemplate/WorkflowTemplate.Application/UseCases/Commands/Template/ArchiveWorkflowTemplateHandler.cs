@@ -1,6 +1,8 @@
 using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
+using WorkflowTemplate.Domain.Enumerations;
+using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.Template;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
@@ -18,6 +20,12 @@ public class ArchiveWorkflowTemplateHandler(
             return Result.Failure(result.Error);
 
         var template = result.Value;
+
+        if (template.Status != TemplateStatus.Active)
+            return Result.Failure(WorkflowTemplateErrors.InvalidStatusTransition(
+                from: template.Status.Name,
+                to: TemplateStatus.Archived.Name));
+
         template.Archive();
 
         await applicationService.AppendEventsAsync(template, cancellationToken);

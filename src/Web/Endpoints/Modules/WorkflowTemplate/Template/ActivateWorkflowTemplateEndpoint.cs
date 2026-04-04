@@ -22,7 +22,14 @@ public sealed class ActivateWorkflowTemplateEndpoint(ISender sender) : EndpointB
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
             Summary = "Ativar um template de workflow",
-            Description = "Altera o status de um template de workflow para Active, tornando-o disponível para uso.",
+            Description = """
+                Activates a workflow template.
+
+                **Allowed from:** `Draft`
+                **Not allowed from:** `Active`, `Archived`
+
+                The template must have at least one step containing at least one task before it can be activated.
+                """,
             Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult> HandleAsync(ActivateWorkflowTemplateRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)

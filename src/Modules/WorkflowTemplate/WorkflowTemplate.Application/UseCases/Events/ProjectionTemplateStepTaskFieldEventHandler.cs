@@ -27,6 +27,7 @@ public class ProjectionTemplateStepTaskFieldEventHandler(
                 @event.Label,
                 @event.FieldType,
                 @event.Options,
+                @event.Order,
                 @event.CreatedAt,
                 null),
             cancellationToken);
@@ -46,6 +47,7 @@ public class ProjectionTemplateStepTaskFieldEventHandler(
                 .Set(x => x.Label, @event.Label)
                 .Set(x => x.FieldType, @event.FieldType)
                 .Set(x => x.Options, @event.Options)
+                .Set(x => x.Order, @event.Order)
                 .Set(x => x.UpdatedAt, @event.UpdatedAt), cancellationToken);
         }
         catch (Exception ex)

@@ -10,6 +10,14 @@
 
 Este documento implementa todas as alterações da camada Domain do módulo WorkflowTemplate. A camada Application (handlers e validators) é coberta na Task 8, que depende deste documento.
 
+## Skills do Codex
+
+Antes de executar esta task:
+
+- Use `$societiza-architecture` em `codex-skills/societiza-architecture`
+- Leia `docs/societiza-context.md` e `docs/domain-model.md`
+- Não use `.claude/skills/architecture/SKILL.md` para esta task
+
 **Regras arquiteturais aplicadas:**
 - Aggregate não retorna `Result` nem lança exceptions — behavior methods são sempre `void`
 - Estado mutado exclusivamente via `RaiseEvent<T>()` — nunca atribuição direta fora de `When()`

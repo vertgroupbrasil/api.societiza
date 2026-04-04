@@ -1,4 +1,5 @@
 using FluentValidation;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Commands.TemplateStepField;
 
 namespace WorkflowTemplate.Application.UseCases.Validators.TemplateStepField;
@@ -27,5 +28,18 @@ public sealed class UpdateTemplateStepFieldValidator : AbstractValidator<UpdateT
             .NotEmpty().WithMessage("FieldType is required")
             .Must(type => Domain.Enumerations.FieldType.TryFromName(type, out _))
             .WithMessage($"FieldType must be one of: {string.Join(", ", Domain.Enumerations.FieldType.List.Select(t => t.Name))}");
+
+        RuleFor(x => x.Options)
+            .NotEmpty()
+            .When(x => x.FieldType == FieldType.Select.Name)
+            .WithMessage("Options are required for Select fields.");
+
+        RuleFor(x => x.Options)
+            .Null()
+            .When(x => x.FieldType != FieldType.Select.Name)
+            .WithMessage("Options must be null for non-Select fields.");
+
+        RuleFor(x => x.Order)
+            .GreaterThan(0).WithMessage("Order must be greater than 0");
     }
 }

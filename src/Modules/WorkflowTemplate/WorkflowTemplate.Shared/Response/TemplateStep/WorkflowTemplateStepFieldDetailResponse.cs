@@ -4,5 +4,6 @@ public sealed record WorkflowTemplateStepFieldDetailResponse(
     Guid Id,
     string Label,
     string FieldType,
-    string? Options
+    string? Options,
+    int Order
 );

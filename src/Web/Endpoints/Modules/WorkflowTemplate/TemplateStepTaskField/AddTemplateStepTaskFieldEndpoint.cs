@@ -23,7 +23,19 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
     [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "Adicionar um campo a uma tarefa de uma etapa do template",
-            Description = "Adiciona um novo campo (field) a uma tarefa (task) de uma etapa (step) do template de workflow especificado. Retorna o identificador (GUID) do campo criado.",
+            Description = """
+                Adds a field to a task.
+
+                **fieldType** accepted values:
+                - `Text` - single-line text input
+                - `Boolean` - true/false toggle
+                - `Integer` - numeric input
+                - `Select` - dropdown with predefined options
+                - `Date` - date picker
+
+                `options` is required when `fieldType` is `Select`.
+                `options` must be null for all other field types.
+                """,
             Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddTemplateStepTaskFieldRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
@@ -33,7 +45,8 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
                 TaskId: request.TaskId,
                 Label: request.Body.Label,
                 FieldType: request.Body.FieldType,
-                Options: request.Body.Options))
+                Options: request.Body.Options,
+                Order: request.Body.Order))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

@@ -53,11 +53,12 @@ public class GetWorkflowTemplateDetailByIdHandler(
                 step.Title,
                 step.Description,
                 step.Order,
-                stepFields.Where(field => field.StepId == step.Id).Select(field => new WorkflowTemplateStepFieldDetailResponse(
+                stepFields.Where(field => field.StepId == step.Id).OrderBy(field => field.Order).Select(field => new WorkflowTemplateStepFieldDetailResponse(
                         field.Id,
                         field.Label,
                         field.FieldType,
-                        field.Options
+                        field.Options,
+                        field.Order
                     )).ToList(),
                 tasks.Where(task => task.StepId == step.Id)
                     .OrderBy(task => task.Order)
@@ -69,11 +70,12 @@ public class GetWorkflowTemplateDetailByIdHandler(
                         task.Configuration,
                         task.Order,
                         task.IsOptional,
-                        taskFields.Where(field => field.TaskId == task.Id).Select(field => new WorkflowTemplateStepTaskFieldDetailResponse(
+                        taskFields.Where(field => field.TaskId == task.Id).OrderBy(field => field.Order).Select(field => new WorkflowTemplateStepTaskFieldDetailResponse(
                             field.Id,
                             field.Label,
                             field.FieldType,
-                            field.Options
+                            field.Options,
+                            field.Order
                         )).ToList()
                     )).ToList()
             )).ToList()

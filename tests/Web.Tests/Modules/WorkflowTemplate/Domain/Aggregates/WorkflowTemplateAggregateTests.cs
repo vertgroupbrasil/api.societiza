@@ -1,7 +1,6 @@
 using Core.Domain.Events.Interfaces;
 using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Domain.Events;
-using WorkflowTemplate.Domain.Exceptions;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
@@ -211,17 +210,6 @@ public class WorkflowTemplateAggregateTests
         Assert.IsType<DomainEvents.WorkflowTemplateStepAdded>(@event);
     }
 
-    [Fact]
-    public void AddStep_WithDuplicateTitle_ThrowsDuplicateEntityException()
-    {
-        var template = CreateTemplate();
-        DrainEvents(template);
-        template.AddStep("Step 1", "Description", 1);
-        DrainEvents(template);
-
-        Assert.Throws<DuplicateEntityException>(() => template.AddStep("Step 1", "Another", 2));
-    }
-
     #endregion
 
     #region UpdateStep
@@ -324,27 +312,6 @@ public class WorkflowTemplateAggregateTests
         Assert.Single(template.Steps.First(s => s.Id == stepId).Tasks);
     }
 
-    [Fact]
-    public void AddTask_WhenStepNotFound_ThrowsArgumentException()
-    {
-        var template = CreateTemplate();
-        DrainEvents(template);
-
-        Assert.Throws<ArgumentException>(() =>
-            template.AddTask(Guid.NewGuid(), "Task 1", "Desc", TaskType.Manual, "{}", 1, false));
-    }
-
-    [Fact]
-    public void AddTask_WithDuplicateTitle_ThrowsDuplicateEntityException()
-    {
-        var (template, stepId) = CreateTemplateWithStep();
-        template.AddTask(stepId, "Task 1", "Desc", TaskType.Manual, "{}", 1, false);
-        DrainEvents(template);
-
-        Assert.Throws<DuplicateEntityException>(() =>
-            template.AddTask(stepId, "Task 1", "Desc 2", TaskType.Automatic, "{}", 2, false));
-    }
-
     #endregion
 
     #region AddStepField
@@ -354,7 +321,7 @@ public class WorkflowTemplateAggregateTests
     {
         var (template, stepId) = CreateTemplateWithStep();
 
-        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null);
+        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
 
         Assert.NotEqual(Guid.Empty, fieldId);
     }
@@ -364,30 +331,9 @@ public class WorkflowTemplateAggregateTests
     {
         var (template, stepId) = CreateTemplateWithStep();
 
-        template.AddStepField(stepId, "Field 1", FieldType.Text, null);
+        template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
 
         Assert.Single(template.Steps.First(s => s.Id == stepId).Fields);
-    }
-
-    [Fact]
-    public void AddStepField_WhenStepNotFound_ThrowsArgumentException()
-    {
-        var template = CreateTemplate();
-        DrainEvents(template);
-
-        Assert.Throws<ArgumentException>(() =>
-            template.AddStepField(Guid.NewGuid(), "Field 1", FieldType.Text, null));
-    }
-
-    [Fact]
-    public void AddStepField_WithDuplicateLabel_ThrowsDuplicateEntityException()
-    {
-        var (template, stepId) = CreateTemplateWithStep();
-        template.AddStepField(stepId, "Field 1", FieldType.Text, null);
-        DrainEvents(template);
-
-        Assert.Throws<DuplicateEntityException>(() =>
-            template.AddStepField(stepId, "Field 1", FieldType.Boolean, null));
     }
 
     #endregion
@@ -399,39 +345,151 @@ public class WorkflowTemplateAggregateTests
     {
         var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
 
-        var fieldId = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null);
+        var fieldId = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
 
         Assert.NotEqual(Guid.Empty, fieldId);
     }
 
-    [Fact]
-    public void AddTaskField_WhenStepNotFound_ThrowsArgumentException()
-    {
-        var template = CreateTemplate();
-        DrainEvents(template);
+    #endregion
 
-        Assert.Throws<ArgumentException>(() =>
-            template.AddTaskField(Guid.NewGuid(), Guid.NewGuid(), "Field 1", FieldType.Text, null));
-    }
+    #region StepField Order Resolution
 
     [Fact]
-    public void AddTaskField_WhenTaskNotFound_ThrowsArgumentException()
+    public void AddStepField_WhenOrderIsFree_PreservesRequestedOrder()
     {
         var (template, stepId) = CreateTemplateWithStep();
 
-        Assert.Throws<ArgumentException>(() =>
-            template.AddTaskField(stepId, Guid.NewGuid(), "Field 1", FieldType.Text, null));
+        template.AddStepField(stepId, "Field 1", FieldType.Text, null, 3);
+
+        Assert.Equal(3, template.Steps.First(s => s.Id == stepId).Fields[0].Order);
     }
 
     [Fact]
-    public void AddTaskField_WithDuplicateLabel_ThrowsDuplicateEntityException()
+    public void AddStepField_WhenOrderIsOccupied_ShiftsExistingField()
     {
-        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
-        template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null);
+        var (template, stepId) = CreateTemplateWithStep();
+        template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
         DrainEvents(template);
 
-        Assert.Throws<DuplicateEntityException>(() =>
-            template.AddTaskField(stepId, taskId, "Field 1", FieldType.Boolean, null));
+        template.AddStepField(stepId, "Field 2", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Fields;
+        var field1 = fields.First(f => f.Label == "Field 1");
+        var field2 = fields.First(f => f.Label == "Field 2");
+        Assert.Equal(2, field1.Order);
+        Assert.Equal(1, field2.Order);
+    }
+
+    [Fact]
+    public void UpdateStepField_WhenOrderIsFree_PreservesRequestedOrder()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
+        DrainEvents(template);
+
+        template.UpdateStepField(stepId, fieldId, "Field 1", FieldType.Text, null, 5);
+
+        Assert.Equal(5, template.Steps.First(s => s.Id == stepId).Fields[0].Order);
+    }
+
+    [Fact]
+    public void UpdateStepField_WhenUpdatingToSameOrder_DoesNotShiftSibling()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+        var field1Id = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
+        template.AddStepField(stepId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateStepField(stepId, field1Id, "Field 1", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Fields;
+        Assert.Equal(1, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(2, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    [Fact]
+    public void UpdateStepField_WhenOrderIsOccupiedByOtherField_ShiftsOtherField()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+        var field1Id = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
+        template.AddStepField(stepId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateStepField(stepId, field1Id, "Field 1", FieldType.Text, null, 2);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Fields;
+        Assert.Equal(2, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(3, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    #endregion
+
+    #region TaskField Order Resolution
+
+    [Fact]
+    public void AddTaskField_WhenOrderIsFree_PreservesRequestedOrder()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+
+        template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 3);
+
+        Assert.Equal(3, template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields[0].Order);
+    }
+
+    [Fact]
+    public void AddTaskField_WhenOrderIsOccupied_ShiftsExistingField()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        DrainEvents(template);
+
+        template.AddTaskField(stepId, taskId, "Field 2", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields;
+        Assert.Equal(2, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(1, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    [Fact]
+    public void UpdateTaskField_WhenOrderIsFree_PreservesRequestedOrder()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        var fieldId = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        DrainEvents(template);
+
+        template.UpdateTaskField(stepId, taskId, fieldId, "Field 1", FieldType.Text, null, 5);
+
+        Assert.Equal(5, template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields[0].Order);
+    }
+
+    [Fact]
+    public void UpdateTaskField_WhenUpdatingToSameOrder_DoesNotShiftSibling()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        var field1Id = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        template.AddTaskField(stepId, taskId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateTaskField(stepId, taskId, field1Id, "Field 1", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields;
+        Assert.Equal(1, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(2, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    [Fact]
+    public void UpdateTaskField_WhenOrderIsOccupiedByOtherField_ShiftsOtherField()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        var field1Id = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        template.AddTaskField(stepId, taskId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateTaskField(stepId, taskId, field1Id, "Field 1", FieldType.Text, null, 2);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields;
+        Assert.Equal(2, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(3, fields.First(f => f.Label == "Field 2").Order);
     }
 
     #endregion

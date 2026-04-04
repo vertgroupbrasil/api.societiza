@@ -2,9 +2,6 @@
 # Project Specific
 ###############################################################################
 
-# Claude
-.claude/settings.local.json
-
 # Documentation
 docs/claude-work-guide.md
 

@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(dotnet add:*)",
-      "Bash(grep -r \"LoadAggregateAsync\\\\|AppendEventsAsync\\\\|StreamAggregatesId\\\\|PublishEventAsync\\\\|SchedulePublishAsync\" /c/Users/gabri/vertgroupbrasil/societiza/api.societiza/src --include=*.cs)"
-    ]
-  }
-}

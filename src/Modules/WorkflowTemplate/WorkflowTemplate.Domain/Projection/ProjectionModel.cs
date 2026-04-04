@@ -46,6 +46,7 @@ public static class ProjectionModel
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt
     ) : IProjectionModel { };
@@ -58,6 +59,7 @@ public static class ProjectionModel
         string Label,
         string FieldType,
         string? Options,
+        int Order,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt
     ) : IProjectionModel { };

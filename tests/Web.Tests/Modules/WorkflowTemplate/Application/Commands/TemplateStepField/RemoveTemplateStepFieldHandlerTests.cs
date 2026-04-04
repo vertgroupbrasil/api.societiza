@@ -61,11 +61,39 @@ public class RemoveTemplateStepFieldHandlerTests
         _applicationService.Verify(x => x.AppendEventsAsync(It.IsAny<WorkflowTemplateAggregate>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_WhenStepNotFound_ReturnsStepNotFound()
+    {
+        var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        _applicationService
+            .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(template));
+
+        var result = await _handler.Handle(new RemoveTemplateStepFieldCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("WorkflowTemplate.StepNotFound", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task Handle_WhenFieldNotFound_ReturnsStepFieldNotFound()
+    {
+        var (template, stepId, _) = CreateTemplateWithStepAndField();
+        _applicationService
+            .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(template));
+
+        var result = await _handler.Handle(new RemoveTemplateStepFieldCommand(Guid.NewGuid(), stepId, Guid.NewGuid()), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("WorkflowTemplate.StepFieldNotFound", result.Error.Code);
+    }
+
     private static (WorkflowTemplateAggregate template, Guid stepId, Guid fieldId) CreateTemplateWithStepAndField()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
         var stepId = template.AddStep("Step 1", "Description", 1);
-        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null);
+        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
         return (template, stepId, fieldId);
     }
 }

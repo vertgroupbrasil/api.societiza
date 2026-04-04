@@ -38,13 +38,16 @@ public class WorkflowTemplateStepTask : Entity
         UpdatedAt = updatedAt;
     }
 
+    internal void ShiftOrder(int newOrder) 
+        => Order = newOrder;
+
     public void AddField(TemplateStepTaskField field)
         => Fields.Add(field);
 
-    public void UpdateField(Guid fieldId, string label, FieldType fieldType, string? options, DateTimeOffset updatedAt)
+    public void UpdateField(Guid fieldId, string label, FieldType fieldType, string? options, int order, DateTimeOffset updatedAt)
     {
         var field = Fields.FirstOrDefault(f => f.Id == fieldId);
-        field?.Update(label, fieldType, options, updatedAt);
+        field?.Update(label, fieldType, options, order, updatedAt);
     }
 
     public void RemoveField(Guid fieldId)

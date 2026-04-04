@@ -3,6 +3,7 @@ using Core.Shared.Results;
 using Moq;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Application.UseCases.Commands.Template;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Commands.Template;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
@@ -38,6 +39,8 @@ public class ActivateWorkflowTemplateHandlerTests
     public async Task Handle_WhenTemplateExists_ReturnsSuccess()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        var stepId = template.AddStep("Step 1", "Desc", 1);
+        template.AddTask(stepId, "Task 1", "Desc", TaskType.Manual, "{}", 1, false);
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(template));
@@ -51,6 +54,8 @@ public class ActivateWorkflowTemplateHandlerTests
     public async Task Handle_WhenTemplateExists_AppendsEvents()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        var stepId = template.AddStep("Step 1", "Desc", 1);
+        template.AddTask(stepId, "Task 1", "Desc", TaskType.Manual, "{}", 1, false);
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(template));

@@ -22,7 +22,19 @@ public sealed class UpdateTemplateStepFieldEndpoint(ISender sender) : EndpointBa
     [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "Atualizar um campo de uma etapa do template",
-            Description = "Atualiza o label, tipo e opções de um campo (field) existente em uma etapa (step) do template de workflow.",
+            Description = """
+                Updates a field in a step.
+
+                **fieldType** accepted values:
+                - `Text` - single-line text input
+                - `Boolean` - true/false toggle
+                - `Integer` - numeric input
+                - `Select` - dropdown with predefined options
+                - `Date` - date picker
+
+                `options` is required when `fieldType` is `Select`.
+                `options` must be null for all other field types.
+                """,
             Tags = [Tags.WorkflowTemplate])]
     public override async Task<ActionResult> HandleAsync(UpdateTemplateStepFieldRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
@@ -32,7 +44,8 @@ public sealed class UpdateTemplateStepFieldEndpoint(ISender sender) : EndpointBa
                 FieldId: request.FieldId,
                 Label: request.Body.Label,
                 FieldType: request.Body.FieldType,
-                Options: request.Body.Options))
+                Options: request.Body.Options,
+                Order: request.Body.Order))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }
