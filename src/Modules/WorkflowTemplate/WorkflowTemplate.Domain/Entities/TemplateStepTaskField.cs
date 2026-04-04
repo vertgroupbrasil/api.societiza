@@ -32,4 +32,6 @@ public class TemplateStepTaskField : Entity
         Order = order;
         UpdatedAt = updatedAt;
     }
+
+    internal void ShiftOrder(int newOrder) => Order = newOrder;
 }

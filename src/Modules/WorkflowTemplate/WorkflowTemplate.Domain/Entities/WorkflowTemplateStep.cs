@@ -32,7 +32,8 @@ public class WorkflowTemplateStep : Entity
         UpdatedAt = updatedAt;
     }
 
-    internal void ShiftOrder(int newOrder) => Order = newOrder;
+    internal void ShiftOrder(int newOrder) 
+        => Order = newOrder;
 
     public void AddTask(WorkflowTemplateStepTask task)
         => Tasks.Add(task);

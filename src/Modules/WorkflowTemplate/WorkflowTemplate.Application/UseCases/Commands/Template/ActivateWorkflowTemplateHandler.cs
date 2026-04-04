@@ -2,8 +2,8 @@ using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Domain.Enumerations;
-using WorkflowTemplate.Domain.Errors;
 using WorkflowTemplate.Shared.Commands.Template;
+using WorkflowTemplate.Shared.Errors;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 

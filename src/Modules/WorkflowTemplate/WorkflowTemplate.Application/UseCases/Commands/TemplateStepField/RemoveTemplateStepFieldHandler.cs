@@ -2,6 +2,7 @@ using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Shared.Commands.TemplateStepField;
+using WorkflowTemplate.Shared.Errors;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
@@ -18,6 +19,14 @@ public class RemoveTemplateStepFieldHandler(
             return Result.Failure(result.Error);
 
         var template = result.Value;
+        var step = template.Steps.FirstOrDefault(existingStep => existingStep.Id == request.StepId);
+
+        if (step is null)
+            return Result.Failure(WorkflowTemplateErrors.StepNotFound(request.StepId));
+
+        if (!step.Fields.Any(field => field.Id == request.FieldId))
+            return Result.Failure(WorkflowTemplateErrors.StepFieldNotFound(request.FieldId));
+
         template.RemoveStepField(request.StepId, request.FieldId);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);

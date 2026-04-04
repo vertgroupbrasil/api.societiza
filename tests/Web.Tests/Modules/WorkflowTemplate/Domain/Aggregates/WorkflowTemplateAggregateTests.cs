@@ -352,6 +352,148 @@ public class WorkflowTemplateAggregateTests
 
     #endregion
 
+    #region StepField Order Resolution
+
+    [Fact]
+    public void AddStepField_WhenOrderIsFree_PreservesRequestedOrder()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+
+        template.AddStepField(stepId, "Field 1", FieldType.Text, null, 3);
+
+        Assert.Equal(3, template.Steps.First(s => s.Id == stepId).Fields[0].Order);
+    }
+
+    [Fact]
+    public void AddStepField_WhenOrderIsOccupied_ShiftsExistingField()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+        template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
+        DrainEvents(template);
+
+        template.AddStepField(stepId, "Field 2", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Fields;
+        var field1 = fields.First(f => f.Label == "Field 1");
+        var field2 = fields.First(f => f.Label == "Field 2");
+        Assert.Equal(2, field1.Order);
+        Assert.Equal(1, field2.Order);
+    }
+
+    [Fact]
+    public void UpdateStepField_WhenOrderIsFree_PreservesRequestedOrder()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+        var fieldId = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
+        DrainEvents(template);
+
+        template.UpdateStepField(stepId, fieldId, "Field 1", FieldType.Text, null, 5);
+
+        Assert.Equal(5, template.Steps.First(s => s.Id == stepId).Fields[0].Order);
+    }
+
+    [Fact]
+    public void UpdateStepField_WhenUpdatingToSameOrder_DoesNotShiftSibling()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+        var field1Id = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
+        template.AddStepField(stepId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateStepField(stepId, field1Id, "Field 1", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Fields;
+        Assert.Equal(1, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(2, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    [Fact]
+    public void UpdateStepField_WhenOrderIsOccupiedByOtherField_ShiftsOtherField()
+    {
+        var (template, stepId) = CreateTemplateWithStep();
+        var field1Id = template.AddStepField(stepId, "Field 1", FieldType.Text, null, 1);
+        template.AddStepField(stepId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateStepField(stepId, field1Id, "Field 1", FieldType.Text, null, 2);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Fields;
+        Assert.Equal(2, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(3, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    #endregion
+
+    #region TaskField Order Resolution
+
+    [Fact]
+    public void AddTaskField_WhenOrderIsFree_PreservesRequestedOrder()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+
+        template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 3);
+
+        Assert.Equal(3, template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields[0].Order);
+    }
+
+    [Fact]
+    public void AddTaskField_WhenOrderIsOccupied_ShiftsExistingField()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        DrainEvents(template);
+
+        template.AddTaskField(stepId, taskId, "Field 2", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields;
+        Assert.Equal(2, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(1, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    [Fact]
+    public void UpdateTaskField_WhenOrderIsFree_PreservesRequestedOrder()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        var fieldId = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        DrainEvents(template);
+
+        template.UpdateTaskField(stepId, taskId, fieldId, "Field 1", FieldType.Text, null, 5);
+
+        Assert.Equal(5, template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields[0].Order);
+    }
+
+    [Fact]
+    public void UpdateTaskField_WhenUpdatingToSameOrder_DoesNotShiftSibling()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        var field1Id = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        template.AddTaskField(stepId, taskId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateTaskField(stepId, taskId, field1Id, "Field 1", FieldType.Text, null, 1);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields;
+        Assert.Equal(1, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(2, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    [Fact]
+    public void UpdateTaskField_WhenOrderIsOccupiedByOtherField_ShiftsOtherField()
+    {
+        var (template, stepId, taskId) = CreateTemplateWithStepAndTask();
+        var field1Id = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
+        template.AddTaskField(stepId, taskId, "Field 2", FieldType.Text, null, 2);
+        DrainEvents(template);
+
+        template.UpdateTaskField(stepId, taskId, field1Id, "Field 1", FieldType.Text, null, 2);
+
+        var fields = template.Steps.First(s => s.Id == stepId).Tasks.First(t => t.Id == taskId).Fields;
+        Assert.Equal(2, fields.First(f => f.Label == "Field 1").Order);
+        Assert.Equal(3, fields.First(f => f.Label == "Field 2").Order);
+    }
+
+    #endregion
+
     #region Helpers
 
     private static WorkflowTemplateAggregate CreateTemplate()

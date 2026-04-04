@@ -61,6 +61,51 @@ public class RemoveTemplateStepTaskFieldHandlerTests
         _applicationService.Verify(x => x.AppendEventsAsync(It.IsAny<WorkflowTemplateAggregate>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_WhenStepNotFound_ReturnsStepNotFound()
+    {
+        var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        _applicationService
+            .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(template));
+
+        var result = await _handler.Handle(new RemoveTemplateStepTaskFieldCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("WorkflowTemplate.StepNotFound", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTaskNotFound_ReturnsTaskNotFound()
+    {
+        var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        var stepId = template.AddStep("Step 1", "Description", 1);
+        _applicationService
+            .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(template));
+
+        var result = await _handler.Handle(new RemoveTemplateStepTaskFieldCommand(Guid.NewGuid(), stepId, Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("WorkflowTemplate.TaskNotFound", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task Handle_WhenFieldNotFound_ReturnsTaskFieldNotFound()
+    {
+        var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        var stepId = template.AddStep("Step 1", "Description", 1);
+        var taskId = template.AddTask(stepId, "Task 1", "Description", TaskType.Manual, "{}", 1, false);
+        _applicationService
+            .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(template));
+
+        var result = await _handler.Handle(new RemoveTemplateStepTaskFieldCommand(Guid.NewGuid(), stepId, taskId, Guid.NewGuid()), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("WorkflowTemplate.TaskFieldNotFound", result.Error.Code);
+    }
+
     private static (WorkflowTemplateAggregate template, Guid stepId, Guid taskId, Guid fieldId) CreateTemplateWithStepTaskAndField()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");

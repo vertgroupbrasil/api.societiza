@@ -3,7 +3,7 @@ using Core.Shared.Response;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Domain.Enumerations;
-using WorkflowTemplate.Domain.Errors;
+using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStepField;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;

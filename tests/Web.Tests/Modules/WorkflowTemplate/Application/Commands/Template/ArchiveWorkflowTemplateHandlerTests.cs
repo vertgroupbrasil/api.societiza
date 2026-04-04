@@ -3,6 +3,7 @@ using Core.Shared.Results;
 using Moq;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Application.UseCases.Commands.Template;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Commands.Template;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
@@ -35,9 +36,23 @@ public class ArchiveWorkflowTemplateHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenTemplateExists_ReturnsSuccess()
+    public async Task Handle_WhenTemplateIsDraft_ReturnsInvalidStatusTransitionError()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        _applicationService
+            .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(template));
+
+        var result = await _handler.Handle(new ArchiveWorkflowTemplateCommand(Guid.NewGuid()), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("WorkflowTemplate.InvalidStatusTransition", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTemplateIsActive_ReturnsSuccess()
+    {
+        var template = CreateActiveTemplate();
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(template));
@@ -48,9 +63,9 @@ public class ArchiveWorkflowTemplateHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenTemplateExists_AppendsEvents()
+    public async Task Handle_WhenTemplateIsActive_AppendsEvents()
     {
-        var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        var template = CreateActiveTemplate();
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(template));
@@ -58,5 +73,14 @@ public class ArchiveWorkflowTemplateHandlerTests
         await _handler.Handle(new ArchiveWorkflowTemplateCommand(Guid.NewGuid()), CancellationToken.None);
 
         _applicationService.Verify(x => x.AppendEventsAsync(It.IsAny<WorkflowTemplateAggregate>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static WorkflowTemplateAggregate CreateActiveTemplate()
+    {
+        var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
+        var stepId = template.AddStep("Step 1", "Description", 1);
+        template.AddTask(stepId, "Task 1", "Description", TaskType.Manual, "{}", 1, false);
+        template.Activate();
+        return template;
     }
 }

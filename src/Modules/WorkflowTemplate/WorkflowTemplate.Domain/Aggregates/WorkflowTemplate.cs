@@ -62,6 +62,63 @@ public class WorkflowTemplate : AggregateRoot
     #endregion
 
     #region Workflow Template Step Methods
+    public Guid AddStep(string title, string description, int order)
+    {
+        var resolvedOrder = ResolveStepOrder(order);
+        var stepId = Guid.NewGuid();
+
+        RaiseEvent<DomainEvents.WorkflowTemplateStepAdded>(version => new(
+            TemplateId: Id,
+            StepId: stepId,
+            Title: title,
+            Description: description,
+            Order: resolvedOrder,
+            CreatedAt: DateTimeOffset.UtcNow,
+            Version: version
+        ));
+
+        return stepId;
+    }
+
+    public void UpdateStep(Guid stepId, string title, string description, int order)
+    {
+        var step = Steps.FirstOrDefault(s => s.Id == stepId);
+        if (step is null) 
+            return;
+
+        var resolvedOrder = ResolveStepOrder(order, excludeStepId: stepId);
+
+        RaiseEvent<DomainEvents.WorkflowTemplateStepUpdated>(version => new(
+            TemplateId: Id,
+            StepId: stepId,
+            Title: title,
+            Description: description,
+            Order: resolvedOrder,
+            UpdatedAt: DateTimeOffset.UtcNow,
+            Version: version
+        ));
+    }
+
+    public void RemoveStep(Guid stepId)
+    {
+        var step = Steps.FirstOrDefault(s => s.Id == stepId);
+        if (step is null) 
+            return;
+
+        var fieldIds = step.Fields.Select(f => f.Id).ToList();
+        var taskIds = step.Tasks.Select(t => t.Id).ToList();
+        var taskFieldIds = step.Tasks.SelectMany(t => t.Fields).Select(f => f.Id).ToList();
+
+        RaiseEvent<DomainEvents.WorkflowTemplateStepRemoved>(version => new(
+            TemplateId: Id,
+            StepId: stepId,
+            FieldIds: fieldIds,
+            TaskIds: taskIds,
+            TaskFieldIds: taskFieldIds,
+            Version: version
+        ));
+    }
+
     private int ResolveStepOrder(int requestedOrder, Guid? excludeStepId = null)
     {
         var siblings = Steps
@@ -87,91 +144,6 @@ public class WorkflowTemplate : AggregateRoot
         }
 
         return requestedOrder;
-    }
-
-    private int ResolveTaskOrder(Guid stepId, int requestedOrder, Guid? excludeTaskId = null)
-    {
-        var step = Steps.FirstOrDefault(s => s.Id == stepId)!;
-        var siblings = step.Tasks
-            .Where(t => excludeTaskId is null || t.Id != excludeTaskId)
-            .OrderBy(t => t.Order)
-            .ToList();
-
-        if (siblings.All(t => t.Order != requestedOrder))
-            return requestedOrder;
-
-        foreach (var sibling in siblings.Where(t => t.Order >= requestedOrder).ToList())
-        {
-            sibling.ShiftOrder(sibling.Order + 1);
-
-            RaiseEvent<DomainEvents.WorkflowTemplateStepTaskUpdated>(version => new(
-                TemplateId: Id,
-                StepId: stepId,
-                TaskId: sibling.Id,
-                Title: sibling.Title,
-                Description: sibling.Description,
-                Type: sibling.Type.Name,
-                Configuration: sibling.Configuration,
-                Order: sibling.Order,
-                IsOptional: sibling.IsOptional,
-                UpdatedAt: DateTimeOffset.UtcNow,
-                Version: version));
-        }
-
-        return requestedOrder;
-    }
-
-    public Guid AddStep(string title, string description, int order)
-    {
-        var resolvedOrder = ResolveStepOrder(order);
-        var stepId = Guid.NewGuid();
-
-        RaiseEvent<DomainEvents.WorkflowTemplateStepAdded>(version => new(
-            TemplateId: Id,
-            StepId: stepId,
-            Title: title,
-            Description: description,
-            Order: resolvedOrder,
-            CreatedAt: DateTimeOffset.UtcNow,
-            Version: version
-        ));
-
-        return stepId;
-    }
-
-    public void UpdateStep(Guid stepId, string title, string description, int order)
-    {
-        var resolvedOrder = ResolveStepOrder(order, excludeStepId: stepId);
-
-        RaiseEvent<DomainEvents.WorkflowTemplateStepUpdated>(version => new(
-            TemplateId: Id,
-            StepId: stepId,
-            Title: title,
-            Description: description,
-            Order: resolvedOrder,
-            UpdatedAt: DateTimeOffset.UtcNow,
-            Version: version
-        ));
-    }
-
-    public void RemoveStep(Guid stepId)
-    {
-        var step = Steps.FirstOrDefault(s => s.Id == stepId);
-
-        if (step is null) return;
-
-        var fieldIds = step.Fields.Select(f => f.Id).ToList();
-        var taskIds = step.Tasks.Select(t => t.Id).ToList();
-        var taskFieldIds = step.Tasks.SelectMany(t => t.Fields).Select(f => f.Id).ToList();
-
-        RaiseEvent<DomainEvents.WorkflowTemplateStepRemoved>(version => new(
-            TemplateId: Id,
-            StepId: stepId,
-            FieldIds: fieldIds,
-            TaskIds: taskIds,
-            TaskFieldIds: taskFieldIds,
-            Version: version
-        ));
     }
     #endregion
 
@@ -232,11 +204,47 @@ public class WorkflowTemplate : AggregateRoot
             Version: version
         ));
     }
+
+    private int ResolveTaskOrder(Guid stepId, int requestedOrder, Guid? excludeTaskId = null)
+    {
+        var step = Steps.FirstOrDefault(s => s.Id == stepId);
+        if (step is null) 
+            return requestedOrder;
+
+        var siblings = step.Tasks
+            .Where(t => excludeTaskId is null || t.Id != excludeTaskId)
+            .OrderBy(t => t.Order)
+            .ToList();
+
+        if (siblings.All(t => t.Order != requestedOrder))
+            return requestedOrder;
+
+        foreach (var sibling in siblings.Where(t => t.Order >= requestedOrder).ToList())
+        {
+            sibling.ShiftOrder(sibling.Order + 1);
+
+            RaiseEvent<DomainEvents.WorkflowTemplateStepTaskUpdated>(version => new(
+                TemplateId: Id,
+                StepId: stepId,
+                TaskId: sibling.Id,
+                Title: sibling.Title,
+                Description: sibling.Description,
+                Type: sibling.Type.Name,
+                Configuration: sibling.Configuration,
+                Order: sibling.Order,
+                IsOptional: sibling.IsOptional,
+                UpdatedAt: DateTimeOffset.UtcNow,
+                Version: version));
+        }
+
+        return requestedOrder;
+    }
     #endregion
 
     #region Workflow Template Step Field Methods
     public Guid AddStepField(Guid stepId, string label, FieldType fieldType, string? options, int order)
     {
+        var resolvedOrder = ResolveStepFieldOrder(stepId, order);
         var fieldId = Guid.NewGuid();
 
         RaiseEvent<DomainEvents.WorkflowTemplateStepFieldAdded>(version => new(
@@ -246,15 +254,18 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.Name,
             Options: options,
-            Order: order,
+            Order: resolvedOrder,
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
+
         return fieldId;
     }
 
     public void UpdateStepField(Guid stepId, Guid fieldId, string label, FieldType fieldType, string? options, int order)
     {
+        var resolvedOrder = ResolveStepFieldOrder(stepId, order, excludeFieldId: fieldId);
+
         RaiseEvent<DomainEvents.WorkflowTemplateStepFieldUpdated>(version => new(
             TemplateId: Id,
             StepId: stepId,
@@ -262,7 +273,7 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.Name,
             Options: options,
-            Order: order,
+            Order: resolvedOrder,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -270,11 +281,29 @@ public class WorkflowTemplate : AggregateRoot
 
     public void RemoveStepField(Guid stepId, Guid fieldId)
         => RaiseEvent<DomainEvents.WorkflowTemplateStepFieldRemoved>(version => new(TemplateId: Id, StepId: stepId, FieldId: fieldId, Version: version));
+
+    private int ResolveStepFieldOrder(Guid stepId, int requestedOrder, Guid? excludeFieldId = null)
+    {
+        var step = Steps.FirstOrDefault(s => s.Id == stepId)!;
+        var siblings = step.Fields
+            .Where(f => excludeFieldId is null || f.Id != excludeFieldId)
+            .OrderBy(f => f.Order)
+            .ToList();
+
+        if (siblings.All(f => f.Order != requestedOrder))
+            return requestedOrder;
+
+        foreach (var sibling in siblings.Where(f => f.Order >= requestedOrder))
+            sibling.ShiftOrder(sibling.Order + 1);
+
+        return requestedOrder;
+    }
     #endregion
 
     #region Workflow Template Step Task Field Methods
     public Guid AddTaskField(Guid stepId, Guid taskId, string label, FieldType fieldType, string? options, int order)
     {
+        var resolvedOrder = ResolveTaskFieldOrder(stepId, taskId, order);
         var fieldId = Guid.NewGuid();
 
         RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldAdded>(version => new(
@@ -285,7 +314,7 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.Name,
             Options: options,
-            Order: order,
+            Order: resolvedOrder,
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -294,6 +323,8 @@ public class WorkflowTemplate : AggregateRoot
 
     public void UpdateTaskField(Guid stepId, Guid taskId, Guid fieldId, string label, FieldType fieldType, string? options, int order)
     {
+        var resolvedOrder = ResolveTaskFieldOrder(stepId, taskId, order, excludeFieldId: fieldId);
+
         RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldUpdated>(version => new(
             TemplateId: Id,
             StepId: stepId,
@@ -302,7 +333,7 @@ public class WorkflowTemplate : AggregateRoot
             Label: label,
             FieldType: fieldType.Name,
             Options: options,
-            Order: order,
+            Order: resolvedOrder,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -310,6 +341,24 @@ public class WorkflowTemplate : AggregateRoot
 
     public void RemoveTaskField(Guid stepId, Guid taskId, Guid fieldId)
         => RaiseEvent<DomainEvents.WorkflowTemplateStepTaskFieldRemoved>(version => new(TemplateId: Id, StepId: stepId, TaskId: taskId, FieldId: fieldId, Version: version));
+
+    private int ResolveTaskFieldOrder(Guid stepId, Guid taskId, int requestedOrder, Guid? excludeFieldId = null)
+    {
+        var step = Steps.FirstOrDefault(s => s.Id == stepId)!;
+        var task = step.Tasks.FirstOrDefault(t => t.Id == taskId)!;
+        var siblings = task.Fields
+            .Where(f => excludeFieldId is null || f.Id != excludeFieldId)
+            .OrderBy(f => f.Order)
+            .ToList();
+
+        if (siblings.All(f => f.Order != requestedOrder))
+            return requestedOrder;
+
+        foreach (var sibling in siblings.Where(f => f.Order >= requestedOrder))
+            sibling.ShiftOrder(sibling.Order + 1);
+
+        return requestedOrder;
+    }
     #endregion
 
     protected override void ApplyEvent(IDomainEvent @event)

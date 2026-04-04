@@ -1,6 +1,6 @@
 using Core.Shared.Errors;
 
-namespace WorkflowTemplate.Domain.Errors;
+namespace WorkflowTemplate.Shared.Errors;
 
 public static class WorkflowTemplateErrors
 {

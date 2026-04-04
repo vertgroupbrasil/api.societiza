@@ -2,7 +2,7 @@ using Core.Application.Messaging.Commands;
 using Core.Shared.Response;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
-using WorkflowTemplate.Domain.Errors;
+using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStep;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
