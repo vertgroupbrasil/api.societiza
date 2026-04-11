@@ -2,12 +2,10 @@
 # Project Specific
 ###############################################################################
 
-# Documentation
-docs/claude-work-guide.md
-
-# Claude files
+# Claude Code — local-only settings (contains machine-specific permissions)
 .claude/settings.local.json
 
+# Documentation (internal/draft)
 docs/claude-work-guide.md
 
 # Backup files

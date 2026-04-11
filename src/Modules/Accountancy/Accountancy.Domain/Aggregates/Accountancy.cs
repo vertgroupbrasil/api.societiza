@@ -15,7 +15,7 @@ public class Accountancy : AggregateRoot
     public string State { get; private set; } = string.Empty;
     public string PostalCode { get; private set; } = string.Empty;
     public string Phone { get; private set; } = string.Empty;
-    public string? Email { get; private set; } = string.Empty;
+    public string? Email { get; private set; }
 
     public static Accountancy Create(string cnpj, string legalName, string? tradeName, string address, string city, string state, string postalCode, string phone, string? email)
     {
