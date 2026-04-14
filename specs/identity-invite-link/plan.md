@@ -1,654 +1,422 @@
 # Plano — identity-invite-link
 
 **Spec**: specs/identity-invite-link/spec.md @ product.societiza
-**Modulos afetados**: Identity (extensao), Notifications (novo), Web
-**Modulo novo?**: sim — Notifications (5 projetos: Domain, Application, Infrastructure, Persistence, Shared)
-**Resumo**: Adiciona dois links permanentes de convite por contabilidade (AccountingAdmin + AccountingEmployee), com pagina publica de registro e notificacao in-app via SignalR para avisar o admin quando alguem entra pelo link. O fluxo por email existente continua, mas restrito a SystemAdmin e com o link de aceite retornado na resposta. Cria o modulo Notifications — primeiro consumidor cross-module do Identity e primeira introducao de SignalR no projeto.
+**Modulos afetados**: Identity (refactor + extensao), Accountancy (leitura cross-module), Web
+**Modulo novo?**: nao
+**Resumo**: Adiciona um link de equipe por contabilidade (7 dias de validade, role fixo `AccountingEmployee`) que o `AccountingAdmin` compartilha por WhatsApp. Refatora o aggregate `User` para suportar **multi-membership** (mesmo usuario em varias contabilidades — caso de contador autonomo). Adiciona remocao de membros pelo `AccountingAdmin`. Os dois fluxos do `SystemAdmin` (convite de `SystemAdmin` e de `AccountingAdmin` de nova contabilidade) continuam por email, mas passam a retornar o link na resposta. Nao inclui notificacoes in-app (explicitamente fora do escopo pela spec).
+
+### Como o link se conecta entre os modulos
+
+- **Identity e dono** do aggregate `AccountancyInviteLink` — ele conhece usuarios, roles e tokens. A "contabilidade de destino" entra como `AccountancyId` no stream — Identity nao importa a estrutura interna do Accountancy, apenas o identificador.
+- **Accountancy nao conhece o link** — zero referencia reversa. Isso mantem a fronteira limpa e evita dependencia circular.
+- **Handler publico de info do link** (pagina de registro anonima) le o **nome da contabilidade** via `IAccountancyProjection<ProjectionModel.Accountancy>` — unica passagem cross-module, somente leitura.
+- **Id deterministico** (GUIDv5 sobre `AccountancyId`) garante que existe exatamente um stream de link por contabilidade sem lookup previo — alinhado com a regra "exatamente um link de equipe ativo por contabilidade" (spec §7).
 
 ---
 
 ## Pre-condicoes
 
-1. **Um usuario pertence a uma unica contabilidade** — mantem `User.AccountancyId` escalar. Email duplicado (mesmo em outra contabilidade) retorna 409. Decisao MVP confirmada com o humano — multi-membership fica para depois.
-2. **Sem endpoint orquestrador accountancy+invite** — o frontend compoe as duas chamadas existentes (criar accountancy + convidar admin). Nao entra no escopo desta spec.
-3. **`InviteUserEndpoint` (email) passa a ser restrito a SystemAdmin** — usado apenas pela ferramenta interna para colocar o primeiro admin da contabilidade. O link generico nao substitui este caminho; ele e complementar.
-4. **Remocao de membros nao entra no MVP** — spec foca em onboarding. `Revoke`/`Remove` de usuarios ativos fica fora.
-5. **`FrontendOptions.BaseUrl` ja existe e e reutilizado** — o invite link (`/join/{token}`) e o accept-invite (`/accept-invite/{token}`) usam o mesmo binding. Nao cria `InviteLinkOptions` separado — evita duplicacao.
+1. **Remocao de membros entra junto** — spec §6 declara "as duas features andam juntas". O plano inclui o endpoint `DELETE /accountancies/{id}/members/{userId}` e a mecanica de saida no aggregate `User`.
+2. **Multi-membership no aggregate `User`** — spec §6, §9 afirmam que o mesmo email pode pertencer a varias contabilidades. O plano refatora `User` para expor uma lista `Memberships` no lugar do `AccountancyId`/`Role` escalares. Projection `User` passa a expor `Memberships[]`. Existing event streams sao compativeis via replay (eventos antigos continuam raiseando `UserRegistrationCompleted` — novo handler traduz para um `UserMembershipAdded` sintetico ao hidratar). **Este e o ponto de maior risco do plano — ver §Riscos**.
+3. **Sem orquestrador** para o cenario SysAdmin → AccountingAdmin — o frontend chama sequencialmente `POST /accountancies` e `POST /identity/invite`. Spec §9 confirma.
+4. **Sem notificacoes** — modulo `Notifications` sai do escopo (spec §7). Evento `InviteLinkUsed` e publicado mas nao ha consumidor nesta spec.
+5. **Expiracao de link e manual + job recorrente** — job recorrente horario marca links com `ExpiresAt < now` como `Expired`. `AccountingAdmin` regenera manualmente quando precisa. Sem aviso previo (spec §7).
+6. **`FrontendOptions.BaseUrl` ja existe** — reutilizado para montar URLs de join e de accept-invite. Nao cria novo options binding.
 
 ---
 
 ## Itens
 
-### 1. SmartEnum `InviteLinkStatus`
+### Grupo A — Refactor multi-membership no aggregate `User`
+
+### 1. Value object `UserMembership`
 
 - **Camada**: Domain
-- **Tipo**: SmartEnum
+- **Tipo**: ValueObject
 - **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Domain/Enumerations/InviteLinkStatus.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Domain/ValueObjects/UserMembership.cs`
 - **Depende de**: nenhum
-- **Spec-ref**: §3 "Estado do link"
-- **Detalhes**: `Active(0)`, `Regenerated(1)`. Regenerated marca links antigos apos rotacao — lookup por token so considera `Active`. Segue pattern existente (implicit conversions string/int, `[method: JsonConstructor]`, private sealed subclasses).
+- **Spec-ref**: §6 "suporte a usuarios em multiplas contabilidades"
+- **Detalhes**: `sealed record UserMembership(Guid AccountancyId, UserRole Role, DateTimeOffset JoinedAt)`. Equidade por `(UserId, AccountancyId)` — um usuario nunca tem duas memberships na mesma contabilidade (mesmo que o role mude, e substituido).
 
-### 2. Domain Events do aggregate `AccountancyInviteLink`
+### 2. Domain events de membership
 
 - **Camada**: Domain
 - **Tipo**: DomainEvent
 - **Acao**: modificar
 - **Caminho**: `src/Modules/Identity/Identity.Domain/Events/DomainEvents.cs`
 - **Depende de**: #1
-- **Spec-ref**: §3 "Geracao/regeneracao do link", §4 "Registro por link"
-- **Detalhes**: Adicionar tres records em `DomainEvents`:
-  - `InviteLinkGenerated(Guid Id, Guid AccountancyId, string Role, string Token, string TokenHash, string Status, DateTimeOffset CreatedAt, ulong Version)` — `Role` e `Status` serializados como string via `.Name`.
-  - `InviteLinkRegenerated(Guid Id, string Token, string TokenHash, DateTimeOffset RegeneratedAt, ulong Version)`
-  - `InviteLinkUsed(Guid Id, Guid AccountancyId, string Role, Guid UsedByUserId, string UsedByEmail, int UsageCount, DateTimeOffset UsedAt, ulong Version)` — `UsedByUserId` + `UsedByEmail` alimentam a notificacao do modulo Notifications.
+- **Spec-ref**: §6, §9
+- **Detalhes**: Adicionar dois records:
+  - `UserMembershipAdded(Guid UserId, Guid AccountancyId, string Role, DateTimeOffset JoinedAt, ulong Version)` — emitido no `Create` (membership inicial) e no `JoinAccountancy`. `Role` serializado como string via `.Name`.
+  - `UserMembershipRemoved(Guid UserId, Guid AccountancyId, DateTimeOffset RemovedAt, ulong Version)` — emitido em `LeaveAccountancy`.
+  - `UserRegistrationCompleted` mantido como esta (compat com streams existentes) — `When(UserRegistrationCompleted)` agora hidrata `Memberships` adicionando um item a partir do `AccountancyId`/`Role` do evento (equivalente a um `UserMembershipAdded` sintetico).
 
-### 3. Aggregate `AccountancyInviteLink`
+### 3. Refactor aggregate `User` — metodos e estado
 
 - **Camada**: Domain
 - **Tipo**: Aggregate
-- **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Domain/Aggregates/AccountancyInviteLink.cs`
+- **Acao**: modificar
+- **Caminho**: `src/Modules/Identity/Identity.Domain/Aggregates/User.cs`
 - **Depende de**: #1, #2
-- **Spec-ref**: §3 "Aggregate de link generico"
-- **Detalhes**: Aggregate event-sourced com stream unico por `(AccountancyId, Role)`. Id gerado por **GUIDv5 deterministico** a partir de `(AccountancyId, Role)` sob namespace fixo — garante que `Create` duplicado falhe por conflito de versao no event store (v0 ja existe). Metodos:
-  - `static Create(Guid accountancyId, UserRole role, string rawToken, string tokenHash)` — levanta `InviteLinkGenerated`.
-  - `Regenerate(string newRawToken, string newTokenHash)` — levanta `InviteLinkRegenerated`. Token antigo passa a nao resolver.
-  - `RegisterUsage(Guid userId, string email, DateTimeOffset usedAt)` — incrementa `UsageCount`, levanta `InviteLinkUsed`.
-  - `When(...)` para cada evento, hidrata `Status`/`Role` via `FromName`.
+- **Spec-ref**: §6, §9, §4 cenario 3
+- **Detalhes**:
+  - Novo estado: `IReadOnlyList<UserMembership> Memberships` (privado como `List<>`). Campos escalares `AccountancyId` e `Role` viram computed properties (`PrimaryAccountancyId = Memberships.FirstOrDefault()?.AccountancyId`) — mantem leitura de legacy onde necessario.
+  - `Create(inviteId, firstName, lastName, email, passwordHash, role, accountancyId)` — mantido, continua raiseando `UserRegistrationCompleted` (nao quebra stream existente). Internamente `When` popula `Memberships` com um item.
+  - **Novo metodo** `JoinAccountancy(Guid accountancyId, UserRole role, DateTimeOffset joinedAt)` — nao levanta se ja existe membership para aquela contabilidade (idempotente). Senao, raise `UserMembershipAdded`.
+  - **Novo metodo** `LeaveAccountancy(Guid accountancyId, DateTimeOffset removedAt)` — se nao tem membership, `NoOp` (idempotente). Senao, raise `UserMembershipRemoved`. Nao deleta o user (continua acessando outras contabilidades).
+  - `When(UserMembershipAdded)` e `When(UserMembershipRemoved)` hidratam `Memberships`.
 
-### 4. Projection Model `AccountancyInviteLink`
+### 4. Projection model `User` — expor `Memberships[]`
 
 - **Camada**: Domain
 - **Tipo**: ProjectionModel
 - **Acao**: modificar
 - **Caminho**: `src/Modules/Identity/Identity.Domain/Projection/ProjectionModel.cs`
 - **Depende de**: #1
-- **Spec-ref**: §3 "Consulta e compartilhamento do link"
-- **Detalhes**: Adicionar record no namespace `ProjectionModel`: `AccountancyInviteLink(Guid Id, Guid AccountancyId, string Role, string Token, string TokenHash, int UsageCount, string Status, DateTimeOffset CreatedAt, DateTimeOffset? LastUsedAt, DateTimeOffset? UpdatedAt, bool IsDeleted)`. **Raw `Token` persistido** (decisao de produto — link permanente compartilhado por WhatsApp; admin precisa copiar novamente depois de refresh). XML doc explicitando o motivo. `TokenHash` indexado para lookup no registro anonimo.
+- **Spec-ref**: §6, §9
+- **Detalhes**: Substituir `AccountancyId` (Guid?) e `Role` (string) por `Memberships: IReadOnlyList<MembershipEntry>` onde `MembershipEntry(Guid AccountancyId, string Role, DateTimeOffset JoinedAt)`. Campos escalares (`AccountancyId`, `Role`) podem permanecer como propriedades derivadas opcionais se outros modulos leem diretamente — **verificar uso antes de remover** (ver checklist).
 
-### 5. EF configuration — StoreEvent
+### 5. Projection handler `User` — novos eventos + compat
+
+- **Camada**: Application
+- **Tipo**: ProjectionHandler
+- **Acao**: modificar
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Events/ProjectionUserEventHandler.cs`
+- **Depende de**: #2, #4
+- **Spec-ref**: §6, §9
+- **Detalhes**:
+  - Interface composta adiciona `IEventHandler<UserMembershipAdded>` e `IEventHandler<UserMembershipRemoved>`.
+  - `Handle(UserRegistrationCompleted)` continua inserindo o documento; passa a popular `Memberships: [new(AccountancyId, Role, CreatedAt)]`.
+  - `Handle(UserMembershipAdded)` — `existing with { Memberships = existing.Memberships.Append(new(...)).ToArray() }` (deduplicacao por `AccountancyId`).
+  - `Handle(UserMembershipRemoved)` — `existing with { Memberships = existing.Memberships.Where(m => m.AccountancyId != ev.AccountancyId).ToArray() }`.
+
+### 6. Rebuild da projection `User` apos deploy
+
+- **Camada**: Persistence
+- **Tipo**: Migration
+- **Acao**: criar
+- **Caminho**: N/A — procedimento manual documentado
+- **Depende de**: #4, #5
+- **Spec-ref**: §6 (multi-membership)
+- **Detalhes**: Schema de `User` na Mongo muda. Estrategia MVP: script de rebuild que dropa a collection `User` e replaia todos os streams `UserStoreEvents` do Postgres via `IMediator`/replay service. Alternativa: migracao incremental lendo docs antigos e transformando para o novo shape. **Decisao pendente — ver §Riscos**.
+
+### 7. Consumer atualizado — novos eventos de User
+
+- **Camada**: Web
+- **Tipo**: ConsumerRegistration
+- **Acao**: modificar
+- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/IdentityModule/ProjectionUserConsumer.cs`
+- **Depende de**: #2
+- **Spec-ref**: §6, §9
+- **Detalhes**: Adicionar `IConsumer<DomainEvents.UserMembershipAdded>` e `IConsumer<DomainEvents.UserMembershipRemoved>` — cada `Consume` delega ao handler.
+
+### 8. `ConsumerConfiguration` — dois novos endpoints
+
+- **Camada**: Web
+- **Tipo**: ConsumerRegistration
+- **Acao**: modificar
+- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/IdentityModule/ConsumerConfiguration.cs`
+- **Depende de**: #7
+- **Spec-ref**: obrigatorio por pattern
+- **Detalhes**: `ConfigureEventReceiveEndpoint<ProjectionUserConsumer, UserMembershipAdded>` e idem para `UserMembershipRemoved`.
+
+---
+
+### Grupo B — Aggregate `AccountancyInviteLink`
+
+### 9. SmartEnum `InviteLinkStatus`
+
+- **Camada**: Domain
+- **Tipo**: SmartEnum
+- **Acao**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Domain/Enumerations/InviteLinkStatus.cs`
+- **Depende de**: nenhum
+- **Spec-ref**: §9 "validade 7 dias", "renovacao manual"
+- **Detalhes**: `Active(0)`, `Expired(1)`, `Regenerated(2)`. `Expired` e setado pelo job recorrente. `Regenerated` marca versoes anteriores apos rotacao — mantidas historicamente mas nao aceitam mais cadastros.
+
+### 10. Domain events do aggregate `AccountancyInviteLink`
+
+- **Camada**: Domain
+- **Tipo**: DomainEvent
+- **Acao**: modificar
+- **Caminho**: `src/Modules/Identity/Identity.Domain/Events/DomainEvents.cs`
+- **Depende de**: #9
+- **Spec-ref**: §5 "link sempre visivel", §7 "apos 7 dias", §9
+- **Detalhes**: Quatro records:
+  - `InviteLinkGenerated(Guid Id, Guid AccountancyId, string Token, string TokenHash, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, ulong Version)` — role fixo `AccountingEmployee` nao entra no evento (invariante do aggregate).
+  - `InviteLinkRegenerated(Guid Id, string Token, string TokenHash, DateTimeOffset RegeneratedAt, DateTimeOffset ExpiresAt, ulong Version)` — reseta janela de 7 dias.
+  - `InviteLinkUsed(Guid Id, Guid AccountancyId, Guid UsedByUserId, string UsedByEmail, int UsageCount, DateTimeOffset UsedAt, ulong Version)` — usado tanto no registro novo quanto no join de usuario existente.
+  - `InviteLinkExpired(Guid Id, DateTimeOffset ExpiredAt, ulong Version)` — disparado pelo job recorrente.
+
+### 11. Aggregate `AccountancyInviteLink`
+
+- **Camada**: Domain
+- **Tipo**: Aggregate
+- **Acao**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Domain/Aggregates/AccountancyInviteLink.cs`
+- **Depende de**: #9, #10
+- **Spec-ref**: §4 cenario 3, §5, §7
+- **Detalhes**: Stream unico por `AccountancyId`. Id = GUIDv5 deterministico sob namespace fixo — tentativa de `Create` duplicado falha no event store por conflito de versao. Metodos:
+  - `static Create(Guid accountancyId, string rawToken, string tokenHash, DateTimeOffset now)` — raise `InviteLinkGenerated(ExpiresAt = now + 7 days)`.
+  - `Regenerate(string newRawToken, string newTokenHash, DateTimeOffset now)` — so permitido se `Status in {Active, Expired}`. Senao `ConflictError`. Reseta janela.
+  - `RegisterUsage(Guid userId, string email, DateTimeOffset usedAt)` — so permitido se `Status == Active && ExpiresAt > usedAt`. Incrementa `UsageCount`, raise `InviteLinkUsed`.
+  - `Expire(DateTimeOffset expiredAt)` — idempotente; so raise se `Status == Active && ExpiresAt <= expiredAt`. Raise `InviteLinkExpired`.
+  - Campo `RawToken` em memoria (para poder retornar no response sem ir na projection) — apenas na projection o token persiste tambem.
+
+### 12. Projection model `AccountancyInviteLink`
+
+- **Camada**: Domain
+- **Tipo**: ProjectionModel
+- **Acao**: modificar
+- **Caminho**: `src/Modules/Identity/Identity.Domain/Projection/ProjectionModel.cs`
+- **Depende de**: #9
+- **Spec-ref**: §5 "copiar com botao", §9 "metadado gerado em/expira em/N pessoas"
+- **Detalhes**: Record `AccountancyInviteLink(Guid Id, Guid AccountancyId, string Token, string TokenHash, int UsageCount, string Status, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, DateTimeOffset? LastUsedAt, DateTimeOffset? UpdatedAt, bool IsDeleted)`. **Raw `Token` persistido** — o botao "Copiar" precisa devolver o mesmo token apos F5; ameaca de forca bruta e mitigada por 256 bits de entropia.
+
+### 13. EF configurations — StoreEvent + Snapshot
 
 - **Camada**: Persistence
 - **Tipo**: EFConfiguration
 - **Acao**: modificar
-- **Caminho**: `src/Modules/Identity/Identity.Persistence/Configurations/StoreEventConfiguration.cs`
-- **Depende de**: #3
-- **Spec-ref**: §3 (infraestrutura de aggregate novo)
-- **Detalhes**: Adicionar classe vazia `public class AccountancyInviteLinkStoreEventConfiguration : StoreEventConfiguration<AccountancyInviteLink>;`. Gera tabela `identity."AccountancyInviteLinkStoreEvents"` automaticamente.
+- **Caminho**: `src/Modules/Identity/Identity.Persistence/Configurations/StoreEventConfiguration.cs` + `SnapshotConfiguration.cs`
+- **Depende de**: #11
+- **Spec-ref**: infra obrigatoria
+- **Detalhes**: Classes vazias `AccountancyInviteLinkStoreEventConfiguration : StoreEventConfiguration<AccountancyInviteLink>;` e idem para snapshot.
 
-### 6. EF configuration — Snapshot
-
-- **Camada**: Persistence
-- **Tipo**: EFConfiguration
-- **Acao**: modificar
-- **Caminho**: `src/Modules/Identity/Identity.Persistence/Configurations/SnapshotConfiguration.cs`
-- **Depende de**: #3
-- **Spec-ref**: §3 (infraestrutura de aggregate novo)
-- **Detalhes**: Adicionar classe vazia `public class AccountancyInviteLinkSnapshotConfiguration : SnapshotConfiguration<AccountancyInviteLink>;`. Gera tabela `identity."AccountancyInviteLinkSnapshots"`.
-
-### 7. Migration — AddAccountancyInviteLinkAggregate
+### 14. Migration — `AddAccountancyInviteLinkAggregate`
 
 - **Camada**: Persistence
 - **Tipo**: Migration
 - **Acao**: criar
 - **Caminho**: `src/Modules/Identity/Identity.Persistence/Migrations/*_AddAccountancyInviteLinkAggregate.cs`
-- **Depende de**: #5, #6
-- **Spec-ref**: §3
-- **Detalhes**: `dotnet ef migrations add AddAccountancyInviteLinkAggregate --project src/Modules/Identity/Identity.Persistence --startup-project src/Web --context IdentityDbContext`. Cria as duas tabelas no schema `identity`.
+- **Depende de**: #13
+- **Spec-ref**: infra
+- **Detalhes**: `dotnet ef migrations add AddAccountancyInviteLinkAggregate -c IdentityDbContext`. Cria `AccountancyInviteLinkStoreEvents` e `AccountancyInviteLinkSnapshots` no schema `identity`.
 
-### 8. Response DTOs `InviteLinkResponse`, `InviteLinksResponse`, `InviteLinkInfoResponse`, `UserInviteCreatedResponse`
+### 15. Service `IInviteLinkTokenService` + impl
+
+- **Camada**: Application (contrato) + Infrastructure (impl)
+- **Tipo**: Service
+- **Acao**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Application/Services/IInviteLinkTokenService.cs` + `Identity.Infrastructure/Services/InviteLinkTokenService.cs`
+- **Depende de**: nenhum
+- **Spec-ref**: §9 (formato do token)
+- **Detalhes**: `string GenerateRawToken()` (32 bytes `RandomNumberGenerator` → base64url sem padding) + `string HashToken(string raw)` (SHA-256 → base64). Registrado via Scrutor.
+
+### 16. Projection handler `AccountancyInviteLink`
+
+- **Camada**: Application
+- **Tipo**: ProjectionHandler
+- **Acao**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Events/ProjectionAccountancyInviteLinkEventHandler.cs`
+- **Depende de**: #10, #12
+- **Spec-ref**: read-side do link
+- **Detalhes**: Composite interface com os 4 eventos. `Generated` insere; `Regenerated` substitui token/hash e reseta `Status=Active`, `ExpiresAt`; `Used` incrementa `UsageCount` + `LastUsedAt`; `Expired` muda `Status=Expired`. Idempotencia + rethrow via `InvalidOperationException` para retry MassTransit.
+
+### 17. Consumer `ProjectionAccountancyInviteLinkConsumer`
+
+- **Camada**: Web
+- **Tipo**: ConsumerRegistration
+- **Acao**: criar
+- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/IdentityModule/ProjectionAccountancyInviteLinkConsumer.cs`
+- **Depende de**: #10, #16
+- **Spec-ref**: read-side
+- **Detalhes**: Implementa os 4 `IConsumer<...>` delegando ao handler.
+
+### 18. `ConsumerConfiguration` — 4 novos endpoints
+
+- **Camada**: Web
+- **Tipo**: ConsumerRegistration
+- **Acao**: modificar
+- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/IdentityModule/ConsumerConfiguration.cs`
+- **Depende de**: #17
+- **Spec-ref**: obrigatorio
+- **Detalhes**: 4 `ConfigureEventReceiveEndpoint` — um por evento do link.
+
+### 19. Registro em `AddEventInteractors`
+
+- **Camada**: Application
+- **Tipo**: ConsumerRegistration
+- **Acao**: modificar
+- **Caminho**: `src/Modules/Identity/Identity.Application/DependencyInjection/ServiceCollectionExtensions.cs`
+- **Depende de**: #16
+- **Spec-ref**: obrigatorio
+- **Detalhes**: `AddScoped<IProjectionAccountancyInviteLinkEventHandler, ProjectionAccountancyInviteLinkEventHandler>()`.
+
+---
+
+### Grupo C — Commands, Queries, Response DTOs, Handlers
+
+### 20. Response DTOs
 
 - **Camada**: Shared
 - **Tipo**: ResponseDTO
 - **Acao**: criar
 - **Caminho**: `src/Modules/Identity/Identity.Shared/Response/InviteLinkResponse.cs`
 - **Depende de**: nenhum
-- **Spec-ref**: §3 "Consulta do link", §4 "Registro", §2 "Email-based ajustado"
-- **Detalhes**: Quatro sealed records num mesmo arquivo:
-  - `InviteLinkResponse(Guid Id, Guid AccountancyId, string Role, string Url, int UsageCount, DateTimeOffset? LastUsedAt, DateTimeOffset CreatedAt)` — `Url` ja montada `{FrontendBaseUrl}/join/{token}`.
-  - `InviteLinksResponse(InviteLinkResponse AdminLink, InviteLinkResponse EmployeeLink)` — resposta do `GET /invite-links` (ambos os roles).
-  - `InviteLinkInfoResponse(Guid AccountancyId, string AccountancyName, string Role)` — consumido pela pagina publica de registro.
-  - `UserInviteCreatedResponse(Guid Id, string InviteLink)` — resposta do email invite (#26) para SystemAdmin copiar o link.
+- **Spec-ref**: §5, §9
+- **Detalhes**: Quatro records no mesmo arquivo:
+  - `InviteLinkResponse(Guid Id, Guid AccountancyId, string Url, int UsageCount, DateTimeOffset? LastUsedAt, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, string Status)` — `Url = {FrontendBaseUrl}/join/{token}`.
+  - `InviteLinkInfoResponse(Guid AccountancyId, string AccountancyName)` — pagina publica so precisa do nome (role e invariante).
+  - `UserInviteCreatedResponse(Guid Id, string InviteLink)` — para SystemAdmin copiar o link.
+  - `RegisterByInviteLinkResponse(Guid? UserId, bool RequiresAuthentication, string? Email)` — `RequiresAuthentication=true` quando email ja existe; frontend redireciona para login com token preservado.
 
-### 9. Command `RegenerateInviteLinkCommand`
-
-- **Camada**: Shared
-- **Tipo**: Command
-- **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/RegenerateInviteLinkCommand.cs`
-- **Depende de**: #8
-- **Spec-ref**: §3 "Rotacao do link"
-- **Detalhes**: `sealed record RegenerateInviteLinkCommand(Guid AccountancyId, string Role) : ICommand<InviteLinkResponse>`. `Role` como string — validator resolve via `UserRole.TryFromName`.
-
-### 10. Command `RegisterByInviteLinkCommand`
+### 21. Commands do link
 
 - **Camada**: Shared
 - **Tipo**: Command
 - **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/RegisterByInviteLinkCommand.cs`
-- **Depende de**: nenhum
-- **Spec-ref**: §4 "Registro anonimo via link"
-- **Detalhes**: `sealed record RegisterByInviteLinkCommand(string Token, string FirstName, string LastName, string Email, string Password, string ConfirmPassword) : ICommand<IdentifierResponse>`. Token raw (base64url) — o handler hashea antes do lookup.
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/{RegenerateInviteLinkCommand,RegisterByInviteLinkCommand,JoinByInviteLinkCommand,RemoveMemberCommand}.cs`
+- **Depende de**: #20
+- **Spec-ref**: §4, §9, §6 (remocao)
+- **Detalhes**:
+  - `RegenerateInviteLinkCommand(Guid AccountancyId) : ICommand<InviteLinkResponse>`.
+  - `RegisterByInviteLinkCommand(string Token, string FirstName, string LastName, string Email, string Password, string ConfirmPassword) : ICommand<RegisterByInviteLinkResponse>`.
+  - `JoinByInviteLinkCommand(string Token) : ICommand` — executado por user autenticado; adiciona membership apos login.
+  - `RemoveMemberCommand(Guid AccountancyId, Guid UserId) : ICommand` — AccountingAdmin remove funcionario.
 
-### 11. Query `GetInviteLinksByAccountancyQuery`
-
-- **Camada**: Shared
-- **Tipo**: Query
-- **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/GetInviteLinksByAccountancyQuery.cs`
-- **Depende de**: #8
-- **Spec-ref**: §3 "Admin consulta os links"
-- **Detalhes**: `sealed record GetInviteLinksByAccountancyQuery(Guid AccountancyId) : IQuery<InviteLinksResponse>`. Retorna os dois links (Admin e Employee) — lazy-create os faltantes.
-
-### 12. Query `GetInviteLinkInfoQuery`
+### 22. Queries do link
 
 - **Camada**: Shared
 - **Tipo**: Query
 - **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/GetInviteLinkInfoQuery.cs`
-- **Depende de**: #8
-- **Spec-ref**: §4 "Pagina publica de registro carrega o nome da contabilidade"
-- **Detalhes**: `sealed record GetInviteLinkInfoQuery(string Token) : IQuery<InviteLinkInfoResponse>`. Consumido anonimamente pela pagina publica.
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/{GetInviteLinkByAccountancyQuery,GetInviteLinkInfoQuery}.cs`
+- **Depende de**: #20
+- **Spec-ref**: §5, §4
+- **Detalhes**:
+  - `GetInviteLinkByAccountancyQuery(Guid AccountancyId) : IQuery<InviteLinkResponse>` — lazy-create se nao existe.
+  - `GetInviteLinkInfoQuery(string Token) : IQuery<InviteLinkInfoResponse>`.
 
-### 13. Service `IInviteLinkTokenService` + impl
-
-- **Camada**: Application
-- **Tipo**: Service
-- **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/Services/IInviteLinkTokenService.cs` + impl em `Identity.Infrastructure/Services/InviteLinkTokenService.cs`
-- **Depende de**: nenhum
-- **Spec-ref**: §3 "Formato do token"
-- **Detalhes**: `string GenerateRawToken()` (32 bytes `RandomNumberGenerator` → base64url sem padding) e `string HashToken(string raw)` (SHA-256 → base64). Centraliza o formato — nenhum handler implementa isso inline. Registro via Scrutor no `InfrastructureServiceInstaller` existente.
-
-### 14. Validator `RegenerateInviteLinkValidator`
+### 23. Validators
 
 - **Camada**: Application
 - **Tipo**: Validator
 - **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/RegenerateInviteLinkValidator.cs`
-- **Depende de**: #9
-- **Spec-ref**: §3 "Rotacao"
-- **Detalhes**: `AccountancyId` nao vazio. `Role` deve resolver para `AccountingAdmin` ou `AccountingEmployee` — `SystemAdmin` nao tem link generico.
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/{Regenerate,RegisterByInviteLink,JoinByInviteLink,RemoveMember}Validator.cs`
+- **Depende de**: #21
+- **Spec-ref**: §9
+- **Detalhes**:
+  - `RegenerateInviteLinkValidator` — `AccountancyId` nao vazio.
+  - `RegisterByInviteLinkValidator` — token, nome/sobrenome (≤100), email valido, senha (politica existente), `ConfirmPassword == Password`.
+  - `JoinByInviteLinkValidator` — token nao vazio.
+  - `RemoveMemberValidator` — `AccountancyId` + `UserId` nao vazios, diferentes de `Guid.Empty`.
 
-### 15. Validator `RegisterByInviteLinkValidator`
+### 24. Handler `GetInviteLinkByAccountancyHandler`
 
 - **Camada**: Application
-- **Tipo**: Validator
+- **Tipo**: Handler
 - **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/RegisterByInviteLinkValidator.cs`
-- **Depende de**: #10
-- **Spec-ref**: §4 "Formulario da pagina publica"
-- **Detalhes**: `Token` nao vazio. `FirstName`/`LastName` nao vazios e <= 100. `Email` valido <= 150. `Password` >= 8 chars com politica minima (ja existente no projeto). `ConfirmPassword == Password`.
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/GetInviteLinkByAccountancyHandler.cs`
+- **Depende de**: #11, #15, #20, #22
+- **Spec-ref**: §5 "sempre visivel com botao copiar"
+- **Detalhes**: Resolve Id deterministico via GUIDv5. `LoadAggregateAsync` — se `NotFound`, lazy-create: gera token+hash, `AccountancyInviteLink.Create`, `AppendEventsAsync`, monta response em memoria. Se existe e `Status != Active` ou `ExpiresAt <= now`, response ainda retorna (frontend exibe "Expirado — Renovar"). Monta URL via `FrontendOptions.BaseUrl`.
 
-### 16. Handler `RegenerateInviteLinkHandler`
+### 25. Handler `RegenerateInviteLinkHandler`
 
 - **Camada**: Application
 - **Tipo**: Handler
 - **Acao**: criar
 - **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/RegenerateInviteLinkHandler.cs`
-- **Depende de**: #3, #9, #13
-- **Spec-ref**: §3 "Rotacao do link"
-- **Detalhes**: Resolve `Id` do aggregate via GUIDv5 `(AccountancyId, Role)`. `LoadAggregateAsync<AccountancyInviteLink>` — se nao existir, retorna `NotFoundError`. Gera novo raw token + hash via `IInviteLinkTokenService`, chama `link.Regenerate`. Append events. Retorna `InviteLinkResponse` (com URL ja montada via `FrontendOptions.BaseUrl`).
+- **Depende de**: #11, #15, #21
+- **Spec-ref**: §9 "renovacao manual"
+- **Detalhes**: Resolve Id deterministico. `LoadAggregateAsync` — se nao existe, comporta-se como `Create`. Senao `Regenerate(newToken, newHash, now)` (que rejeita se `Status == Regenerated`). Append + response.
 
-### 17. Handler `GetInviteLinksByAccountancyHandler`
-
-- **Camada**: Application
-- **Tipo**: Handler
-- **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/GetInviteLinksByAccountancyHandler.cs`
-- **Depende de**: #3, #11, #13
-- **Spec-ref**: §3 "Admin consulta os links — lazy create"
-- **Detalhes**: Para cada role (`AccountingAdmin`, `AccountingEmployee`): resolve Id deterministico, busca projection. Se existir → retorna. Se nao existir → gera token + hash, chama `AccountancyInviteLink.Create`, `AppendEventsAsync`, monta o Response do aggregate em memoria (projection sera atualizada async — nao bloqueia a resposta). Retorna `InviteLinksResponse(admin, employee)`.
-
-### 18. Handler `GetInviteLinkInfoHandler`
+### 26. Handler `GetInviteLinkInfoHandler`
 
 - **Camada**: Application
 - **Tipo**: Handler
 - **Acao**: criar
 - **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/GetInviteLinkInfoHandler.cs`
-- **Depende de**: #12, #13
-- **Spec-ref**: §4 "Info publica"
-- **Detalhes**: Hashea o token recebido, busca projection por `TokenHash == hash && Status == Active`. Se nao encontrar → `NotFoundError`. Injeta `IAccountancyProjection<ProjectionModel.Accountancy>` para ler o nome da contabilidade. Retorna `InviteLinkInfoResponse(AccountancyId, AccountancyName, Role)`.
+- **Depende de**: #12, #15, #22
+- **Spec-ref**: §5 "pagina de registro exibe nome da contabilidade"
+- **Detalhes**: Hashea token. Busca projection `TokenHash == hash && Status == Active && ExpiresAt > now`. Se nao achar → `NotFoundError` (mensagem generica, nao vaza se expirou vs inexistente). Injeta `IAccountancyProjection<ProjectionModel.Accountancy>` para carregar nome (leitura cross-module — fronteira unica). Retorna `InviteLinkInfoResponse`.
 
-### 19. Handler `RegisterByInviteLinkHandler`
+### 27. Handler `RegisterByInviteLinkHandler`
 
 - **Camada**: Application
 - **Tipo**: Handler
 - **Acao**: criar
 - **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/RegisterByInviteLinkHandler.cs`
-- **Depende de**: #3, #10, #13
-- **Spec-ref**: §4 "Registro anonimo"
-- **Detalhes**: Fluxo completo:
-  1. Hashea token, busca projection do link `Status == Active`. Nao achou → `NotFoundError` ("Link.NotFound").
-  2. Checa email duplicado via `IIdentityProjection<User>` — qualquer match (mesmo em outra contabilidade) retorna `ConflictError` ("User.EmailAlreadyExists"). MVP single-accountancy.
-  3. Load aggregate `AccountancyInviteLink` via `LoadAggregateAsync`. Hash password via `IPasswordService`.
-  4. Chama `User.Create(inviteId: link.Id, firstName, lastName, email, passwordHash, role: UserRole.FromName(link.Role), accountancyId: link.AccountancyId)` — reutiliza o slot `inviteId` do aggregate User passando o Id do link generico (rastreabilidade).
-  5. Chama `link.RegisterUsage(user.Id, email, now)`.
-  6. Append events dos dois aggregates (ordem: User primeiro, depois link).
-  7. Retorna `IdentifierResponse(user.Id)`.
+- **Depende de**: #3, #11, #15, #21
+- **Spec-ref**: §4 cenario 3, §9 "email ja cadastrado em outra contabilidade"
+- **Detalhes**:
+  1. Hashea token; busca projection `Status == Active && ExpiresAt > now`. Nao achou → `NotFoundError` ("Link.NotFoundOrExpired").
+  2. Busca `User` por email na projection.
+  3. **Se existe** → retorna `RegisterByInviteLinkResponse(UserId: null, RequiresAuthentication: true, Email: email)`. Nenhum write. Frontend redireciona para login com o mesmo token; ao voltar autenticado, chama `JoinByInviteLink`.
+  4. **Se nao existe** → hash password, `User.Create(link.Id, firstName, lastName, email, passwordHash, role: AccountingEmployee, accountancyId: link.AccountancyId)`; load `AccountancyInviteLink`; `link.RegisterUsage(user.Id, email, now)`; append dos dois aggregates. Retorna `RegisterByInviteLinkResponse(UserId: user.Id, RequiresAuthentication: false, Email: null)`.
 
-### 20. Projection Handler `IProjectionAccountancyInviteLinkEventHandler` + impl
+### 28. Handler `JoinByInviteLinkHandler`
 
 - **Camada**: Application
-- **Tipo**: ProjectionHandler
+- **Tipo**: Handler
 - **Acao**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Events/ProjectionAccountancyInviteLinkEventHandler.cs`
-- **Depende de**: #2, #4
-- **Spec-ref**: §3, §4 (read-side do link)
-- **Detalhes**: Interface composta `IProjectionAccountancyInviteLinkEventHandler : IEventHandler<InviteLinkGenerated>, IEventHandler<InviteLinkRegenerated>, IEventHandler<InviteLinkUsed>`. Classe implementa os tres `Handle`:
-  - `InviteLinkGenerated` → `ReplaceInsertAsync(new(Id, AccountancyId, Role, Token, TokenHash, UsageCount: 0, Status: Active, CreatedAt, null, null, false))`.
-  - `InviteLinkRegenerated` → `existing with { Token = ..., TokenHash = ..., Status = Active, UpdatedAt = ... }`. Se existia outro com mesmo Id, foi substituido (stream unico por `(AccountancyId, Role)`, nao cria novo documento).
-  - `InviteLinkUsed` → `existing with { UsageCount = ev.UsageCount, LastUsedAt = ev.UsedAt, UpdatedAt = ev.UsedAt }`. Idempotente quando `existing` e null (log warning + return).
-  - Todos os catches rethrow `InvalidOperationException` para MassTransit retry.
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/JoinByInviteLinkHandler.cs`
+- **Depende de**: #3, #11, #15, #21
+- **Spec-ref**: §9 "apos autenticar, usuario e adicionado automaticamente"
+- **Detalhes**: Executado por usuario autenticado. Resolve `UserId` via `ICurrentUserService`. Hashea token, valida link `Active && ExpiresAt > now`. `LoadAggregateAsync<User>(currentUserId)`. Chama `user.JoinAccountancy(link.AccountancyId, AccountingEmployee, now)` (idempotente). Carrega `AccountancyInviteLink`, `link.RegisterUsage(user.Id, user.Email, now)`. Append.
 
-### 21. Registro do projection handler em `AddEventInteractors`
+### 29. Handler `RemoveMemberHandler`
 
 - **Camada**: Application
-- **Tipo**: ConsumerRegistration
-- **Acao**: modificar
-- **Caminho**: `src/Modules/Identity/Identity.Application/DependencyInjection/ServiceCollectionExtensions.cs`
-- **Depende de**: #20
-- **Spec-ref**: obrigatorio por pattern
-- **Detalhes**: Adicionar `.AddScoped<IProjectionAccountancyInviteLinkEventHandler, ProjectionAccountancyInviteLinkEventHandler>()`.
+- **Tipo**: Handler
+- **Acao**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/RemoveMemberHandler.cs`
+- **Depende de**: #3, #21
+- **Spec-ref**: §6 "remocao de membros"
+- **Detalhes**: Injeta `ICurrentUserService`. Regras:
+  1. Current user precisa ser `AccountingAdmin` da `cmd.AccountancyId` — checa via projection `User`.
+  2. Nao pode remover a si mesmo → `ConflictError` ("User.CannotRemoveSelf").
+  3. Load `User(cmd.UserId)`; se nao tem membership na accountancy → `NotFoundError`.
+  4. Se membership tem `Role == AccountingAdmin` → `ConflictError` ("User.CannotRemoveAdmin") — spec §4 "cada contabilidade tem um unico AccountingAdmin criado pelo SysAdmin".
+  5. `user.LeaveAccountancy(cmd.AccountancyId, now)`. Append.
 
-### 22. Rotas `IdentityRoutes` — invite-links
+---
+
+### Grupo D — Job recorrente de expiracao
+
+### 30. Command interno `ExpireInviteLinksCommand` + handler
+
+- **Camada**: Application
+- **Tipo**: Handler (+ RecurringJob)
+- **Acao**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Jobs/ExpireInviteLinksJob.cs`
+- **Depende de**: #11, #12
+- **Spec-ref**: §9 "apos 7 dias link para de aceitar cadastros"
+- **Detalhes**: `internal sealed record ExpireInviteLinksCommand() : ICommand`. Handler busca projection `Status == Active && ExpiresAt < now`. Para cada: `LoadAggregateAsync<AccountancyInviteLink>`, `Expire(now)`, `AppendEventsAsync`. Log warning + `continue` em caso de falha de item individual.
+
+### 31. Registro em `RegisterRecurringJobsStartupTask`
+
+- **Camada**: Web
+- **Tipo**: RecurringJob
+- **Acao**: modificar
+- **Caminho**: `src/Web/StartupTasks/RegisterRecurringJobsStartupTask.cs`
+- **Depende de**: #30
+- **Spec-ref**: obrigatorio
+- **Detalhes**: `jobScheduler.ScheduleRecurring("expire-invite-links", "0 * * * *", new ExpireInviteLinksCommand())` — mesmo cron dos invites (`0 * * * *`, horario).
+
+---
+
+### Grupo E — Web (rotas, tags, endpoints)
+
+### 32. Rotas `IdentityRoutes`
 
 - **Camada**: Web
 - **Tipo**: Endpoint (routes)
 - **Acao**: modificar
 - **Caminho**: `src/Web/Endpoints/Routes/IdentityRoutes.cs`
 - **Depende de**: nenhum
-- **Spec-ref**: §3, §4 (URLs)
+- **Spec-ref**: §4, §5
 - **Detalhes**: Adicionar constantes:
-  - `AccountancyId = "accountancyId"`, `Role = "role"` (parameter names)
-  - `GetInviteLinks = $"{BaseUri}/accountancies/{{{AccountancyId}:guid}}/invite-links"`
-  - `RegenerateInviteLink = $"{BaseUri}/accountancies/{{{AccountancyId}:guid}}/invite-links/{{{Role}}}/regenerate"`
-  - `GetInviteLinkInfo = $"{BaseUri}/invite-links/info"` (token via query)
-  - `RegisterByInviteLink = $"{BaseUri}/invite-links/register"`
-
-### 23. Tag `Tags.Identity.InviteLinks`
-
-- **Camada**: Web
-- **Tipo**: Endpoint (tags)
-- **Acao**: modificar
-- **Caminho**: `src/Web/Endpoints/Tags.cs`
-- **Depende de**: nenhum
-- **Spec-ref**: Swagger grouping
-- **Detalhes**: Adicionar constante `InviteLinks = "Identity - Invite Links"` dentro do grupo Identity.
-
-### 24. Endpoint `GetInviteLinksByAccountancyEndpoint`
-
-- **Camada**: Web
-- **Tipo**: Endpoint
-- **Acao**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/GetInviteLinksByAccountancyEndpoint.cs`
-- **Depende de**: #17, #22, #23
-- **Spec-ref**: §3 "Admin consulta os links"
-- **Detalhes**: `[HttpGet(IdentityRoutes.GetInviteLinks)]`, `[Authorize(Roles = "AccountingAdmin")]`. Request DTO com `[FromRoute] Guid AccountancyId`. Pipeline railway padrao. Retorna `InviteLinksResponse`.
-
-### 25. Endpoint `RegenerateInviteLinkEndpoint`
-
-- **Camada**: Web
-- **Tipo**: Endpoint
-- **Acao**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/RegenerateInviteLinkEndpoint.cs`
-- **Depende de**: #16, #22, #23
-- **Spec-ref**: §3 "Rotacao"
-- **Detalhes**: `[HttpPost(IdentityRoutes.RegenerateInviteLink)]`, `[Authorize(Roles = "AccountingAdmin")]`. Request com `[FromRoute] Guid AccountancyId` + `[FromRoute] string Role`. Retorna `InviteLinkResponse`.
-
-### 26. Endpoint `GetInviteLinkInfoEndpoint`
-
-- **Camada**: Web
-- **Tipo**: Endpoint
-- **Acao**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/GetInviteLinkInfoEndpoint.cs`
-- **Depende de**: #18, #22, #23
-- **Spec-ref**: §4 "Info publica"
-- **Detalhes**: `[HttpGet(IdentityRoutes.GetInviteLinkInfo)]`, `[AllowAnonymous]`. Request com `[FromQuery] string Token`. Retorna `InviteLinkInfoResponse`. 404 sem vazar se token invalido/regenerated.
-
-### 27. Endpoint `RegisterByInviteLinkEndpoint`
-
-- **Camada**: Web
-- **Tipo**: Endpoint
-- **Acao**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/RegisterByInviteLinkEndpoint.cs`
-- **Depende de**: #19, #22, #23
-- **Spec-ref**: §4 "Registro publico"
-- **Detalhes**: `[HttpPost(IdentityRoutes.RegisterByInviteLink)]`, `[AllowAnonymous]`. Request `[FromBody] RegisterByInviteLinkRequest`. Retorna `IdentifierResponse` (200 ou 201).
-
-### 28. Consumer `ProjectionAccountancyInviteLinkConsumer`
-
-- **Camada**: Web
-- **Tipo**: ConsumerRegistration
-- **Acao**: criar
-- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/IdentityModule/ProjectionAccountancyInviteLinkConsumer.cs`
-- **Depende de**: #2, #20
-- **Spec-ref**: §3, §4 (read-side)
-- **Detalhes**: Classe implementa `IConsumer<InviteLinkGenerated>`, `IConsumer<InviteLinkRegenerated>`, `IConsumer<InviteLinkUsed>`. Cada `Consume` delega ao `IProjectionAccountancyInviteLinkEventHandler`.
-
-### 29. `ConsumerConfiguration` — Identity — tres novos endpoints
-
-- **Camada**: Web
-- **Tipo**: ConsumerRegistration
-- **Acao**: modificar
-- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/IdentityModule/ConsumerConfiguration.cs`
-- **Depende de**: #28
-- **Spec-ref**: obrigatorio por pattern
-- **Detalhes**: Adicionar tres `bus.ConfigureEventReceiveEndpoint`:
-  - `<ProjectionAccountancyInviteLinkConsumer, DomainEvents.InviteLinkGenerated>`
-  - `<ProjectionAccountancyInviteLinkConsumer, DomainEvents.InviteLinkRegenerated>`
-  - `<ProjectionAccountancyInviteLinkConsumer, DomainEvents.InviteLinkUsed>`
-
-### 30. `InviteUserCommand` — trocar response para `UserInviteCreatedResponse`
-
-- **Camada**: Shared
-- **Tipo**: Command
-- **Acao**: modificar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/InviteUserCommand.cs`
-- **Depende de**: #8
-- **Spec-ref**: §2 "Email-based invite restrito a SystemAdmin"
-- **Detalhes**: Trocar `ICommand<IdentifierResponse>` por `ICommand<UserInviteCreatedResponse>`. Assinatura do record fica `InviteUserCommand(string Email, string Role, Guid? AccountancyId)` — nao muda.
-
-### 31. `InviteUserHandler` — retornar InviteLink na resposta
-
-- **Camada**: Application
-- **Tipo**: Handler
-- **Acao**: modificar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/InviteUserHandler.cs`
-- **Depende de**: #30
-- **Spec-ref**: §2 "SystemAdmin copia o link do response"
-- **Detalhes**: Monta `inviteLink = $"{frontendOptions.Value.BaseUrl}/accept-invite/{rawToken}"` (ja existia). Passa a retornar `new UserInviteCreatedResponse(invite.Id, inviteLink)`. Email ainda e enfileirado via Hangfire — o link no response e complemento, nao substitui.
-
-### 32. `InviteUserEndpoint` — restrito a SystemAdmin + trocar response type
-
-- **Camada**: Web
-- **Tipo**: Endpoint
-- **Acao**: modificar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteUserEndpoint.cs`
-- **Depende de**: #30, #31
-- **Spec-ref**: §2 "Restrito a SystemAdmin"
-- **Detalhes**: Trocar `EndpointBaseAsync.WithRequest<InviteUserRequest>.WithActionResult<IdentifierResponse>` por `.WithActionResult<UserInviteCreatedResponse>`. Adicionar `[Authorize(Roles = "SystemAdmin")]`. Atualizar `[ProducesResponseType<UserInviteCreatedResponse>(200)]`.
-
-### 33. Scaffold modulo Notifications — 5 projetos .csproj
-
-- **Camada**: todas
-- **Tipo**: ModuleScaffold
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/` (5 projetos)
-- **Depende de**: nenhum
-- **Spec-ref**: §5 "Novo modulo Notifications"
-- **Detalhes**: Estrutura espelhando Identity:
-  - `Notifications.Domain` — ref: Core.Domain
-  - `Notifications.Shared` — ref: Core.Shared
-  - `Notifications.Application` — ref: Domain, Shared, Core.Application, **Identity.Domain** (para tipos `ProjectionModel.User`) e **Identity.Persistence** (para `IIdentityProjection<>`)
-  - `Notifications.Persistence` — ref: Domain, Core.Persistence
-  - `Notifications.Infrastructure` — ref: Application, Persistence, Core.Infrastructure, **Identity.Shared** (para `DomainEvents.InviteLinkUsed` no consumer cross-module)
-  - Cada projeto inclui `AssemblyReference.cs`
-  - Adicionar todos ao `Societiza.sln`
-
-### 34. SmartEnum `NotificationType`
-
-- **Camada**: Domain
-- **Tipo**: SmartEnum
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Domain/Enumerations/NotificationType.cs`
-- **Depende de**: #33
-- **Spec-ref**: §5 "Tipos iniciais"
-- **Detalhes**: `InviteLinkUsed(0)` — MVP cobre so esse tipo. Aberto para crescer sem quebrar events (string no evento).
-
-### 35. Domain Events do aggregate `Notification`
-
-- **Camada**: Domain
-- **Tipo**: DomainEvent
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Domain/Events/DomainEvents.cs`
-- **Depende de**: #33, #34
-- **Spec-ref**: §5 "Ciclo de vida da notificacao"
-- **Detalhes**: Dois records:
-  - `NotificationCreated(Guid Id, Guid RecipientUserId, string Type, string Title, string Body, Guid? RelatedEntityId, DateTimeOffset CreatedAt, ulong Version)`
-  - `NotificationRead(Guid Id, DateTimeOffset ReadAt, ulong Version)`
-
-### 36. Aggregate `Notification`
-
-- **Camada**: Domain
-- **Tipo**: Aggregate
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Domain/Aggregates/Notification.cs`
-- **Depende de**: #34, #35
-- **Spec-ref**: §5 "Ciclo"
-- **Detalhes**: Metodos:
-  - `static Create(Guid recipientUserId, NotificationType type, string title, string body, Guid? relatedEntityId)` — Id novo, levanta `NotificationCreated`.
-  - `MarkAsRead(DateTimeOffset readAt)` — idempotente se ja lido (sem evento). Levanta `NotificationRead`.
-  - `When(...)` para cada evento.
-
-### 37. Projection Model `Notification`
-
-- **Camada**: Domain
-- **Tipo**: ProjectionModel
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Domain/Projection/ProjectionModel.cs`
-- **Depende de**: #33
-- **Spec-ref**: §5 "Leitura via feed do usuario"
-- **Detalhes**: `public static class ProjectionModel` com record `Notification(Guid Id, Guid RecipientUserId, string Type, string Title, string Body, Guid? RelatedEntityId, bool IsRead, DateTimeOffset CreatedAt, DateTimeOffset? ReadAt, bool IsDeleted) : IProjectionModel`.
-
-### 38. EF configuration — StoreEvent + Snapshot
-
-- **Camada**: Persistence
-- **Tipo**: EFConfiguration
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Persistence/Configurations/StoreEventConfiguration.cs` + `SnapshotConfiguration.cs`
-- **Depende de**: #36
-- **Spec-ref**: §5 (infra aggregate novo)
-- **Detalhes**: `NotificationStoreEventConfiguration : StoreEventConfiguration<Notification>` e `NotificationSnapshotConfiguration : SnapshotConfiguration<Notification>`.
-
-### 39. `NotificationsDbContext` + schema
-
-- **Camada**: Persistence
-- **Tipo**: EFConfiguration
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Persistence/Context/NotificationsDbContext.cs` + `Constants/Schemas.cs`
-- **Depende de**: #38
-- **Spec-ref**: §5 (infra)
-- **Detalhes**: DbContext espelhando `IdentityDbContext`. Schema `notifications`. Aplica configurations do assembly. Registro em `PersistenceServiceInstaller` com Npgsql e migration history table no schema `notifications`.
-
-### 40. `INotificationsProjectionDbContext` + `NotificationsProjectionDbContext` + `INotificationsProjection<T>` + `NotificationsProjection<T>`
-
-- **Camada**: Persistence
-- **Tipo**: EFConfiguration
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Persistence/{Context,Projection}/*.cs`
-- **Depende de**: #33
-- **Spec-ref**: §5 (infra)
-- **Detalhes**: Segue o pattern do modulo Identity (`IIdentityProjection<>` → `IdentityProjection<>`). Connection string lida de `Projections:Notifications`.
-
-### 41. Migration — InitialCreate (Notifications)
-
-- **Camada**: Persistence
-- **Tipo**: Migration
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Persistence/Migrations/*_InitialCreate.cs`
-- **Depende de**: #38, #39
-- **Spec-ref**: §5 (infra)
-- **Detalhes**: `dotnet ef migrations add InitialCreate --project src/Modules/Notifications/Notifications.Persistence --startup-project src/Web --context NotificationsDbContext`. Cria tabelas `NotificationStoreEvents` e `NotificationSnapshots` no schema `notifications`.
-
-### 42. Service `INotificationApplicationService`
-
-- **Camada**: Application
-- **Tipo**: Service
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/Services/INotificationApplicationService.cs`
-- **Depende de**: #39
-- **Spec-ref**: §5 (infra)
-- **Detalhes**: Marker `public interface INotificationApplicationService : IApplicationService<NotificationsDbContext>`. Segue pattern.
-
-### 43. Abstracao `INotificationBroadcaster`
-
-- **Camada**: Application
-- **Tipo**: Service
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/Services/INotificationBroadcaster.cs`
-- **Depende de**: #37
-- **Spec-ref**: §5 "Push em tempo real"
-- **Detalhes**: `Task PushToUser(Guid userId, ProjectionModel.Notification notification, CancellationToken ct)`. Implementacao concreta vive na Web (SignalR) — Application nao depende de SignalR.
-
-### 44. Response DTO `NotificationResponse`
-
-- **Camada**: Shared
-- **Tipo**: ResponseDTO
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Shared/Response/NotificationResponse.cs`
-- **Depende de**: nenhum
-- **Spec-ref**: §5 "Feed do usuario"
-- **Detalhes**: `sealed record NotificationResponse(Guid Id, string Type, string Title, string Body, Guid? RelatedEntityId, bool IsRead, DateTimeOffset CreatedAt, DateTimeOffset? ReadAt)`.
-
-### 45. Command `MarkNotificationReadCommand` + `CreateInviteLinkUsedNotificationCommand`
-
-- **Camada**: Shared
-- **Tipo**: Command
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Shared/Commands/*.cs`
-- **Depende de**: nenhum
-- **Spec-ref**: §5 "Marcar lida"; §4 (disparo cross-module)
-- **Detalhes**:
-  - `MarkNotificationReadCommand(Guid NotificationId) : ICommand` — user logado, ownership checada no handler.
-  - `CreateInviteLinkUsedNotificationCommand(Guid AccountancyId, Guid UsedByUserId, string UsedByEmail, string Role, DateTimeOffset UsedAt) : ICommand` — disparado pelo consumer cross-module (§4). Primitivos apenas (Hangfire-safe, mas aqui vai sincrono via MediatR — mesma forma).
-
-### 46. Query `ListMyNotificationsQuery`
-
-- **Camada**: Shared
-- **Tipo**: Query
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Shared/Queries/ListMyNotificationsQuery.cs`
-- **Depende de**: #44
-- **Spec-ref**: §5 "Feed"
-- **Detalhes**: `ListMyNotificationsQuery() : IQuery<IReadOnlyList<NotificationResponse>>`. Handler resolve usuario via `ICurrentUserService`.
-
-### 47. Validator `MarkNotificationReadValidator`
-
-- **Camada**: Application
-- **Tipo**: Validator
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/UseCases/Validators/MarkNotificationReadValidator.cs`
-- **Depende de**: #45
-- **Spec-ref**: §5
-- **Detalhes**: `NotificationId` nao vazio.
-
-### 48. Handler `CreateInviteLinkUsedNotificationHandler`
-
-- **Camada**: Application
-- **Tipo**: Handler
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/UseCases/Commands/CreateInviteLinkUsedNotificationHandler.cs`
-- **Depende de**: #36, #42, #45
-- **Spec-ref**: §4 "Admin e notificado quando alguem entra pelo link"
-- **Detalhes**: Injeta `IIdentityProjection<ProjectionModel.User>` (cross-module, pragmatismo MVP — TODO futuro: evento dedicado `MembershipChanged`). Lista admins da contabilidade:
-  - `admins = users.Where(u => u.AccountancyId == cmd.AccountancyId && u.Role == "AccountingAdmin" && !u.IsDeleted)`.
-  - Se novo usuario e AccountingAdmin → remove ele proprio da lista (nao notifica ele mesmo).
-  - Para cada admin: `Notification.Create(recipientUserId: admin.Id, type: InviteLinkUsed, title: "Novo membro", body: $"{email} entrou via link como {role}", relatedEntityId: cmd.UsedByUserId)` + `AppendEventsAsync`.
-
-### 49. Handler `MarkNotificationReadHandler`
-
-- **Camada**: Application
-- **Tipo**: Handler
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/UseCases/Commands/MarkNotificationReadHandler.cs`
-- **Depende de**: #36, #42, #45
-- **Spec-ref**: §5 "Marcar lida"
-- **Detalhes**: `LoadAggregateAsync<Notification>`. Valida ownership: `notification.RecipientUserId == currentUser.UserId` senao `ForbiddenError`. Chama `MarkAsRead(now)`. Append.
-
-### 50. Handler `ListMyNotificationsHandler`
-
-- **Camada**: Application
-- **Tipo**: Handler
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/UseCases/Queries/ListMyNotificationsHandler.cs`
-- **Depende de**: #37, #46
-- **Spec-ref**: §5 "Feed"
-- **Detalhes**: Injeta `INotificationsProjection<ProjectionModel.Notification>` + `ICurrentUserService`. `ListAsync(x => x.RecipientUserId == userId && !x.IsDeleted)`. Ordena desc por `CreatedAt`. Mapeia para `NotificationResponse`.
-
-### 51. ProjectionHandler `IProjectionNotificationEventHandler` + impl
-
-- **Camada**: Application
-- **Tipo**: ProjectionHandler
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/UseCases/Events/ProjectionNotificationEventHandler.cs`
-- **Depende de**: #35, #37, #43
-- **Spec-ref**: §5 "Projecao + push"
-- **Detalhes**: Interface composta `IEventHandler<NotificationCreated>` + `IEventHandler<NotificationRead>`. Handlers:
-  - `NotificationCreated` → `ReplaceInsertAsync(new(...IsRead: false, ReadAt: null))` **e** `await broadcaster.PushToUser(ev.RecipientUserId, projection, ct)`.
-  - `NotificationRead` → `existing with { IsRead = true, ReadAt = ev.ReadAt }`. Push opcional (MVP: sem push no read).
-
-### 52. Registro do projection handler em `AddEventInteractors`
-
-- **Camada**: Application
-- **Tipo**: ConsumerRegistration
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Application/DependencyInjection/ServiceCollectionExtensions.cs`
-- **Depende de**: #51
-- **Spec-ref**: obrigatorio por pattern
-- **Detalhes**: Metodo `AddEventInteractors(this IServiceCollection services)` com `.AddScoped<IProjectionNotificationEventHandler, ProjectionNotificationEventHandler>()`. Chamado em `ApplicationServiceInstaller.Install()`.
-
-### 53. Service installers do modulo Notifications
-
-- **Camada**: Infrastructure
-- **Tipo**: Service
-- **Acao**: criar
-- **Caminho**: `src/Modules/Notifications/Notifications.Infrastructure/NotificationsModuleInstaller.cs` + `Notifications.{Application,Infrastructure,Persistence}/ServiceInstallers/*.cs`
-- **Depende de**: #40, #42, #52
-- **Spec-ref**: obrigatorio por pattern
-- **Detalhes**: Espelho do padrao do modulo Identity. `ModuleInstaller` agrega os tres `IServiceInstaller`: Application (MediatR, validators, AddEventInteractors), Infrastructure (Scrutor), Persistence (DbContext + open generics `INotificationsProjection<>` → `NotificationsProjection<>`).
-
-### 54. Hub `NotificationsHub`
-
-- **Camada**: Web
-- **Tipo**: Service
-- **Acao**: criar
-- **Caminho**: `src/Web/Hubs/NotificationsHub.cs`
-- **Depende de**: nenhum
-- **Spec-ref**: §5 "SignalR"
-- **Detalhes**: `[Authorize] public class NotificationsHub : Hub`. Em `OnConnectedAsync`: resolve `userId` via `Context.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value`. Adiciona ao grupo `user:{userId}`. Em `OnDisconnectedAsync`: remove do grupo.
-
-### 55. Impl `SignalRNotificationBroadcaster`
-
-- **Camada**: Web
-- **Tipo**: Service
-- **Acao**: criar
-- **Caminho**: `src/Web/Services/SignalRNotificationBroadcaster.cs`
-- **Depende de**: #43, #54
-- **Spec-ref**: §5
-- **Detalhes**: `public class SignalRNotificationBroadcaster(IHubContext<NotificationsHub> hub) : INotificationBroadcaster`. Metodo: `hub.Clients.Group($"user:{userId}").SendAsync("notification", mappedPayload, ct)`.
-
-### 56. `SignalRServiceInstaller`
-
-- **Camada**: Web
-- **Tipo**: Service
-- **Acao**: criar
-- **Caminho**: `src/Web/ServiceInstallers/SignalR/SignalRServiceInstaller.cs`
-- **Depende de**: #54, #55
-- **Spec-ref**: §5
-- **Detalhes**: `services.AddSignalR()`. Registra `INotificationBroadcaster → SignalRNotificationBroadcaster` como singleton (IHubContext e singleton-friendly).
-
-### 57. JWT Bearer — aceitar `access_token` em querystring nas rotas `/hubs/*`
-
-- **Camada**: Web
-- **Tipo**: Service
-- **Acao**: modificar
-- **Caminho**: `src/Web/ServiceInstallers/Authentication/AuthenticationServiceInstaller.cs` (ou onde o JwtBearerOptions e configurado)
-- **Depende de**: nenhum
-- **Spec-ref**: §5 "SignalR autenticado"
-- **Detalhes**: No `JwtBearerOptions.Events.OnMessageReceived`: se `context.Request.Path.StartsWithSegments("/hubs")` e ha `access_token` na querystring, copia para `context.Token`. Padrao Microsoft para SignalR + JWT.
-
-### 58. Rotas `NotificationsRoutes`
-
-- **Camada**: Web
-- **Tipo**: Endpoint (routes)
-- **Acao**: criar
-- **Caminho**: `src/Web/Endpoints/Routes/NotificationsRoutes.cs`
-- **Depende de**: nenhum
-- **Spec-ref**: §5
-- **Detalhes**: `BaseUri = "v{version:apiVersion}/notifications"`. `NotificationId = "notificationId"`. `ListMine = $"{BaseUri}"`. `MarkRead = $"{BaseUri}/{{{NotificationId}:guid}}/read"`.
-
-### 59. Tag `Tags.Notifications`
+  - `AccountancyId = "accountancyId"`, `UserId = "userId"`.
+  - `GetInviteLink = $"{BaseUri}/accountancies/{{{AccountancyId}:guid}}/invite-link"`.
+  - `RegenerateInviteLink = $"{BaseUri}/accountancies/{{{AccountancyId}:guid}}/invite-link/regenerate"`.
+  - `GetInviteLinkInfo = $"{BaseUri}/invite-links/info"` (token via query).
+  - `RegisterByInviteLink = $"{BaseUri}/invite-links/register"`.
+  - `JoinByInviteLink = $"{BaseUri}/invite-links/join"`.
+  - `RemoveMember = $"{BaseUri}/accountancies/{{{AccountancyId}:guid}}/members/{{{UserId}:guid}}"`.
+
+### 33. Tags
 
 - **Camada**: Web
 - **Tipo**: Endpoint (tags)
@@ -656,109 +424,129 @@
 - **Caminho**: `src/Web/Endpoints/Tags.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: Swagger
-- **Detalhes**: Adicionar `Notifications = "Notifications"`.
+- **Detalhes**: `Tags.Identity.InviteLinks = "Identity - Invite Links"`. `Tags.Identity.Members = "Identity - Members"`.
 
-### 60. Endpoint `ListMyNotificationsEndpoint`
-
-- **Camada**: Web
-- **Tipo**: Endpoint
-- **Acao**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Notifications/ListMyNotificationsEndpoint.cs`
-- **Depende de**: #50, #58, #59
-- **Spec-ref**: §5 "Feed"
-- **Detalhes**: `[HttpGet(NotificationsRoutes.ListMine)]`, `[Authorize]`. Retorna `IReadOnlyList<NotificationResponse>`.
-
-### 61. Endpoint `MarkNotificationReadEndpoint`
+### 34. Endpoint `GetInviteLinkByAccountancyEndpoint`
 
 - **Camada**: Web
 - **Tipo**: Endpoint
 - **Acao**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Notifications/MarkNotificationReadEndpoint.cs`
-- **Depende de**: #49, #58, #59
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/GetInviteLinkByAccountancyEndpoint.cs`
+- **Depende de**: #24, #32, #33
 - **Spec-ref**: §5
-- **Detalhes**: `[HttpPost(NotificationsRoutes.MarkRead)]`, `[Authorize]`. Request com `[FromRoute] Guid NotificationId`.
+- **Detalhes**: `[HttpGet(IdentityRoutes.GetInviteLink)]`, `[Authorize(Roles = "AccountingAdmin")]`. `[FromRoute] Guid AccountancyId`.
 
-### 62. Consumer `ProjectionNotificationConsumer`
+### 35. Endpoint `RegenerateInviteLinkEndpoint`
 
 - **Camada**: Web
-- **Tipo**: ConsumerRegistration
+- **Tipo**: Endpoint
 - **Acao**: criar
-- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/NotificationsModule/ProjectionNotificationConsumer.cs`
-- **Depende de**: #35, #51
-- **Spec-ref**: §5
-- **Detalhes**: `IConsumer<NotificationCreated>`, `IConsumer<NotificationRead>`. Delega ao handler.
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/RegenerateInviteLinkEndpoint.cs`
+- **Depende de**: #25, #32, #33
+- **Spec-ref**: §9
+- **Detalhes**: `[HttpPost(IdentityRoutes.RegenerateInviteLink)]`, `[Authorize(Roles = "AccountingAdmin")]`.
 
-### 63. Consumer cross-module `InviteLinkUsedNotificationConsumer`
+### 36. Endpoint `GetInviteLinkInfoEndpoint`
 
 - **Camada**: Web
-- **Tipo**: ConsumerRegistration
+- **Tipo**: Endpoint
 - **Acao**: criar
-- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/NotificationsModule/InviteLinkUsedNotificationConsumer.cs`
-- **Depende de**: #2 (Identity event), #48
-- **Spec-ref**: §4 (disparo cross-module)
-- **Detalhes**: `IConsumer<DomainEvents.InviteLinkUsed>` (tipo do Identity). Em `Consume`, dispara via `ISender`: `new CreateInviteLinkUsedNotificationCommand(ev.AccountancyId, ev.UsedByUserId, ev.UsedByEmail, ev.Role, ev.UsedAt)`. **Boundary explicita**: consumer registrado no modulo Notifications, consumindo evento do Identity — integracao canonica via event bus, sem acoplamento direto entre Application layers.
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/GetInviteLinkInfoEndpoint.cs`
+- **Depende de**: #26, #32, #33
+- **Spec-ref**: §5 "pagina de registro exibe nome"
+- **Detalhes**: `[HttpGet(IdentityRoutes.GetInviteLinkInfo)]`, `[AllowAnonymous]`. `[FromQuery] string Token`.
 
-### 64. `ConsumerConfiguration` — Notifications
+### 37. Endpoint `RegisterByInviteLinkEndpoint`
 
 - **Camada**: Web
-- **Tipo**: ConsumerRegistration
+- **Tipo**: Endpoint
 - **Acao**: criar
-- **Caminho**: `src/Web/ServiceInstallers/EventBus/Consumers/NotificationsModule/ConsumerConfiguration.cs`
-- **Depende de**: #62, #63
-- **Spec-ref**: obrigatorio por pattern
-- **Detalhes**: `IEventReceiveEndpointConfiguration`. Registra tres endpoints com `MODULE_NAME = "notifications"`:
-  - `<ProjectionNotificationConsumer, NotificationCreated>`
-  - `<ProjectionNotificationConsumer, NotificationRead>`
-  - `<InviteLinkUsedNotificationConsumer, DomainEvents.InviteLinkUsed>` (Identity namespace)
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/RegisterByInviteLinkEndpoint.cs`
+- **Depende de**: #27, #32, #33
+- **Spec-ref**: §4 cenario 3, §9
+- **Detalhes**: `[HttpPost(IdentityRoutes.RegisterByInviteLink)]`, `[AllowAnonymous]`. Retorna `RegisterByInviteLinkResponse` (pode ser 200 OK com `RequiresAuthentication=true` para indicar redirect).
 
-### 65. `Program.cs` — registrar modulo Notifications + MapHub + MigrateDatabase
+### 38. Endpoint `JoinByInviteLinkEndpoint`
 
 - **Camada**: Web
-- **Tipo**: Service
+- **Tipo**: Endpoint
+- **Acao**: criar
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteLinks/JoinByInviteLinkEndpoint.cs`
+- **Depende de**: #28, #32, #33
+- **Spec-ref**: §9 "apos autenticar"
+- **Detalhes**: `[HttpPost(IdentityRoutes.JoinByInviteLink)]`, `[Authorize]`. `[FromBody] { string Token }`.
+
+### 39. Endpoint `RemoveMemberEndpoint`
+
+- **Camada**: Web
+- **Tipo**: Endpoint
+- **Acao**: criar
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/Members/RemoveMemberEndpoint.cs`
+- **Depende de**: #29, #32, #33
+- **Spec-ref**: §6 "remocao de membros"
+- **Detalhes**: `[HttpDelete(IdentityRoutes.RemoveMember)]`, `[Authorize(Roles = "AccountingAdmin")]`.
+
+---
+
+### Grupo F — SystemAdmin flows (cenarios 1 e 2)
+
+### 40. Modificar `InviteUserCommand` — trocar response
+
+- **Camada**: Shared
+- **Tipo**: Command
 - **Acao**: modificar
-- **Caminho**: `src/Web/Program.cs` + `src/Web/StartupTasks/MigrateDatabaseStartupTask.cs` + `src/Web/Web.csproj` + `src/Web/appsettings*.json`
-- **Depende de**: #39, #41, #53, #54, #56
-- **Spec-ref**: §5 (bootstrap)
-- **Detalhes**:
-  - `Web.csproj`: adicionar `ProjectReference` para os 5 projetos Notifications.
-  - `Program.cs`: adicionar `Notifications.Infrastructure.AssemblyReference.Assembly` na chamada `InstallServicesFromAssemblies(...)` de service installers e MassTransit consumers.
-  - `Program.cs`: apos `app.UseAuthorization()`, `app.MapHub<NotificationsHub>("/hubs/notifications");`.
-  - `MigrateDatabaseStartupTask`: adicionar `await MigrateDatabaseAsync<NotificationsDbContext>(scope, stoppingToken)`.
-  - `appsettings.Development.json` + `.env.example`: adicionar `ConnectionStrings:Notifications` (Postgres) e `Projections:Notifications` (Mongo).
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/InviteUserCommand.cs`
+- **Depende de**: #20
+- **Spec-ref**: §5 "link aparece na tela apos criacao"
+- **Detalhes**: `ICommand<IdentifierResponse>` → `ICommand<UserInviteCreatedResponse>`. Assinatura (`Email, Role, AccountancyId`) inalterada.
+
+### 41. Modificar `InviteUserHandler` — retornar link
+
+- **Camada**: Application
+- **Tipo**: Handler
+- **Acao**: modificar
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/InviteUserHandler.cs`
+- **Depende de**: #40
+- **Spec-ref**: §5
+- **Detalhes**: Monta `inviteLink = $"{FrontendBaseUrl}/accept-invite/{rawToken}"` (ja faz). Retorna `new UserInviteCreatedResponse(invite.Id, inviteLink)`. Email continua via Hangfire.
+
+### 42. Modificar `InviteUserEndpoint` — restringir + novo response type
+
+- **Camada**: Web
+- **Tipo**: Endpoint
+- **Acao**: modificar
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/InviteUserEndpoint.cs`
+- **Depende de**: #41
+- **Spec-ref**: §4 cenarios 1+2 "exclusivo SystemAdmin"
+- **Detalhes**: `.WithActionResult<IdentifierResponse>` → `.WithActionResult<UserInviteCreatedResponse>`. `[Authorize(Roles = "SystemAdmin")]`. `[ProducesResponseType<UserInviteCreatedResponse>(200)]`.
 
 ---
 
 ## Checklist de registro
 
-- [x] **`ConsumerConfiguration.cs` (Identity)** — item #29. Adicionar tres `ConfigureEventReceiveEndpoint` para `InviteLinkGenerated`, `InviteLinkRegenerated`, `InviteLinkUsed` via `ProjectionAccountancyInviteLinkConsumer`.
-- [x] **`ConsumerConfiguration.cs` (Notifications)** — item #64. Novo arquivo. Tres endpoints: dois para eventos proprios (`NotificationCreated`, `NotificationRead`) via `ProjectionNotificationConsumer` + um cross-module (`Identity.DomainEvents.InviteLinkUsed`) via `InviteLinkUsedNotificationConsumer`.
-- [x] **`AddEventInteractors()` (Identity)** — item #21. Adicionar `IProjectionAccountancyInviteLinkEventHandler → ProjectionAccountancyInviteLinkEventHandler`.
-- [x] **`AddEventInteractors()` (Notifications)** — item #52. Novo metodo no novo `ServiceCollectionExtensions` do modulo. Registra `IProjectionNotificationEventHandler → ProjectionNotificationEventHandler`.
-- [x] **`MigrateDatabaseStartupTask`** — item #65. Adicionar `NotificationsDbContext`.
-- [ ] **`RegisterRecurringJobsStartupTask`** — nao tocar. Nenhum job recorrente novo nesta feature.
-- [x] **`PersistenceServiceInstaller` (Notifications)** — item #53. Registro explicito de `INotificationsProjection<>` open-generic (Scrutor nao cobre open generics) + `NotificationsDbContext` + `INotificationApplicationService → ApplicationService<NotificationsDbContext>`.
-- [x] **`PersistenceServiceInstaller` (Identity)** — nao tocar. `IIdentityProjection<>` ja esta registrado — a projection `AccountancyInviteLink` usa o generic existente.
-- [x] **`InfrastructureServiceInstaller` (Identity)** — item #13. Scrutor pega `InviteLinkTokenService` automaticamente (implementa `IInviteLinkTokenService`).
-- [x] **`AuthenticationServiceInstaller`** — item #57. Adicionar `OnMessageReceived` para ler `access_token` da querystring em rotas `/hubs/*`.
-- [x] **`SignalRServiceInstaller`** — item #56. Novo installer. `AddSignalR()` + `INotificationBroadcaster → SignalRNotificationBroadcaster`.
-- [x] **`Program.cs`** — item #65. `MapHub<NotificationsHub>("/hubs/notifications")` apos `UseAuthorization`. `AssemblyReference.Assembly` de Notifications no install de modulos.
-- [x] **`Web.csproj`** — item #65. `ProjectReference` para os 5 projetos Notifications.
-- [x] **`Societiza.sln`** — item #33. Adicionar os 5 projetos.
-- [x] **`appsettings*.json` + `.env.example`** — item #65. `ConnectionStrings:Notifications` + `Projections:Notifications`.
+- [x] **`ConsumerConfiguration.cs` (Identity)** — itens #8 e #18. Adicionar 2 endpoints de User (`UserMembershipAdded`, `UserMembershipRemoved`) + 4 endpoints de link (`InviteLinkGenerated`, `InviteLinkRegenerated`, `InviteLinkUsed`, `InviteLinkExpired`).
+- [x] **`AddEventInteractors()` (Identity)** — itens #5 (`ProjectionUserEventHandler` ja registrado — novos metodos caem na registracao existente) e #19 (`ProjectionAccountancyInviteLinkEventHandler`).
+- [x] **`RegisterRecurringJobsStartupTask`** — item #31. Adicionar `ScheduleRecurring("expire-invite-links", "0 * * * *", new ExpireInviteLinksCommand())`.
+- [ ] **`MigrateDatabaseStartupTask`** — nao tocar. Sem novo DbContext.
+- [ ] **`PersistenceServiceInstaller`** — nao tocar. `IIdentityProjection<>` ja registra o generic que cobre `AccountancyInviteLink`.
+- [x] **`InfrastructureServiceInstaller` (Identity)** — item #15. Scrutor cobre `InviteLinkTokenService`.
+- [x] **Rebuild da projection `User`** — item #6. Procedimento operacional documentado (drop + replay) ou migracao incremental.
+- [x] **JWT claims** — **pendente**: hoje o JWT provavelmente carrega `accountancy_id` + `role` escalares. Com multi-membership, o claim precisa ser revisto (array de memberships ou "accountancy ativa" via seleção de login — fora do escopo da spec mas o backend precisa decidir o shape agora). **Ver Riscos**.
 
 ---
 
 ## Riscos e pontos de atencao
 
-- **GUIDv5 deterministico (item #3)** — pattern novo no repo. Garante uniqueness de stream `(AccountancyId, Role)` no event store sem lookup previo. Comentar no codigo com uma linha curta explicando a invariante. Namespace fixo guardado como `const Guid` dentro do aggregate.
-- **Raw token persistido na projecao (item #4)** — decisao de produto. Link e compartilhado por WhatsApp, o admin precisa copiar de novo apos refresh da tela. Ameaca de forca bruta e mitigada por 256 bits de entropia; ameaca de leitor do Mongo e aceita no MVP. XML doc do campo deve declarar isso. Nao vazar o token em logs (sanitizar).
-- **Cross-module read: Notifications → `IIdentityProjection<User>` (item #48)** — pragmatismo MVP. Alternativa canonica seria publicar um evento `MembershipChanged` no Identity e manter replica local no Notifications. Deixar `TODO` no handler documentando a evolucao. Risco aceitavel porque Notifications so faz leitura, Identity continua sendo o dono da escrita.
-- **Consumer cross-module `InviteLinkUsedNotificationConsumer` (item #63)** — vive em `Web/ServiceInstallers/EventBus/Consumers/NotificationsModule/` mas referencia `Identity.Shared.Events.DomainEvents.InviteLinkUsed`. Essa e a forma canonica do repo (Web ja consome events do proprio Identity). Queue name gerado: `webbff.notifications.invite-link-used-notification-consumer.invite-link-used`.
-- **SignalR + JWT via querystring (item #57)** — padrao Microsoft para `HttpClient` nao suportar headers custom no handshake websocket. Restrito a rotas `/hubs/*` — nao afeta seguranca dos endpoints REST. Frontend passa `?access_token=...` so na conexao do hub.
-- **Convention tests** — `tests/Web.Tests` valida Swagger em portugues + `OperationId` + `Tags`. Todos os 6 novos endpoints (#24, #25, #26, #27, #60, #61) + endpoint modificado (#32) precisam atender.
-- **Breaking change em `InviteUserCommand` (item #30)** — o response type muda de `IdentifierResponse` para `UserInviteCreatedResponse`. Frontend que consome `POST /v1/identity/invite` precisa atualizar. Como a rota passa a exigir `SystemAdmin`, o consumidor provavel e apenas o painel interno — confirmar com o humano antes do merge.
-- **Reuso do slot `inviteId` em `User.Create` (item #19)** — passamos `link.Id` no parametro `inviteId` do aggregate `User`. Manter o nome atual do parametro para nao criar breaking change no aggregate, mas o slot agora significa "convite por email **ou** por link". Comentar isso em uma linha no XML doc de `User.Create`.
-- **Remocao de membros nao entra no MVP** — pre-condicao #4. Se o humano quiser incluir apos revisao da spec, entra como plano separado.
-- **Multi-membership deferido** — pre-condicao #1. Email duplicado em contabilidade diferente retorna 409 no MVP. Se evoluir, exigira migrar `User.AccountancyId` escalar para coleção, alterar JWT claims, alterar queries de listagem. Nao entra neste plano.
-- **Impacto de restringir `InviteUserEndpoint` a SystemAdmin (item #32)** — hoje o endpoint e usado pelo AccountingAdmin para convidar membros? Verificar com o humano. Se sim, o convite via email passa a ser responsabilidade exclusiva da ferramenta interna; AccountingAdmin agora usa apenas o link generico.
-- **SignalR sem backplane** — MVP assume instancia unica do Web. Se houver scale-out horizontal, e preciso Redis backplane para distribuir `Clients.Group(...)`. Nao entra neste plano — documentar como item futuro.
+- **Refactor multi-membership no aggregate `User`** — e o maior risco do plano. Muda shape do projection model (`User`), exige rebuild da projection apos deploy, potencialmente afeta JWT claims e qualquer endpoint/handler que le `User.AccountancyId`/`Role` escalares. Itens #1–#8 cobrem o domain + projection; **uma varredura completa de `user.AccountancyId` no codigo antes da implementacao e obrigatoria** para mapear todos os callsites (Accountancy, WorkflowTemplate, `ICurrentUserService`, geracao de JWT). Se a superficie de mudanca for maior que o esperado, vale considerar **Option C** (aggregate `UserMembership` separado) para reduzir blast radius.
+- **JWT claims com multi-membership** — spec §7 explicitamente deixa "selecao de contabilidade ativa no login" fora do escopo. Mas o backend precisa decidir **agora** se o JWT atual continua carregando um unico `accountancy_id`/`role` (e a selecao e feita em `POST /auth/login/select-accountancy` futuro) ou se o token ja carrega uma lista. Proposta MVP: manter claim escalar apontando para a **primary membership** (primeira joined), e exigir login futuro para trocar de contabilidade. **Confirmar com o humano antes da implementacao**.
+- **Rebuild da projection User (item #6)** — down-time minimo ou zero? Alternativas: (a) dropar collection + replay completo (rapido mas pageview vazia durante rebuild); (b) migracao incremental por codigo. MVP pragmatico: (a) num horario de baixo trafego. Documentar como operational runbook.
+- **GUIDv5 deterministico (item #11)** — pattern novo no repo. Justificar em comentario no aggregate. Namespace fixo guardado como `const Guid` dentro do aggregate.
+- **Raw token persistido na projecao (item #12)** — decisao de produto (botao "Copiar" + metadado publico). 256 bits de entropia mitigam forca bruta. XML doc do campo deve declarar. Sanitizar token em logs.
+- **RegisterByInviteLink idempotencia e race** (item #27) — dois POSTs simultaneos com o mesmo email e token novo: event store rejeita o segundo por conflito de versao no `User` (id gerado antes). Aceitar essa forma de proteção; o 2º POST recebe 409 e o cliente trata.
+- **Remocao do AccountingAdmin (item #29)** — regra §4 "contabilidade tem um unico AccountingAdmin criado pelo SysAdmin" implica que AccountingAdmin nao se remove nem remove outro admin. MVP: `RemoveMember` rejeita remover membership com role `AccountingAdmin` — so SysAdmin podera trocar o admin de uma contabilidade (fora do escopo desta spec).
+- **Cross-module read para nome da contabilidade (item #26)** — `IAccountancyProjection<Accountancy>` usado por Identity.Application. Unica passagem; leitura pura; sem acoplamento de escrita. Pattern aceitavel. TODO futuro: replicar nome da accountancy dentro do doc do link para eliminar a dependencia cross-module no hot path de registro publico.
+- **Breaking change em `InviteUserCommand` (item #40)** — response shape muda de `IdentifierResponse` para `UserInviteCreatedResponse`. Frontend atual do painel SystemAdmin consome — coordenar deploy.
+- **Convention tests** — `tests/Web.Tests` valida Swagger em portugues + `OperationId` + `Tags`. Os **6 endpoints novos** (#34-#39) + endpoint modificado (#42) precisam atender.
+- **Spec §7 — notificacoes fora do escopo** — `InviteLinkUsed` e publicado mas nao consumido nesta spec. O evento fica disponivel para um consumer futuro sem retrabalho.
+- **`User.Create` — slot `inviteId`** — quando o registro vem pelo link, passamos `link.Id` no parametro `inviteId`. Manter o parametro com esse nome para nao criar breaking change no aggregate. XML doc deve explicitar que o slot significa "convite por email **ou** link".
+- **Spec §6 — "email ja cadastrado em outra contabilidade" quando o registro e novo (nao existente)** — cenario: email aparece na projection mas nao tem membership na accountancy do link. MVP trata igual a "email existe" → retorna `RequiresAuthentication=true`. Se o humano quiser tratar "email existe mas nunca fez login" (invite email pending) de forma diferente, flag agora.
