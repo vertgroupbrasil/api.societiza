@@ -2,21 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Context Documents
-
-Always import the following documents at the start of every conversation. They are the canonical references for the project and domain:
-
-- @docs/societiza-context.md — Product context, business rules, glossary, and tech stack overview.
-- @docs/domain-model.md — Canonical domain model: aggregates, entities, value objects, domain events, projection models and enumerations.
-
----
-
 ## Skills
 
 Project skills are located in `.claude/skills/`. Read the relevant skill before starting any task:
 
 - @.claude/skills/architecture/SKILL.md — required before touching any `.cs` or `.csproj`.
 - @.claude/skills/infrastructure/SKILL.md — required before running migrations or Docker commands.
+- @.claude/skills/api-design/SKILL.md — required before creating or editing any endpoint class under `src/Web/Endpoints/Modules/`.
 
 ---
 
