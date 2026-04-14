@@ -4,7 +4,7 @@ using WorkflowTemplate.Domain.Events;
 using WorkflowTemplate.Domain.Projection;
 using WorkflowTemplate.Persistence.Projection;
 
-namespace WorkflowTemplate.Application.UseCases.Events;
+namespace WorkflowTemplate.Application.UseCases.Events.TemplateStep;
 
 public interface IProjectionWorkflowTemplateStepEventHandler :
     IEventHandler<DomainEvents.WorkflowTemplateStepAdded>,
@@ -28,6 +28,7 @@ public class ProjectionWorkflowTemplateStepEventHandler(
                 @event.Title,
                 @event.Description,
                 @event.Order,
+                @event.AppliesTo,
                 @event.CreatedAt,
                 null),
             cancellationToken);
@@ -47,6 +48,7 @@ public class ProjectionWorkflowTemplateStepEventHandler(
                 .Set(x => x.Title, @event.Title)
                 .Set(x => x.Description, @event.Description)
                 .Set(x => x.Order, @event.Order)
+                .Set(x => x.AppliesTo, @event.AppliesTo)
                 .Set(x => x.UpdatedAt, @event.UpdatedAt), cancellationToken);
         }
         catch (Exception ex)

@@ -24,9 +24,16 @@ public sealed class LoginEndpoint(ISender sender, IHttpContextAccessor httpConte
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [SwaggerOperation(
-        Summary = "Login",
-        Description = "Authenticates the user and returns an access token. Sets the refresh token as an HttpOnly cookie.",
-        Tags = [Tags.Identity])]
+        OperationId = "Login",
+        Summary     = "Fazer login",
+        Description = """
+            Autentica o usuário por e-mail e senha e retorna um access token.
+
+            **Regras:** Retorna 401 quando as credenciais são inválidas ou o usuário não existe.
+            **Efeitos:** Emite um access token no corpo da resposta e um refresh token como cookie HttpOnly (`refresh_token`, Secure, SameSite=Strict).
+            **Autorização:** Público.
+            """,
+        Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult<LoginResponse>> HandleAsync(
         LoginRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)

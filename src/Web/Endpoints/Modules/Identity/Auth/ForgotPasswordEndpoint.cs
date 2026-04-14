@@ -21,9 +21,16 @@ public sealed class ForgotPasswordEndpoint(ISender sender)
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [SwaggerOperation(
-        Summary = "Forgot password",
-        Description = "Sends a password reset email if the account exists. Always returns 200 to prevent email enumeration.",
-        Tags = [Tags.Identity])]
+        OperationId = "ForgotPassword",
+        Summary     = "Solicitar redefinição de senha",
+        Description = """
+            Inicia o fluxo de redefinição de senha para o e-mail informado.
+
+            **Regras:** Sempre retorna 200, independentemente do e-mail existir, para evitar enumeração de contas.
+            **Efeitos:** Se o usuário existir, envia um e-mail com o link de redefinição contendo um token com validade limitada.
+            **Autorização:** Público.
+            """,
+        Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(
         ForgotPasswordRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)

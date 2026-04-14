@@ -40,10 +40,11 @@ public static class DomainEvents
     #region Workflow Template Step Events
     public record WorkflowTemplateStepAdded(
         Guid TemplateId,
-        Guid StepId,                        
+        Guid StepId,
         string Title,
         string Description,
         int Order,
+        List<string> AppliesTo,
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
@@ -54,6 +55,7 @@ public static class DomainEvents
         string Title,
         string Description,
         int Order,
+        List<string> AppliesTo,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;

@@ -62,7 +62,7 @@ public class WorkflowTemplate : AggregateRoot
     #endregion
 
     #region Workflow Template Step Methods
-    public Guid AddStep(string title, string description, int order)
+    public Guid AddStep(string title, string description, int order, List<string> appliesTo)
     {
         var resolvedOrder = ResolveStepOrder(order);
         var stepId = Guid.NewGuid();
@@ -73,6 +73,7 @@ public class WorkflowTemplate : AggregateRoot
             Title: title,
             Description: description,
             Order: resolvedOrder,
+            AppliesTo: appliesTo,
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -80,10 +81,10 @@ public class WorkflowTemplate : AggregateRoot
         return stepId;
     }
 
-    public void UpdateStep(Guid stepId, string title, string description, int order)
+    public void UpdateStep(Guid stepId, string title, string description, int order, List<string> appliesTo)
     {
         var step = Steps.FirstOrDefault(s => s.Id == stepId);
-        if (step is null) 
+        if (step is null)
             return;
 
         var resolvedOrder = ResolveStepOrder(order, excludeStepId: stepId);
@@ -94,6 +95,7 @@ public class WorkflowTemplate : AggregateRoot
             Title: title,
             Description: description,
             Order: resolvedOrder,
+            AppliesTo: appliesTo,
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
@@ -139,6 +141,7 @@ public class WorkflowTemplate : AggregateRoot
                 Title: sibling.Title,
                 Description: sibling.Description,
                 Order: sibling.Order,
+                AppliesTo: sibling.AppliesTo,
                 UpdatedAt: DateTimeOffset.UtcNow,
                 Version: version));
         }
@@ -396,13 +399,13 @@ public class WorkflowTemplate : AggregateRoot
 
     #region Workflow Template Step Event Handlers
     private void When(DomainEvents.WorkflowTemplateStepAdded @event)
-        => Steps.Add(WorkflowTemplateStep.Create(@event.StepId, @event.TemplateId, @event.Title, @event.Description, @event.Order));
+        => Steps.Add(WorkflowTemplateStep.Create(@event.StepId, @event.TemplateId, @event.Title, @event.Description, @event.Order, @event.AppliesTo));
 
     private void When(DomainEvents.WorkflowTemplateStepUpdated @event)
     {
         var step = Steps.FirstOrDefault(s => s.Id == @event.StepId);
         if (step is not null)
-            step.Update(@event.Title, @event.Description, @event.Order, @event.UpdatedAt);
+            step.Update(@event.Title, @event.Description, @event.Order, @event.AppliesTo, @event.UpdatedAt);
     }
 
     private void When(DomainEvents.WorkflowTemplateStepRemoved @event)

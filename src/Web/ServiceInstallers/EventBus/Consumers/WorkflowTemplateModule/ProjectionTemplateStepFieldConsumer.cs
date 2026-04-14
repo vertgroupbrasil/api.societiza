@@ -1,5 +1,5 @@
 ﻿using MassTransit;
-using WorkflowTemplate.Application.UseCases.Events;
+using WorkflowTemplate.Application.UseCases.Events.TemplateStep;
 using WorkflowTemplate.Domain.Events;
 
 namespace Web.ServiceInstallers.EventBus.Consumers.WorkflowTemplateModule;

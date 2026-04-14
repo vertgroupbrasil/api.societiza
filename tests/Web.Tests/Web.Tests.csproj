@@ -27,17 +27,12 @@
     <ProjectReference Include="..\..\src\Modules\WorkflowTemplate\WorkflowTemplate.Persistence\WorkflowTemplate.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Modules\WorkflowTemplate\WorkflowTemplate.Shared\WorkflowTemplate.Shared.csproj" />
     <ProjectReference Include="..\..\src\Core\Core.Shared\Core.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Web\Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Modules\Accountancy\Application\Commands\" />
-    <Folder Include="Modules\Accountancy\Application\Events\" />
-    <Folder Include="Modules\Accountancy\Application\Queries\" />
-    <Folder Include="Modules\Accountancy\Domain\Aggregates\" />
-  </ItemGroup>
 
 </Project>

@@ -38,7 +38,7 @@ public class RemoveWorkflowTemplateStepHandlerTests
     public async Task Handle_WhenTemplateExists_ReturnsSuccess()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1);
+        var stepId = template.AddStep("Step 1", "Description", 1, []);
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(template));
@@ -52,7 +52,7 @@ public class RemoveWorkflowTemplateStepHandlerTests
     public async Task Handle_WhenTemplateExists_AppendsEvents()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1);
+        var stepId = template.AddStep("Step 1", "Description", 1, []);
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(template));

@@ -3,11 +3,11 @@ using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Errors;
-using WorkflowTemplate.Shared.Commands.TemplateStepTaskField;
+using WorkflowTemplate.Shared.Commands.TemplateStepTask.Fields;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
-namespace WorkflowTemplate.Application.UseCases.Commands.TemplateStepTaskField;
+namespace WorkflowTemplate.Application.UseCases.Commands.TemplateStepTask.Fields;
 
 public class UpdateTemplateStepTaskFieldHandler(
     IWorkflowTemplateApplicationService applicationService) : ICommandHandler<UpdateTemplateStepTaskFieldCommand>

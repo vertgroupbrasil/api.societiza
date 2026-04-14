@@ -3,7 +3,9 @@ using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Response;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Modules.WorkflowTemplate.TemplateStep.Requests.Commands;
@@ -17,25 +19,32 @@ public sealed class AddWorkflowTemplateStepEndpoint(ISender sender) : EndpointBa
     .WithActionResult<IdentifierResponse>
 {
     [ApiVersion("1.0")]
+    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPost(WorkflowTemplateRoutes.AddWorkflowTemplateStep)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [SwaggerOperation(
-                Summary = "Adicionar uma etapa ao template de workflow",
-                Description = """
-                    Adds a step to a workflow template.
+    [SwaggerOperation(
+        OperationId = "AddWorkflowTemplateStep",
+        Summary     = "Adicionar etapa ao template",
+        Description = """
+            Adiciona uma nova etapa a um template de workflow e retorna o identificador criado.
 
-                    If the requested `order` is already taken, existing steps are shifted forward automatically.
-                    """,
-            Tags = [Tags.WorkflowTemplate])]
+            **Regras:**
+            - Retorna 404 caso o template não exista.
+            - Se a `order` solicitada já estiver ocupada, as etapas existentes são deslocadas para frente automaticamente.
+            **Efeitos:** Nova etapa criada no template, possivelmente reordenando etapas existentes.
+            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            """,
+        Tags = [Tags.WorkflowTemplate.Steps])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddWorkflowTemplateStepRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new AddWorkflowTemplateStepCommand(
                 TemplateId: request.TemplateId,
                 Title: request.Body.Title,
                 Description: request.Body.Description,
-                Order: request.Body.Order))
+                Order: request.Body.Order,
+                AppliesTo: request.Body.AppliesTo))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

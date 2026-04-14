@@ -22,9 +22,16 @@ public sealed class RevokeInviteEndpoint(ISender sender) : EndpointBaseAsync
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
-        Summary = "Revogar convite",
-        Description = "Revoga um convite pendente. Apenas convites com status Pending podem ser revogados.",
-        Tags = [Tags.Identity])]
+        OperationId = "RevokeInvite",
+        Summary     = "Revogar convite",
+        Description = """
+            Revoga um convite pendente, impedindo seu aceite futuro.
+
+            **Regras:** Retorna 404 caso o convite não exista. Retorna 409 quando o convite não está no status `Pending`.
+            **Efeitos:** Marca o convite como revogado.
+            **Autorização:** Pendente de aplicação (hoje público). Regra planejada: SystemAdmin ou AccountingAdmin.
+            """,
+        Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult> HandleAsync(RevokeInviteRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)
             .Map(request => new RevokeInviteCommand(

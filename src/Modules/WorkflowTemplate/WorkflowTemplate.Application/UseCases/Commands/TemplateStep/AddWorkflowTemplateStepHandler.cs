@@ -24,7 +24,7 @@ public class AddWorkflowTemplateStepHandler(
         if (template.Steps.Any(step => step.Title == request.Title))
             return Result.Failure<IdentifierResponse>(WorkflowTemplateErrors.StepTitleAlreadyExists(request.Title));
 
-        var stepId = template.AddStep(request.Title, request.Description, request.Order);
+        var stepId = template.AddStep(request.Title, request.Description, request.Order, request.AppliesTo);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success(new IdentifierResponse(stepId));

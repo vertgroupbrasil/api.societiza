@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using WorkflowTemplate.Application.UseCases.Events;
+using WorkflowTemplate.Application.UseCases.Events.Template;
+using WorkflowTemplate.Application.UseCases.Events.TemplateStep;
+using WorkflowTemplate.Application.UseCases.Events.TemplateStepTask;
 
 namespace WorkflowTemplate.Application.DependencyInjection;
 

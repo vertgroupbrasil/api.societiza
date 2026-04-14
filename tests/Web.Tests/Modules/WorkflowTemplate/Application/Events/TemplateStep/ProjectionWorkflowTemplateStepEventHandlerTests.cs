@@ -2,12 +2,12 @@ using Core.Domain.Projection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Linq.Expressions;
-using WorkflowTemplate.Application.UseCases.Events;
+using WorkflowTemplate.Application.UseCases.Events.TemplateStep;
 using WorkflowTemplate.Domain.Events;
 using WorkflowTemplate.Domain.Projection;
 using WorkflowTemplate.Persistence.Projection;
 
-namespace Web.Tests.Modules.WorkflowTemplate.Application.Events;
+namespace Web.Tests.Modules.WorkflowTemplate.Application.Events.TemplateStep;
 
 public class ProjectionWorkflowTemplateStepEventHandlerTests
 {
@@ -131,6 +131,7 @@ public class ProjectionWorkflowTemplateStepEventHandlerTests
         Title: "Step 1",
         Description: "Description",
         Order: 1,
+        AppliesTo: [],
         CreatedAt: DateTimeOffset.UtcNow,
         Version: 2);
 
@@ -140,6 +141,7 @@ public class ProjectionWorkflowTemplateStepEventHandlerTests
         Title: "Updated Step",
         Description: "Updated Description",
         Order: 2,
+        AppliesTo: [],
         UpdatedAt: DateTimeOffset.UtcNow,
         Version: 3);
 

@@ -1,8 +1,9 @@
-﻿using Ardalis.ApiEndpoints;
+using Ardalis.ApiEndpoints;
 using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Results;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Routes;
@@ -16,13 +17,21 @@ public sealed class GetAllWorkflowTemplatesEndpoint(ISender sender) : EndpointBa
     .WithActionResult<List<WorkflowTemplateResponse>>
 {
     [ApiVersion("1.0")]
+    [Authorize]
     [HttpGet(WorkflowTemplateRoutes.GetAllWorkflowTemplates)]
     [ProducesResponseType(typeof(List<WorkflowTemplateResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [SwaggerOperation(
-        Summary = "Listar templates de workflow",
-        Description = "Retorna uma lista resumida de todos os templates de workflow com Id, Nome e Descrição.",
-        Tags = [Tags.WorkflowTemplate])]
+        OperationId = "GetAllWorkflowTemplates",
+        Summary     = "Listar templates de workflow",
+        Description = """
+            Retorna uma lista resumida de todos os templates de workflow com `Id`, `Name` e `Description`.
+
+            **Regras:** Nenhuma.
+            **Efeitos:** Nenhum.
+            **Autorização:** Requer autenticação. Papéis: SystemAdmin, AccountingAdmin, AccountingEmployee.
+            """,
+        Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult<List<WorkflowTemplateResponse>>> HandleAsync(CancellationToken cancellationToken = default)
         => await Result.Create(new GetAllWorkflowTemplatesQuery())
             .Bind(query => sender.Send(query, cancellationToken))

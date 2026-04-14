@@ -2,7 +2,9 @@ using Ardalis.ApiEndpoints;
 using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Modules.WorkflowTemplate.Template.Requests.Commands;
@@ -16,14 +18,22 @@ public sealed class UpdateWorkflowTemplateEndpoint(ISender sender) : EndpointBas
     .WithActionResult
 {
     [ApiVersion("1.0")]
+    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPut(WorkflowTemplateRoutes.UpdateWorkflowTemplate)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
-            Summary = "Atualizar um template de workflow",
-            Description = "Atualiza o nome e a descrição de um template de workflow existente a partir do seu identificador único (GUID).",
-            Tags = [Tags.WorkflowTemplate])]
+        OperationId = "UpdateWorkflowTemplate",
+        Summary     = "Atualizar template de workflow",
+        Description = """
+            Atualiza o nome e a descrição de um template de workflow existente.
+
+            **Regras:** Retorna 404 caso o template não exista.
+            **Efeitos:** Nenhum.
+            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            """,
+        Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult> HandleAsync(UpdateWorkflowTemplateRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new UpdateWorkflowTemplateCommand(

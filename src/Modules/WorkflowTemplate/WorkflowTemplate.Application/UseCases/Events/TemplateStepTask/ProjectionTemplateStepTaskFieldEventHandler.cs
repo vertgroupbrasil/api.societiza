@@ -4,7 +4,7 @@ using WorkflowTemplate.Domain.Events;
 using WorkflowTemplate.Domain.Projection;
 using WorkflowTemplate.Persistence.Projection;
 
-namespace WorkflowTemplate.Application.UseCases.Events;
+namespace WorkflowTemplate.Application.UseCases.Events.TemplateStepTask;
 
 public interface IProjectionTemplateStepTaskFieldEventHandler :
     IEventHandler<DomainEvents.WorkflowTemplateStepTaskFieldAdded>,

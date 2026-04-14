@@ -22,9 +22,16 @@ public sealed class ResetPasswordEndpoint(ISender sender)
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
-        Summary = "Reset password",
-        Description = "Consumes the password reset token and sets a new password.",
-        Tags = [Tags.Identity])]
+        OperationId = "ResetPassword",
+        Summary     = "Redefinir senha",
+        Description = """
+            Consome o token de redefinição e define a nova senha do usuário.
+
+            **Regras:** Retorna 400 quando o token é inválido, expirado ou já foi utilizado, ou quando a nova senha não atende os requisitos mínimos. Retorna 404 quando o usuário associado ao token não existe.
+            **Efeitos:** Atualiza a senha do usuário e invalida o token usado.
+            **Autorização:** Público (prova de posse via token).
+            """,
+        Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(
         ResetPasswordRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)

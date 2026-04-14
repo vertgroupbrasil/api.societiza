@@ -2,7 +2,9 @@ using Ardalis.ApiEndpoints;
 using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Modules.WorkflowTemplate.TemplateStep.Requests.Commands;
@@ -16,18 +18,24 @@ public sealed class UpdateWorkflowTemplateStepEndpoint(ISender sender) : Endpoin
     .WithActionResult
 {
     [ApiVersion("1.0")]
+    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPut(WorkflowTemplateRoutes.UpdateWorkflowTemplateStep)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [SwaggerOperation(
-                Summary = "Atualizar uma etapa do template de workflow",
-                Description = """
-                    Updates a step in a workflow template.
+    [SwaggerOperation(
+        OperationId = "UpdateWorkflowTemplateStep",
+        Summary     = "Atualizar etapa do template",
+        Description = """
+            Atualiza título, descrição, ordem e público-alvo de uma etapa do template.
 
-                    If the requested `order` is already taken, existing steps are shifted forward automatically.
-                    """,
-            Tags = [Tags.WorkflowTemplate])]
+            **Regras:**
+            - Retorna 404 caso o template ou a etapa não existam.
+            - Se a `order` solicitada já estiver ocupada, as etapas existentes são deslocadas para frente automaticamente.
+            **Efeitos:** Dados da etapa atualizados, possivelmente reordenando etapas existentes.
+            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            """,
+        Tags = [Tags.WorkflowTemplate.Steps])]
     public override async Task<ActionResult> HandleAsync(UpdateWorkflowTemplateStepRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new UpdateWorkflowTemplateStepCommand(
@@ -35,7 +43,8 @@ public sealed class UpdateWorkflowTemplateStepEndpoint(ISender sender) : Endpoin
                 StepId: request.StepId,
                 Title: request.Body.Title,
                 Description: request.Body.Description,
-                Order: request.Body.Order))
+                Order: request.Body.Order,
+                AppliesTo: request.Body.AppliesTo))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

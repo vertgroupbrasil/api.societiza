@@ -1,7 +1,7 @@
 using FluentValidation;
-using WorkflowTemplate.Shared.Commands.TemplateStepField;
+using WorkflowTemplate.Shared.Commands.TemplateStep.Fields;
 
-namespace WorkflowTemplate.Application.UseCases.Validators.TemplateStepField;
+namespace WorkflowTemplate.Application.UseCases.Validators.TemplateStep.Fields;
 
 public sealed class RemoveTemplateStepFieldValidator : AbstractValidator<RemoveTemplateStepFieldCommand>
 {

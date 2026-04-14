@@ -2,40 +2,46 @@ using Ardalis.ApiEndpoints;
 using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Web.Endpoints.Modules.WorkflowTemplate.TemplateStepTaskField.Requests.Commands;
+using Web.Endpoints.Modules.WorkflowTemplate.TemplateStepTask.Fields.Requests.Commands;
 using Web.Endpoints.Routes;
-using WorkflowTemplate.Shared.Commands.TemplateStepTaskField;
+using WorkflowTemplate.Shared.Commands.TemplateStepTask.Fields;
 
-namespace Web.Endpoints.Modules.WorkflowTemplate.TemplateStepTaskField;
+namespace Web.Endpoints.Modules.WorkflowTemplate.TemplateStepTask.Fields;
 
 public sealed class UpdateTemplateStepTaskFieldEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<UpdateTemplateStepTaskFieldRequest>
     .WithActionResult
 {
     [ApiVersion("1.0")]
+    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPut(WorkflowTemplateRoutes.UpdateTemplateStepTaskField)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [SwaggerOperation(
-            Summary = "Atualizar um campo de uma tarefa de uma etapa do template",
-            Description = """
-                Updates a field in a task.
+    [SwaggerOperation(
+        OperationId = "UpdateTemplateStepTaskField",
+        Summary     = "Atualizar campo da tarefa",
+        Description = """
+            Atualiza os dados de um campo de uma tarefa do template.
 
-                **fieldType** accepted values:
-                - `Text` - single-line text input
-                - `Boolean` - true/false toggle
-                - `Integer` - numeric input
-                - `Select` - dropdown with predefined options
-                - `Date` - date picker
-
-                `options` is required when `fieldType` is `Select`.
-                `options` must be null for all other field types.
-                """,
-            Tags = [Tags.WorkflowTemplate])]
+            **Regras:**
+            - Retorna 404 caso o template, a etapa, a tarefa ou o campo não existam.
+            - Valores aceitos para `fieldType`:
+              - `Text` — entrada de texto em linha única.
+              - `Boolean` — alternância verdadeiro/falso.
+              - `Integer` — entrada numérica.
+              - `Select` — lista suspensa com opções predefinidas.
+              - `Date` — seletor de data.
+            - `options` é obrigatório quando `fieldType` é `Select` e deve ser nulo para os demais tipos.
+            **Efeitos:** Dados do campo atualizados.
+            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            """,
+        Tags = [Tags.WorkflowTemplate.StepTaskFields])]
     public override async Task<ActionResult> HandleAsync(UpdateTemplateStepTaskFieldRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new UpdateTemplateStepTaskFieldCommand(

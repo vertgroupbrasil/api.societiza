@@ -1,10 +1,12 @@
-﻿using Accountancy.Shared.Commands;
+using Accountancy.Shared.Commands;
 using Ardalis.ApiEndpoints;
 using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Response;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Modules.Accountancy.Requests.Commands;
@@ -12,6 +14,7 @@ using Web.Endpoints.Routes;
 
 namespace Web.Endpoints.Modules.Accountancy;
 
+[Authorize(Policy = IdentityPolicies.CanManageAccountancies)]
 public sealed class CreateAccountancyEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<CreateAccountancyRequest>
     .WithActionResult<IdentifierResponse>
@@ -20,11 +23,20 @@ public sealed class CreateAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
     [HttpPost(AccountancyRoutes.CreateAccountancy)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
-            Summary = "Criar uma nova contabilidade",
-            Description = "Cadastra uma nova contabilidade no sistema. O CNPJ deve ser único — retorna 409 (Conflict) caso já exista uma contabilidade com o mesmo CNPJ. Em caso de sucesso, retorna o identificador (GUID) da contabilidade criada.",
-            Tags = [Tags.Accountancy])]
+        OperationId = "CreateAccountancy",
+        Summary     = "Criar contabilidade",
+        Description = """
+            Cadastra uma nova contabilidade no sistema e retorna o identificador criado.
+
+            **Regras:** O CNPJ é único — retorna 409 caso já exista uma contabilidade com o mesmo CNPJ.
+            **Efeitos:** Nenhum.
+            **Autorização:** SystemAdmin.
+            """,
+        Tags = [Tags.Accountancy])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(CreateAccountancyRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)
             .Map(request => new CreateAccountancyCommand(

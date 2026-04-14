@@ -2,7 +2,9 @@ using Ardalis.ApiEndpoints;
 using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Modules.WorkflowTemplate.TemplateStepTask.Requests.Commands;
@@ -16,23 +18,28 @@ public sealed class UpdateWorkflowTemplateStepTaskEndpoint(ISender sender) : End
     .WithActionResult
 {
     [ApiVersion("1.0")]
+    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPut(WorkflowTemplateRoutes.UpdateWorkflowTemplateStepTask)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [SwaggerOperation(
-            Summary = "Atualizar uma tarefa de uma etapa do template",
-            Description = """
-                Updates a task in a step.
+    [SwaggerOperation(
+        OperationId = "UpdateWorkflowTemplateStepTask",
+        Summary     = "Atualizar tarefa da etapa",
+        Description = """
+            Atualiza os dados de uma tarefa em uma etapa do template.
 
-                **type** accepted values:
-                - `Manual` - task completed manually by a user
-                - `Automatic` - task executed automatically by the system
-                - `Approval` - task that requires explicit approval
-
-                If the requested `order` is already taken, existing tasks are shifted forward automatically.
-                """,
-                Tags = [Tags.WorkflowTemplate])]
+            **Regras:**
+            - Retorna 404 caso o template, a etapa ou a tarefa não existam.
+            - Valores aceitos para `type`:
+              - `Manual` — tarefa concluída manualmente por um usuário.
+              - `Automatic` — tarefa executada automaticamente pelo sistema.
+              - `Approval` — tarefa que requer aprovação explícita.
+            - Se a `order` solicitada já estiver ocupada, as tarefas existentes são deslocadas para frente automaticamente.
+            **Efeitos:** Dados da tarefa atualizados, possivelmente reordenando tarefas existentes.
+            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            """,
+        Tags = [Tags.WorkflowTemplate.StepTasks])]
     public override async Task<ActionResult> HandleAsync(UpdateWorkflowTemplateStepTaskRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new UpdateWorkflowTemplateStepTaskCommand(

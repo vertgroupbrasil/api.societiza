@@ -69,6 +69,8 @@ Com o plano aprovado, implemente cada item na ordem definida no `plan.md`:
    - Persistence → `persistence-architecture.md`
    - Infrastructure → `infrastructure-architecture.md`
    - Web → `web-architecture.md`
+   - Web (endpoint novo ou editado) → também a skill `/api-design`
+     (as convenções são validadas automaticamente pelo `EndpointConventionsTests` na pipeline)
 3. **Verifique o código existente** antes de criar ou modificar qualquer
    arquivo — evite duplicação e garanta consistência com o que já existe.
 4. **Siga o checklist** em `references/checklist.md` para garantir que nenhum
