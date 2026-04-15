@@ -10,7 +10,7 @@
 ## Pre-condicoes
 
 1. **Template ativo** — deve existir pelo menos um WorkflowTemplate com status `Active` na contabilidade para que um processo possa ser criado. O handler valida isso.
-2. **`appliesTo` ja existe no template** — `WorkflowTemplateStep.AppliesTo` e `List<string>` com os nomes dos tipos de processo aos quais a etapa se aplica (ex: `["Abertura", "Baixa"]`). Lista vazia = aplica a todos. O `CreateWorkflowProcessEndpoint` filtra os steps por `AppliesTo` antes de montar os snapshots. Apenas steps aplicaveis ao tipo de processo sao materializados. **Tudo que foi materializado e obrigatorio para conclusao** — `IsRequired` nao existe em `ProcessStepInstance`.
+2. **`appliesTo` ja existe no template** — `WorkflowTemplateStep.AppliesTo` e `List<string>` com os nomes dos tipos de processo aos quais a etapa se aplica (ex: `["Abertura", "Baixa"]`). Lista vazia = aplica a todos. O filtro por `AppliesTo` e aplicado em `WorkflowTemplateDataService` (item #18c) ao montar os snapshots — apenas steps aplicaveis ao tipo de processo sao incluidos. **Tudo que foi materializado e obrigatorio para conclusao** — `IsRequired` nao existe em `ProcessStepInstance`.
 3. **`IsRequired` nao existe em campos do template** — a spec menciona campo obrigatorio em `ProcessStepFieldInstance` e `ProcessStepTaskFieldInstance`, mas o template nao tem essa informacao. Para o MVP, **todos os campos sao opcionais** (`IsRequired = false`). Nao bloqueia avanço.
 
 ---
@@ -157,7 +157,7 @@
 - **Caminho**: `src/Modules/WorkflowProcess/WorkflowProcess.Shared/Snapshots/`
 - **Depende de**: #1
 - **Spec-ref**: §8 "Versionamento do Process — fotografia"
-- **Detalhes**: Records usados pelo CreateWorkflowProcessCommand para carregar a fotografia do template. Vivem em Shared porque sao parte do contrato do command. Nenhuma referencia a WorkflowTemplate.Domain.
+- **Detalhes**: Records que representam a fotografia do template no momento da criacao do processo. Vivem em Shared para que `WorkflowProcess.Application` (via `IWorkflowTemplateDataService`) e a implementacao cross-module na Web layer possam usa-los sem duplicacao. Nenhuma referencia a WorkflowTemplate.Domain.
   - `TemplateStepSnapshot(Guid StepId, string Title, string Description, int Order, List<TemplateStepTaskSnapshot> Tasks, List<TemplateStepFieldSnapshot> Fields)`
   - `TemplateStepTaskSnapshot(Guid TaskId, string Title, string Description, string Type, string Configuration, int Order, bool IsOptional, List<TemplateStepTaskFieldSnapshot> Fields)`
   - `TemplateStepFieldSnapshot(Guid FieldId, string Label, string FieldType, string? Options, int Order)`
@@ -169,9 +169,9 @@
 - **Tipo**: Command
 - **Acao**: criar
 - **Caminho**: `src/Modules/WorkflowProcess/WorkflowProcess.Shared/Commands/CreateWorkflowProcessCommand.cs`
-- **Depende de**: #10
+- **Depende de**: #1
 - **Spec-ref**: §8 "Criacao do processo"
-- **Detalhes**: `sealed record CreateWorkflowProcessCommand(Guid AccountancyId, Guid TemplateId, string TemplateVersion, string ProcessType, string TargetClient, List<TemplateStepSnapshot> Steps) : ICommand<IdentifierResponse>`. O endpoint em Web le a projection do template e monta os snapshots — o modulo WorkflowProcess nao referencia WorkflowTemplate.
+- **Detalhes**: `sealed record CreateWorkflowProcessCommand(Guid AccountancyId, Guid TemplateId, string ProcessType, string TargetClient) : ICommand<IdentifierResponse>`. **Nao carrega `Steps` nem `TemplateVersion`** — o handler busca esses dados internamente via `IWorkflowTemplateDataService` (item #18b). O endpoint fica limpo: apenas os dados que o usuario fornece.
 
 ### 12. Command: CompleteProcessTaskCommand
 
@@ -251,6 +251,51 @@
 - **Spec-ref**: pattern de arquitetura
 - **Detalhes**: `public interface IWorkflowProcessApplicationService : IApplicationService<WorkflowProcessDbContext> { }` — marker interface para DI tipado do modulo
 
+### 18b. IWorkflowTemplateDataService — interface anti-corrupcao cross-module
+
+- **Camada**: Application
+- **Tipo**: Service interface
+- **Acao**: criar
+- **Caminho**: `src/Modules/WorkflowProcess/WorkflowProcess.Application/Services/IWorkflowTemplateDataService.cs`
+- **Depende de**: #10
+- **Spec-ref**: §8 "Versionamento do Process — fotografia", "Materializacao por tipo"
+- **Detalhes**: Interface definida no modulo `WorkflowProcess.Application`. A implementacao concreta vive na Web layer (composition root), que pode enxergar ambos os modulos sem criar dependencia entre eles.
+  ```csharp
+  public interface IWorkflowTemplateDataService
+  {
+      // Retorna null se o template nao existir ou nao estiver Active.
+      // processType e usado para filtrar steps por AppliesTo — so steps
+      // aplicaveis ao tipo de processo sao incluidos no snapshot.
+      Task<(string Version, List<TemplateStepSnapshot> Steps)?> GetActiveTemplateSnapshotAsync(
+          Guid templateId, string processType, CancellationToken ct);
+  }
+  ```
+  - O filtro `AppliesTo` migra do endpoint (#35 antigo) para a implementacao `WorkflowTemplateDataService` (item #18c): `step.AppliesTo.Count == 0 || step.AppliesTo.Contains(processType)`.
+  - A implementacao despacha `GetWorkflowTemplateDetailByIdQuery` via MediatR — nao acessa MongoDB diretamente.
+  - O registro `IWorkflowTemplateDataService → WorkflowTemplateDataService` e feito no item #37b.
+
+### 18c. WorkflowTemplateDataService — implementacao cross-module (Web layer)
+
+- **Camada**: Web
+- **Tipo**: Service
+- **Acao**: criar
+- **Caminho**: `src/Web/Services/CrossModule/WorkflowTemplateDataService.cs`
+- **Depende de**: #18b
+- **Spec-ref**: §8 "Versionamento do Process — fotografia", "Materializacao por tipo"
+- **Detalhes**: Implementacao concreta de `IWorkflowTemplateDataService`. Vive na Web layer pois e o unico lugar onde e permitido conectar multiplos modulos.
+  - **Nao acessa MongoDB diretamente.** Injeta `ISender` (MediatR) e despacha `GetWorkflowTemplateDetailByIdQuery` — o proprio modulo WorkflowTemplate gerencia seu acesso a dados. A Web layer consome apenas a API publica do modulo (`WorkflowTemplate.Shared`), sem furar o encapsulamento da camada de persistencia.
+  - Fluxo de `GetActiveTemplateSnapshotAsync(templateId, processType, ct)`:
+    1. `var result = await _sender.Send(new GetWorkflowTemplateDetailByIdQuery(templateId), ct)`
+    2. Se `result.IsFailure` ou `result.Value.Status != TemplateStatus.Active.Name` → retorna `null`
+    3. Filtra steps por `AppliesTo`: inclui step se `step.AppliesTo.Count == 0 || step.AppliesTo.Contains(processType)`
+    4. Mapeia `WorkflowTemplateDetailResponse` → `List<TemplateStepSnapshot>`:
+       - `WorkflowTemplateStepDetailResponse` → `TemplateStepSnapshot`
+       - `WorkflowTemplateStepTaskDetailResponse` → `TemplateStepTaskSnapshot`
+       - `WorkflowTemplateStepFieldDetailResponse` → `TemplateStepFieldSnapshot`
+       - `WorkflowTemplateStepTaskFieldDetailResponse` → `TemplateStepTaskFieldSnapshot`
+    5. Retorna `(result.Value.Version, snapshots)`
+  - Referencia apenas `WorkflowTemplate.Shared` (publica) e `WorkflowProcess.Shared` (para os tipos Snapshot) — sem referencia a `WorkflowTemplate.Persistence` ou `WorkflowTemplate.Domain`.
+
 ### 19. Validators
 
 - **Camada**: Application
@@ -260,7 +305,7 @@
 - **Depende de**: #2, #11, #12, #13, #14, #15
 - **Spec-ref**: §8
 - **Detalhes**: 5 validators, um por write command:
-  - `CreateWorkflowProcessValidator` — NotEmpty: AccountancyId, TemplateId, TemplateVersion, TargetClient, Steps; ProcessType deve ser valido via `ProcessType.TryFromName`
+  - `CreateWorkflowProcessValidator` — NotEmpty: AccountancyId, TemplateId, TargetClient; ProcessType deve ser valido via `ProcessType.TryFromName`. **Sem validacao de Steps ou TemplateVersion** — removidos do command (item #11).
   - `CompleteProcessTaskValidator` — NotEmpty: ProcessId, StepInstanceId, TaskInstanceId
   - `SkipProcessTaskValidator` — NotEmpty: ProcessId, StepInstanceId, TaskInstanceId
   - `FillProcessStepFieldValidator` — NotEmpty: ProcessId, StepInstanceId, FieldInstanceId, Value
@@ -272,15 +317,17 @@
 - **Tipo**: Handler
 - **Acao**: criar
 - **Caminho**: `src/Modules/WorkflowProcess/WorkflowProcess.Application/UseCases/Commands/CreateWorkflowProcessHandler.cs`
-- **Depende de**: #8, #11, #18
+- **Depende de**: #8, #11, #18, #18b
 - **Spec-ref**: §8 "Criacao do processo", "Versionamento do Process", "Materializacao por tipo"
-- **Detalhes**: `ICommandHandler<CreateWorkflowProcessCommand, IdentifierResponse>`. Injeta `IWorkflowProcessApplicationService`. Fluxo:
-  1. Cria o aggregate via `WorkflowProcess.Create(...)`
-  2. Itera sobre `command.Steps` chamando `process.MaterializeStep(...)` para cada step
-  3. Para cada step, itera tasks chamando `process.MaterializeTask(...)` e fields chamando `process.MaterializeStepField(...)`
-  4. Para cada task, itera fields chamando `process.MaterializeTaskField(...)`
-  5. `AppendEventsAsync(process)` — persiste todos os eventos de uma vez
-  6. Retorna `IdentifierResponse(process.Id)`
+- **Detalhes**: `ICommandHandler<CreateWorkflowProcessCommand, IdentifierResponse>`. Injeta `IWorkflowProcessApplicationService` e `IWorkflowTemplateDataService`. Fluxo:
+  1. Chama `_templateDataService.GetActiveTemplateSnapshotAsync(command.TemplateId, command.ProcessType, ct)`
+  2. Se retornar `null` → `Result.Failure(WorkflowProcessErrors.TemplateNotActiveOrNotFound)`
+  3. Cria o aggregate via `WorkflowProcess.Create(command.AccountancyId, command.TemplateId, template.Version, command.ProcessType, command.TargetClient)`
+  4. Itera sobre `template.Steps` chamando `process.MaterializeStep(...)` para cada step
+  5. Para cada step, itera tasks chamando `process.MaterializeTask(...)` e fields chamando `process.MaterializeStepField(...)`
+  6. Para cada task, itera fields chamando `process.MaterializeTaskField(...)`
+  7. `AppendEventsAsync(process)` — persiste todos os eventos de uma vez
+  8. Retorna `IdentifierResponse(process.Id)`
 
 ### 21. CompleteProcessTaskHandler
 
@@ -499,7 +546,7 @@
 - **Depende de**: #11, #12, #13, #14, #15, #32
 - **Spec-ref**: §8
 - **Detalhes**: 5 endpoints de escrita:
-  - **CreateWorkflowProcessEndpoint** (POST) — Request: `{ TemplateId, ProcessType, TargetClient, AccountancyId }`. **Ponto-chave**: o endpoint le as projections do WorkflowTemplate (template + steps + tasks + step fields + task fields) via `IWorkflowTemplateProjection<T>`, **filtra steps por `AppliesTo`** (`step.AppliesTo.Count == 0 || step.AppliesTo.Contains(processType)`), monta os `TemplateStepSnapshot` apenas com steps aplicaveis, e compoe o command completo. Isso mantem o modulo WorkflowProcess desacoplado do WorkflowTemplate. Valida que o template existe e esta Active.
+  - **CreateWorkflowProcessEndpoint** (POST) — Request: `{ TemplateId, ProcessType, TargetClient, AccountancyId }`. **Endpoint simples**: apenas mapeia o request para `CreateWorkflowProcessCommand(accountancyId, templateId, processType, targetClient)` e envia via MediatR. **Nao injeta projections do WorkflowTemplate, nao monta snapshots, nao filtra steps** — toda essa logica esta encapsulada no handler via `IWorkflowTemplateDataService` (item #18b). O resultado pode ser `NotFound` (template nao existe ou nao esta Active) ou `Ok` com o `IdentifierResponse`.
   - **CompleteProcessTaskEndpoint** (POST) — Request: `{ ProcessId, StepInstanceId, TaskInstanceId }` via [FromRoute]. **Sem CompletedBy** (MVP nao rastreia quem).
   - **SkipProcessTaskEndpoint** (POST) — Request: `{ ProcessId, StepInstanceId, TaskInstanceId }` via [FromRoute]. **Sem SkippedBy** (MVP nao rastreia quem).
   - **FillProcessStepFieldEndpoint** (PUT) — Request: `{ ProcessId, StepInstanceId, FieldInstanceId }` via [FromRoute] + `{ Value }` via body.
@@ -530,6 +577,20 @@
   - `StartupTasks/MigrateDatabaseStartupTask.cs` — adicionar `await MigrateDatabaseAsync<WorkflowProcessDbContext>(scope, stoppingToken)`
   - `Web.csproj` — adicionar referencia a `WorkflowProcess.Infrastructure` e `WorkflowProcess.Shared` (para que o ModuleInstaller seja descoberto e os consumers possam referenciar os eventos)
 
+### 37b. CrossModuleServicesInstaller — registro do IWorkflowTemplateDataService
+
+- **Camada**: Web
+- **Tipo**: ServiceInstaller
+- **Acao**: criar
+- **Caminho**: `src/Web/ServiceInstallers/CrossModuleServicesInstaller.cs`
+- **Depende de**: #18b, #18c
+- **Spec-ref**: pattern de arquitetura (composition root)
+- **Detalhes**: `IServiceInstaller` que registra as implementacoes cross-module que nao pertencem a nenhum modulo especifico:
+  ```csharp
+  services.AddScoped<IWorkflowTemplateDataService, WorkflowTemplateDataService>();
+  ```
+  Este e o unico ponto do sistema onde `WorkflowProcess.Application` e `WorkflowTemplate.Persistence` estao conectados — via DI, sem referencia direta entre os modulos. O arquivo sera descoberto automaticamente pelo `InstallServicesFromAssemblies` da Web layer (ja que implementa `IServiceInstaller`).
+
 ---
 
 ## Checklist de registro
@@ -539,6 +600,7 @@
 - [x] `MigrateDatabaseStartupTask` — adicionar `WorkflowProcessDbContext` (item #37)
 - [ ] `RegisterRecurringJobsStartupTask` — nenhum job recorrente nesta feature
 - [x] `PersistenceServiceInstaller` — criar novo com open generics: `IWorkflowProcessProjection<>`, `IEventStore<WorkflowProcessDbContext>`, `IUnitOfWork<WorkflowProcessDbContext>` (item #31)
+- [x] `CrossModuleServicesInstaller` — registrar `IWorkflowTemplateDataService → WorkflowTemplateDataService` na Web layer (item #37b)
 
 ---
 
@@ -548,7 +610,7 @@
 
 2. **`IsRequired` nao existe em campos do template** — a spec menciona "obrigatorio" como propriedade dos campos (step fields e task fields), mas `TemplateStepField` e `TemplateStepTaskField` nao possuem esse campo. **Decisao MVP: todos os campos materializam com `IsRequired = false`.** Quando o template for atualizado, o snapshot e o handler podem mapear o valor.
 
-3. **Dependencia cross-module no endpoint de criacao** — o `CreateWorkflowProcessEndpoint` (item #35) precisa ler projections do modulo WorkflowTemplate para montar o snapshot. Isso e feito na camada Web (que tem acesso a todos os modulos) e nao no modulo WorkflowProcess. O endpoint injeta `IWorkflowTemplateProjection<T>` — isso requer que `Web.csproj` ja referencie `WorkflowTemplate.Persistence` (ja referencia via `WorkflowTemplate.Infrastructure`).
+3. **Desacoplamento cross-module via interface anti-corrupcao** — o `CreateWorkflowProcessEndpoint` (item #35) e simples: apenas envia o command. A responsabilidade de buscar, validar e transformar os dados do WorkflowTemplate esta em `IWorkflowTemplateDataService` (item #18b), cuja implementacao `WorkflowTemplateDataService` (item #18c) vive na Web layer. A implementacao **nao acessa MongoDB diretamente**: usa `ISender` para dispatchar `GetWorkflowTemplateDetailByIdQuery`, consumindo apenas `WorkflowTemplate.Shared` (API publica). O acesso a dados fica encapsulado dentro do proprio modulo WorkflowTemplate. Nenhum modulo referencia o outro diretamente. A conexao e feita exclusivamente no container DI via `CrossModuleServicesInstaller` (item #37b). Este padrao (interface no consumidor + MediatR + composition root) sera o modelo para futuras integracoes cross-module no Societiza.
 
 4. **Volume de eventos na criacao** — um template com 10 steps, 5 tasks por step e 3 fields por task/step gera ~1 (ProcessCreated) + 10 (steps) + 50 (tasks) + 30 (step fields) + 150 (task fields) = **241 eventos** numa unica operacao de `AppendEventsAsync`. Isso e aceitavel no event store (uma transacao PostgreSQL) mas gera 241 mensagens no RabbitMQ. Monitorar performance. Se necessario, considerar batch publishing ou projetar a criacao como um unico evento composto (tradeoff: perde granularidade no event sourcing).
 

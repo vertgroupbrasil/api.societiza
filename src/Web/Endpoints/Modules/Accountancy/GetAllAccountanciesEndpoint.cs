@@ -31,7 +31,9 @@ public sealed class GetAllAccountanciesEndpoint(ISender sender) : EndpointBaseAs
             Retorna a lista completa de contabilidades ativas, ordenadas alfabeticamente pela Razão Social (`LegalName`) e, em seguida, pela data de criação (`CreatedAt`).
 
             **Regras:** Contabilidades excluídas (soft delete) não são retornadas.
+
             **Efeitos:** Nenhum.
+
             **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.Accountancy])]

@@ -22,6 +22,8 @@ public sealed class RemoveWorkflowTemplateStepEndpoint(ISender sender) : Endpoin
     [HttpDelete(WorkflowTemplateRoutes.RemoveWorkflowTemplateStep)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
         OperationId = "RemoveWorkflowTemplateStep",

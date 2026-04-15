@@ -21,6 +21,7 @@ public sealed class GetAllWorkflowTemplatesEndpoint(ISender sender) : EndpointBa
     [HttpGet(WorkflowTemplateRoutes.GetAllWorkflowTemplates)]
     [ProducesResponseType(typeof(List<WorkflowTemplateResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [SwaggerOperation(
         OperationId = "GetAllWorkflowTemplates",
         Summary     = "Listar templates de workflow",

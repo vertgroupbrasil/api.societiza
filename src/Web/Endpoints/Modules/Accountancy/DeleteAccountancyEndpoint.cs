@@ -31,7 +31,9 @@ public sealed class DeleteAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
             Realiza a exclusão lógica (soft delete) de uma contabilidade. Os dados são preservados mas a contabilidade deixa de aparecer em listagens.
 
             **Regras:** Retorna 404 caso a contabilidade não exista.
+
             **Efeitos:** A contabilidade é marcada como excluída (soft delete) e não é retornada em listagens.
+
             **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.Accountancy])]

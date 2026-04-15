@@ -23,6 +23,8 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
     [HttpPost(WorkflowTemplateRoutes.AddTemplateStepTaskField)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
         OperationId = "AddTemplateStepTaskField",

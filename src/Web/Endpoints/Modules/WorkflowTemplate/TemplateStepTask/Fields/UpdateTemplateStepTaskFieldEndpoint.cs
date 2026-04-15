@@ -22,6 +22,8 @@ public sealed class UpdateTemplateStepTaskFieldEndpoint(ISender sender) : Endpoi
     [HttpPut(WorkflowTemplateRoutes.UpdateTemplateStepTaskField)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
         OperationId = "UpdateTemplateStepTaskField",

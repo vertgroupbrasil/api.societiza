@@ -23,6 +23,8 @@ public sealed class CreateWorkflowTemplateEndpoint(ISender sender) : EndpointBas
     [HttpPost(WorkflowTemplateRoutes.CreateWorkflowTemplate)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [SwaggerOperation(
         OperationId = "CreateWorkflowTemplate",
         Summary     = "Criar template de workflow",

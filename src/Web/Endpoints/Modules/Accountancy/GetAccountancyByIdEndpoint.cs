@@ -35,7 +35,9 @@ public sealed class GetAccountancyByIdEndpoint(
             Retorna os dados completos de uma contabilidade a partir do seu identificador único.
 
             **Regras:** Retorna 404 caso a contabilidade não exista.
+
             **Efeitos:** Nenhum.
+
             **Autorização:** SystemAdmin (acessa qualquer contabilidade). Demais roles só acessam a própria contabilidade (claim `accountancy_id`); tentativa em outra contabilidade resulta em 403.
             """,
         Tags = [Tags.Accountancy])]

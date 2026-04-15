@@ -23,6 +23,12 @@ COPY src/Modules/WorkflowTemplate/WorkflowTemplate.Infrastructure/WorkflowTempla
 COPY src/Modules/WorkflowTemplate/WorkflowTemplate.Persistence/WorkflowTemplate.Persistence.csproj src/Modules/WorkflowTemplate/WorkflowTemplate.Persistence/
 COPY src/Modules/WorkflowTemplate/WorkflowTemplate.Shared/WorkflowTemplate.Shared.csproj src/Modules/WorkflowTemplate/WorkflowTemplate.Shared/
 
+COPY src/Modules/WorkflowProcess/WorkflowProcess.Application/WorkflowProcess.Application.csproj src/Modules/WorkflowProcess/WorkflowProcess.Application/
+COPY src/Modules/WorkflowProcess/WorkflowProcess.Domain/WorkflowProcess.Domain.csproj src/Modules/WorkflowProcess/WorkflowProcess.Domain/
+COPY src/Modules/WorkflowProcess/WorkflowProcess.Infrastructure/WorkflowProcess.Infrastructure.csproj src/Modules/WorkflowProcess/WorkflowProcess.Infrastructure/
+COPY src/Modules/WorkflowProcess/WorkflowProcess.Persistence/WorkflowProcess.Persistence.csproj src/Modules/WorkflowProcess/WorkflowProcess.Persistence/
+COPY src/Modules/WorkflowProcess/WorkflowProcess.Shared/WorkflowProcess.Shared.csproj src/Modules/WorkflowProcess/WorkflowProcess.Shared/
+
 COPY src/Web/Web.csproj src/Web/
 
 # Restore dependencies (cached unless .csproj files change)

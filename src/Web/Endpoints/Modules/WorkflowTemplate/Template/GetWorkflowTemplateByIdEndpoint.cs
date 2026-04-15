@@ -22,6 +22,7 @@ public sealed class GetWorkflowTemplateByIdEndpoint(ISender sender) : EndpointBa
     [HttpGet(WorkflowTemplateRoutes.GetWorkflowTemplateById)]
     [ProducesResponseType(typeof(WorkflowTemplateDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
         OperationId = "GetWorkflowTemplateById",

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Core\Core.Application\Core.Application.csproj" />
+    <ProjectReference Include="..\WorkflowProcess.Persistence\WorkflowProcess.Persistence.csproj" />
+    <ProjectReference Include="..\WorkflowProcess.Shared\WorkflowProcess.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
