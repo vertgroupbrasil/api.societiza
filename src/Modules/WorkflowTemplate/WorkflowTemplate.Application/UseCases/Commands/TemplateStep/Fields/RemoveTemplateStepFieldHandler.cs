@@ -1,12 +1,12 @@
 using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
-using WorkflowTemplate.Shared.Commands.TemplateStepField;
+using WorkflowTemplate.Shared.Commands.TemplateStep.Fields;
 using WorkflowTemplate.Shared.Errors;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
-namespace WorkflowTemplate.Application.UseCases.Commands.TemplateStepField;
+namespace WorkflowTemplate.Application.UseCases.Commands.TemplateStep.Fields;
 
 public class RemoveTemplateStepFieldHandler(
     IWorkflowTemplateApplicationService applicationService) : ICommandHandler<RemoveTemplateStepFieldCommand>

@@ -2,7 +2,9 @@ using Ardalis.ApiEndpoints;
 using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Modules.WorkflowTemplate.Template.Requests.Commands;
@@ -16,19 +18,25 @@ public sealed class ArchiveWorkflowTemplateEndpoint(ISender sender) : EndpointBa
     .WithActionResult
 {
     [ApiVersion("1.0")]
+    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPatch(WorkflowTemplateRoutes.ArchiveWorkflowTemplate)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
-            Summary = "Arquivar um template de workflow",
-            Description = """
-                Archives a workflow template.
+        OperationId = "ArchiveWorkflowTemplate",
+        Summary     = "Arquivar template de workflow",
+        Description = """
+            Arquiva um template de workflow.
 
-                **Allowed from:** `Draft`, `Active`
-                **Not allowed from:** `Archived`
-                """,
-            Tags = [Tags.WorkflowTemplate])]
+            **Regras:**
+            - Status permitidos de origem: `Draft`, `Active`
+            - Status não permitidos: `Archived`
+            - Retorna 404 caso o template não exista.
+            **Efeitos:** Status do template muda para `Archived`.
+            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            """,
+        Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult> HandleAsync(ArchiveWorkflowTemplateRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new ArchiveWorkflowTemplateCommand(request.Id))

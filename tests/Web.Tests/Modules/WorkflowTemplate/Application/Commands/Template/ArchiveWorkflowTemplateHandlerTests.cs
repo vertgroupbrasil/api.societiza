@@ -78,7 +78,7 @@ public class ArchiveWorkflowTemplateHandlerTests
     private static WorkflowTemplateAggregate CreateActiveTemplate()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1);
+        var stepId = template.AddStep("Step 1", "Description", 1, []);
         template.AddTask(stepId, "Task 1", "Description", TaskType.Manual, "{}", 1, false);
         template.Activate();
         return template;

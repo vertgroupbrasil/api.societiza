@@ -22,10 +22,18 @@ public sealed class LogoutEndpoint(ISender sender, IHttpContextAccessor httpCont
     [HttpPost(IdentityRoutes.Logout)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [SwaggerOperation(
-        Summary = "Logout",
-        Description = "Revokes the current refresh token and clears the HttpOnly cookie.",
-        Tags = [Tags.Identity])]
+        OperationId = "Logout",
+        Summary     = "Efetuar logout",
+        Description = """
+            Revoga o refresh token atual, encerrando a sessão do usuário.
+
+            **Regras:** O refresh token é lido do cookie HttpOnly `refresh_token`.
+            **Efeitos:** Revoga o refresh token no servidor e limpa o cookie `refresh_token` no cliente.
+            **Autorização:** Autenticado.
+            """,
+        Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(CancellationToken cancellationToken)
     {
         var refreshToken = httpContextAccessor.HttpContext!.Request.Cookies["refresh_token"] ?? string.Empty;

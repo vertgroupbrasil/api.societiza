@@ -65,5 +65,6 @@ public class AddWorkflowTemplateStepHandlerTests
         TemplateId: Guid.NewGuid(),
         Title: "Step 1",
         Description: "Step Description",
-        Order: 1);
+        Order: 1,
+        AppliesTo: []);
 }

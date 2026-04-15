@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Web.Endpoints.Routes;
 
-namespace Web.Endpoints.Modules.WorkflowTemplate.TemplateStepField.Requests.Commands;
+namespace Web.Endpoints.Modules.WorkflowTemplate.TemplateStep.Fields.Requests.Commands;
 
 public class RemoveTemplateStepFieldRequest
 {

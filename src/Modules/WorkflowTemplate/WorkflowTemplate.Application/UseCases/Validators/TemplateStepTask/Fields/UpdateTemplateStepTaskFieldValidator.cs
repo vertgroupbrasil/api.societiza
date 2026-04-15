@@ -1,8 +1,8 @@
 using FluentValidation;
 using WorkflowTemplate.Domain.Enumerations;
-using WorkflowTemplate.Shared.Commands.TemplateStepTaskField;
+using WorkflowTemplate.Shared.Commands.TemplateStepTask.Fields;
 
-namespace WorkflowTemplate.Application.UseCases.Validators.TemplateStepTaskField;
+namespace WorkflowTemplate.Application.UseCases.Validators.TemplateStepTask.Fields;
 
 public sealed class UpdateTemplateStepTaskFieldValidator : AbstractValidator<UpdateTemplateStepTaskFieldCommand>
 {

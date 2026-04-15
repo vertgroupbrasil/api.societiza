@@ -3,7 +3,9 @@ using Asp.Versioning;
 using Core.Endpoints.Extensions;
 using Core.Shared.Response;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Web.Endpoints.Modules.WorkflowTemplate.Template.Requests.Commands;
@@ -17,13 +19,21 @@ public sealed class CreateWorkflowTemplateEndpoint(ISender sender) : EndpointBas
     .WithActionResult<IdentifierResponse>
 {
     [ApiVersion("1.0")]
+    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPost(WorkflowTemplateRoutes.CreateWorkflowTemplate)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [SwaggerOperation(
-            Summary = "Criar um novo template de workflow",
-            Description = "Cria um novo template de workflow com status Draft. Retorna o identificador (GUID) do template criado.",
-            Tags = [Tags.WorkflowTemplate])]
+        OperationId = "CreateWorkflowTemplate",
+        Summary     = "Criar template de workflow",
+        Description = """
+            Cria um novo template de workflow com status `Draft` e retorna o identificador criado.
+
+            **Regras:** Nenhuma validação de unicidade; o nome pode repetir entre templates.
+            **Efeitos:** Template criado no status `Draft` — precisa ter ao menos uma etapa com uma tarefa antes de ser ativado.
+            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            """,
+        Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(CreateWorkflowTemplateRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(request => new CreateWorkflowTemplateCommand(

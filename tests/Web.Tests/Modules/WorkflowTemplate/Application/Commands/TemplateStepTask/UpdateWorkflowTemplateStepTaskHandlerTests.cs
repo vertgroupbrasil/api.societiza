@@ -64,7 +64,7 @@ public class UpdateWorkflowTemplateStepTaskHandlerTests
     private static (WorkflowTemplateAggregate template, Guid stepId, Guid taskId) CreateTemplateWithStepAndTask()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1);
+        var stepId = template.AddStep("Step 1", "Description", 1, []);
         var taskId = template.AddTask(stepId, "Task 1", "Description", TaskType.Manual, "{}", 1, false);
         return (template, stepId, taskId);
     }

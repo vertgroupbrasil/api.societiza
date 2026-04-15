@@ -9,26 +9,29 @@ public class WorkflowTemplateStep : Entity
     public string Title { get; private set; } = null!;
     public string Description { get; private set; } = null!;
     public int Order { get; private set; }
+    public List<string> AppliesTo { get; private set; } = [];
     public List<TemplateStepField> Fields { get; private set; } = [];
     public List<WorkflowTemplateStepTask> Tasks { get; private set; } = [];
 
-    public WorkflowTemplateStep(Guid id, Guid templateId, string title, string description, int order)
+    public WorkflowTemplateStep(Guid id, Guid templateId, string title, string description, int order, List<string> appliesTo)
     {
         Id = id;
         TemplateId = templateId;
         Title = title;
         Description = description;
         Order = order;
+        AppliesTo = appliesTo;
     }
 
-    public static WorkflowTemplateStep Create(Guid id, Guid templateId, string title, string description, int order)
-        => new(id, templateId, title, description, order);
+    public static WorkflowTemplateStep Create(Guid id, Guid templateId, string title, string description, int order, List<string> appliesTo)
+        => new(id, templateId, title, description, order, appliesTo);
 
-    public void Update(string title, string description, int order, DateTimeOffset updatedAt)
+    public void Update(string title, string description, int order, List<string> appliesTo, DateTimeOffset updatedAt)
     {
         Title = title;
         Description = description;
         Order = order;
+        AppliesTo = appliesTo;
         UpdatedAt = updatedAt;
     }
 

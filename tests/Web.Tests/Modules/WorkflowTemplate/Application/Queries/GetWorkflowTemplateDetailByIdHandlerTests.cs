@@ -167,6 +167,7 @@ public class GetWorkflowTemplateDetailByIdHandlerTests
         Title: "Step 1",
         Description: "Description",
         Order: order,
+        AppliesTo: [],
         CreatedAt: DateTimeOffset.UtcNow,
         UpdatedAt: null);
 

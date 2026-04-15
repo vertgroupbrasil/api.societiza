@@ -26,7 +26,7 @@ public class UpdateWorkflowTemplateStepHandler(
         if (template.Steps.Any(step => step.Id != request.StepId && step.Title == request.Title))
             return Result.Failure(WorkflowTemplateErrors.StepTitleAlreadyExists(request.Title));
 
-        template.UpdateStep(request.StepId, request.Title, request.Description, request.Order);
+        template.UpdateStep(request.StepId, request.Title, request.Description, request.Order, request.AppliesTo);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success();

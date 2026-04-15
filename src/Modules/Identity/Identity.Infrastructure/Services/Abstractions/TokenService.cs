@@ -7,7 +7,7 @@ using Identity.Infrastructure.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Identity.Infrastructure.Services;
+namespace Identity.Infrastructure.Services.Abstractions;
 
 internal sealed class TokenService(IOptions<JwtOptions> options) : ITokenService
 {

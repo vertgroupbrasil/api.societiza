@@ -23,9 +23,16 @@ public sealed class RefreshEndpoint(ISender sender, IHttpContextAccessor httpCon
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [SwaggerOperation(
-        Summary = "Refresh token",
-        Description = "Rotates the refresh token. Reads the current token from the HttpOnly cookie and sets a new one.",
-        Tags = [Tags.Identity])]
+        OperationId = "Refresh",
+        Summary     = "Renovar access token",
+        Description = """
+            Rotaciona o refresh token e emite um novo access token.
+
+            **Regras:** O refresh token é lido do cookie HttpOnly `refresh_token`. Retorna 401 quando o token é inválido, expirado ou já foi revogado.
+            **Efeitos:** Revoga o refresh token anterior, emite um novo refresh token (setado como cookie HttpOnly) e retorna um novo access token no corpo.
+            **Autorização:** Público (prova de posse via cookie).
+            """,
+        Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult<RefreshResponse>> HandleAsync(
         CancellationToken cancellationToken)
     {

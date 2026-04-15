@@ -22,9 +22,16 @@ public sealed class AcceptInviteEndpoint(ISender sender) : EndpointBaseAsync
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
-        Summary = "Aceitar convite e concluir cadastro",
-        Description = "Valida o token de convite, define a senha do usuário e cria a conta. Retorna 400 caso o token seja inválido ou expirado, as senhas não coincidam, ou a senha não atenda os requisitos mínimos.",
-        Tags = [Tags.Identity])]
+        OperationId = "AcceptInvite",
+        Summary     = "Aceitar convite",
+        Description = """
+            Consome o token de convite, define a senha do usuário e cria a conta.
+
+            **Regras:** Retorna 400 quando o token é inválido ou expirado, as senhas não coincidem ou a senha não atende os requisitos mínimos. Retorna 404 quando o convite não existe. Retorna 409 quando o convite já foi aceito ou revogado.
+            **Efeitos:** Cria o usuário e marca o convite como aceito.
+            **Autorização:** Público (prova de posse via token).
+            """,
+        Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult> HandleAsync(AcceptInviteRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)
             .Map(request => new AcceptInviteCommand(

@@ -1,12 +1,12 @@
 using Core.Domain.Projection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using WorkflowTemplate.Application.UseCases.Events;
+using WorkflowTemplate.Application.UseCases.Events.TemplateStepTask;
 using WorkflowTemplate.Domain.Events;
 using WorkflowTemplate.Domain.Projection;
 using WorkflowTemplate.Persistence.Projection;
 
-namespace Web.Tests.Modules.WorkflowTemplate.Application.Events;
+namespace Web.Tests.Modules.WorkflowTemplate.Application.Events.TemplateStepTask;
 
 public class ProjectionTemplateStepTaskFieldEventHandlerTests
 {

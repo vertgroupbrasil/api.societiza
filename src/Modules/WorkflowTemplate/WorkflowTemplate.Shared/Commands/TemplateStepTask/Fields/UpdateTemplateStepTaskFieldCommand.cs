@@ -1,6 +1,6 @@
 using Core.Application.Messaging.Commands;
 
-namespace WorkflowTemplate.Shared.Commands.TemplateStepTaskField;
+namespace WorkflowTemplate.Shared.Commands.TemplateStepTask.Fields;
 
 public sealed record UpdateTemplateStepTaskFieldCommand(
     Guid TemplateId,

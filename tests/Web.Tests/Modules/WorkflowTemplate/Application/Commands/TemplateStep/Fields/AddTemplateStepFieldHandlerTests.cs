@@ -2,12 +2,12 @@ using Core.Shared.Errors;
 using Core.Shared.Results;
 using Moq;
 using WorkflowTemplate.Application.Services;
-using WorkflowTemplate.Application.UseCases.Commands.TemplateStepField;
-using WorkflowTemplate.Shared.Commands.TemplateStepField;
+using WorkflowTemplate.Application.UseCases.Commands.TemplateStep.Fields;
+using WorkflowTemplate.Shared.Commands.TemplateStep.Fields;
 
 using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
-namespace Web.Tests.Modules.WorkflowTemplate.Application.Commands.TemplateStepField;
+namespace Web.Tests.Modules.WorkflowTemplate.Application.Commands.TemplateStep.Fields;
 
 public class AddTemplateStepFieldHandlerTests
 {
@@ -64,7 +64,7 @@ public class AddTemplateStepFieldHandlerTests
     private static (WorkflowTemplateAggregate template, Guid stepId) CreateTemplateWithStep()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1);
+        var stepId = template.AddStep("Step 1", "Description", 1, []);
         return (template, stepId);
     }
 

@@ -1,7 +1,7 @@
 using Core.Application.Messaging.Commands;
 using Core.Shared.Response;
 
-namespace WorkflowTemplate.Shared.Commands.TemplateStepField;
+namespace WorkflowTemplate.Shared.Commands.TemplateStep.Fields;
 
 public sealed record AddTemplateStepFieldCommand(
     Guid TemplateId,

@@ -22,9 +22,16 @@ public sealed class InviteUserEndpoint(ISender sender) : EndpointBaseAsync
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
-        Summary = "Convidar um novo usuário",
-        Description = "Envia um convite para um novo usuário acessar a plataforma. O e-mail deve ser único — retorna 409 (Conflict) caso já exista um convite pendente ou usuário com o mesmo e-mail. Em caso de sucesso, retorna o identificador (GUID) do convite criado.",
-        Tags = [Tags.Identity])]
+        OperationId = "InviteUser",
+        Summary     = "Convidar usuário",
+        Description = """
+            Cria um convite para um novo usuário acessar a plataforma e retorna o identificador do convite.
+
+            **Regras:** O e-mail é único — retorna 409 caso já exista um convite pendente ou usuário ativo com o mesmo e-mail.
+            **Efeitos:** Dispara o envio do e-mail de convite com token e link de aceite.
+            **Autorização:** Pendente de aplicação (hoje público). Regras planejadas: SystemAdmin para convidar outros SystemAdmin, SystemAdmin/AccountingAdmin para AccountingAdmin, AccountingAdmin para AccountingEmployee.
+            """,
+        Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(InviteUserRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)
             .Map(request => new InviteUserCommand(

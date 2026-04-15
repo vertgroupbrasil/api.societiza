@@ -21,6 +21,7 @@ public static class ProjectionModel
         string Title,
         string Description,
         int Order,
+        List<string> AppliesTo,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt
     ) : IProjectionModel { };

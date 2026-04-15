@@ -22,9 +22,16 @@ public sealed class ResendInviteEndpoint(ISender sender) : EndpointBaseAsync
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
-        Summary = "Reenviar convite",
-        Description = "Gera um novo token e reenvia o e-mail de convite. Apenas convites com status Pending podem ser reenviados.",
-        Tags = [Tags.Identity])]
+        OperationId = "ResendInvite",
+        Summary     = "Reenviar convite",
+        Description = """
+            Gera um novo token e reenvia o e-mail de convite pendente.
+
+            **Regras:** Retorna 404 caso o convite não exista. Retorna 409 quando o convite não está no status `Pending` (já foi aceito ou revogado).
+            **Efeitos:** Invalida o token anterior, gera um novo e dispara o reenvio do e-mail.
+            **Autorização:** Pendente de aplicação (hoje público). Regra planejada: SystemAdmin ou AccountingAdmin.
+            """,
+        Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult> HandleAsync(ResendInviteRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)
             .Map(request => new ResendInviteCommand(

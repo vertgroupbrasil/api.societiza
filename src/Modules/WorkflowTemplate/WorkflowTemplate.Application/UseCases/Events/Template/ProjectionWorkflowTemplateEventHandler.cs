@@ -5,7 +5,7 @@ using WorkflowTemplate.Domain.Events;
 using WorkflowTemplate.Domain.Projection;
 using WorkflowTemplate.Persistence.Projection;
 
-namespace WorkflowTemplate.Application.UseCases.Events;
+namespace WorkflowTemplate.Application.UseCases.Events.Template;
 
 public interface IProjectionWorkflowTemplateEventHandler :
     IEventHandler<DomainEvents.WorkflowTemplateCreated>,
