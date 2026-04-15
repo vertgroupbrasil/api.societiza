@@ -15,8 +15,7 @@ public sealed class CreateWorkflowProcessHandler(
     public async Task<Result<IdentifierResponse>> Handle(
         CreateWorkflowProcessCommand request, CancellationToken cancellationToken)
     {
-        var template = await templateDataService.GetActiveTemplateSnapshotAsync(
-            request.TemplateId, request.ProcessType, cancellationToken);
+        var template = await templateDataService.GetActiveTemplateSnapshotAsync(request.TemplateId, request.ProcessType, cancellationToken);
 
         if (template is null)
             return Result.Failure<IdentifierResponse>(WorkflowProcessErrors.TemplateNotActiveOrNotFound);
@@ -72,7 +71,6 @@ public sealed class CreateWorkflowProcessHandler(
         }
 
         await applicationService.AppendEventsAsync(process, cancellationToken);
-
         return Result.Success(new IdentifierResponse(process.Id));
     }
 }

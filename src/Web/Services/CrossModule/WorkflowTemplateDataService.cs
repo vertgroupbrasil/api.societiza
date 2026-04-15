@@ -8,9 +8,9 @@ namespace Web.Services.CrossModule;
 public sealed class WorkflowTemplateDataService(ISender sender) : IWorkflowTemplateDataService
 {
     public async Task<(string Version, List<TemplateStepSnapshot> Steps)?> GetActiveTemplateSnapshotAsync(
-        Guid templateId, string processType, CancellationToken ct)
+        Guid templateId, string processType, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new GetWorkflowTemplateDetailByIdQuery(templateId), ct);
+        var result = await sender.Send(new GetWorkflowTemplateDetailByIdQuery(templateId), cancellationToken);
 
         if (!result.IsSuccess || result.Value.Status != "Active")
             return null;
