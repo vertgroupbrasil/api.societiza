@@ -186,20 +186,38 @@ Antes de gerar o plano, verifique o estado atual do repositório:
 5. **Routes** — leia `src/Web/Endpoints/Routes/{Module}Routes.cs` para
    verificar rotas existentes e evitar colisão.
 
-### Passo 3 — Montagem do plano
+### Passo 3 — Montagem do plano (faseado por camada)
 
 Com a lista de artefatos extraída e o estado atual verificado:
 
-1. **Classifique cada artefato** por camada e tipo conforme `/architecture`.
-2. **Resolva as dependências** entre artefatos — cada item deve declarar
-   explicitamente de quais outros itens depende. Use as regras de ordenação
-   definidas em `references/plan-template.md § Regras de ordenação`.
-3. **Numere sequencialmente** respeitando a topologia de dependências.
-4. **Amarre cada item à spec** — o campo `Spec-ref` deve apontar para a
+1. **Agrupe os artefatos por fase** conforme definido em `references/plan-template.md`:
+   - Fase 0: Scaffold (apenas se módulo novo)
+   - Fase 1: Domain
+   - Fase 2: Shared
+   - Fase 3: Application
+   - Fase 4: Persistence
+   - Fase 5: Infrastructure
+   - Fase 6: Web
+   Inclua apenas as fases que a feature efetivamente toca.
+
+2. **Dentro de cada fase**, ordene os itens respeitando as dependências
+   internas (ex.: SmartEnums antes de Domain Events, Domain Events antes de
+   Aggregate). Use numeração **local por fase** — cada fase começa no `#1`.
+
+3. **Para referências cross-fase**, use o formato `Fase X · #N`
+   (ex.: `Depende de: Fase 1 · #3`).
+
+4. **Valide o tamanho de cada fase** — se uma fase passar de ~12 itens,
+   verifique se há artefatos que podem ser decompostos ou se algum item
+   está classificado na camada errada.
+
+5. **Amarre cada item à spec** — o campo `Spec-ref` deve apontar para a
    seção ou regra da spec que justifica a existência do artefato.
-5. **Preencha a checklist de registro** — marque todos os pontos de
+
+6. **Preencha a checklist de registro** — marque todos os pontos de
    bootstrap que serão tocados e descreva o que será adicionado em cada um.
-6. **Liste riscos e pontos de atenção** — red flags encontrados na spec,
+
+7. **Liste riscos e pontos de atenção** — red flags encontrados na spec,
    ambiguidades, necessidade de backfill, mudanças fora do escopo.
 
 ### Passo 4 — Persistência e apresentação
@@ -216,6 +234,14 @@ Com a lista de artefatos extraída e o estado atual verificado:
 
 Antes de persistir o `plan.md`, valide que ele respeita todas as regras
 abaixo. Se qualquer regra for violada, corrija o plano antes de apresentar.
+
+### Estrutura faseada
+
+- O plano usa obrigatoriamente a estrutura de fases definida em `references/plan-template.md`
+- Nenhum item de uma camada aparece em fase de camada diferente
+  (ex.: um Handler não pode estar na Fase 1 — Domain)
+- Cada fase termina com build gate explícito
+- Nenhuma fase tem mais de ~12 itens — se ultrapassar, revisar a decomposição
 
 ### Completude
 

@@ -13,8 +13,8 @@ ligando spec de produto → plano técnico → código. Este arquivo define a
 O plano tem cinco blocos, sempre nesta ordem:
 
 1. **Header** — identificação e resumo
-2. **Pré-condições** — o que precisa existir antes dos itens rodarem
-3. **Itens do plano** — lista enumerada e ordenada
+2. **Pré-condições** — o que precisa existir antes das fases rodarem
+3. **Fases de implementação** — grupos de itens por camada, cada um com build gate
 4. **Checklist de registro** — pontos de bootstrap a atualizar
 5. **Riscos e pontos de atenção** — red flags e decisões pendentes
 
@@ -33,7 +33,7 @@ O plano tem cinco blocos, sempre nesta ordem:
 
 ## 2. Pré-condições
 
-Tudo o que precisa estar pronto antes de começar a executar os itens. Ex.:
+Tudo o que precisa estar pronto antes de começar a executar as fases. Ex.:
 
 - Migration `AddInviteStatusColumn` aplicada no `IdentityDbContext`
 - `DbContext` novo `BillingDbContext` registrado em `MigrateDatabaseStartupTask`
@@ -41,9 +41,107 @@ Tudo o que precisa estar pronto antes de começar a executar os itens. Ex.:
 
 Se não houver pré-condições, escreva explicitamente `Nenhuma`.
 
-## 3. Itens do plano
+---
 
-Lista numerada e **ordenada por dependência**. Cada item segue o formato:
+## 3. Fases de implementação
+
+O plano é dividido em **fases por camada**. Cada fase deve terminar com
+`dotnet build Societiza.sln` zero errors antes da próxima começar (regra
+`build-gate`). Cada item dentro de uma fase usa numeração local (`#1`, `#2`...).
+Referências cross-fase usam o formato `Fase X · #N`.
+
+Fases disponíveis (inclua apenas as que a feature toca):
+
+---
+
+### Fase 0 — Scaffold _(apenas se módulo novo)_
+
+Cria os 5 projetos `.csproj` e adiciona ao `Societiza.sln`. Sem lógica de negócio.
+
+**Referência**: `.claude/skills/architecture/SKILL.md` (estrutura de módulos)
+
+**Itens** _(formato abaixo)_
+
+**Build gate**: `dotnet build Societiza.sln` — solução carrega sem erros de referência.
+
+---
+
+### Fase 1 — Domain
+
+SmartEnums, Entities, Domain Events, Aggregate, Projection Models.
+
+**Referência**: `references/domain-architecture.md`
+
+**Itens** _(máx ~10)_
+
+**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+
+---
+
+### Fase 2 — Shared
+
+Commands, Email Commands, Queries, Response DTOs, Snapshot DTOs.
+
+**Referência**: `references/shared-architecture.md`
+
+**Itens** _(máx ~10)_
+
+**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+
+---
+
+### Fase 3 — Application
+
+Validators, Handlers (Command e Query), Projection Handlers, DI registration (`AddEventInteractors`).
+
+**Referência**: `references/application-architecture.md`
+
+**Itens** _(máx ~12)_
+
+**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+
+---
+
+### Fase 4 — Persistence
+
+DbContext, Projection context, EF Configurations, Migration.
+
+**Referência**: `references/persistence-architecture.md`
+
+**Itens** _(máx ~6)_
+
+**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+
+---
+
+### Fase 5 — Infrastructure
+
+ModuleInstaller, ServiceInstallers, ApplicationService.
+
+**Referência**: `references/infrastructure-architecture.md`
+
+**Itens** _(máx ~5)_
+
+**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+
+---
+
+### Fase 6 — Web
+
+Routes, Endpoints, Request DTOs, MassTransit Consumers, ConsumerConfiguration,
+CrossModule services, Registration updates (`MigrateDatabaseStartupTask`, `Web.csproj`).
+
+**Referência**: `references/web-architecture.md` + skill `/api-design`
+
+**Itens** _(máx ~12)_
+
+**Build gate**: `dotnet build Societiza.sln` — zero errors. Depois: `dotnet test Societiza.sln` — todos passando.
+
+---
+
+## Formato de cada item
+
+Dentro de cada fase, os itens seguem este formato:
 
 ```
 ### {N}. {Título curto do artefato}
@@ -52,36 +150,24 @@ Lista numerada e **ordenada por dependência**. Cada item segue o formato:
 - **Tipo**: Aggregate | Entity | ValueObject | DomainEvent | Command | Validator
            | Handler | Query | ProjectionModel | ProjectionHandler | Endpoint
            | ResponseDTO | Migration | EFConfiguration | ConsumerRegistration
-           | EmailCommand | EmailHandler | RecurringJob | SmartEnum
+           | EmailCommand | EmailHandler | RecurringJob | SmartEnum | Service
 - **Ação**: criar | modificar
 - **Caminho**: src/Modules/{Module}/{Module}.{Layer}/{subpath}/{File}.cs
-- **Depende de**: #{N}, #{M}   (ou "nenhum")
+- **Depende de**: #{N}  |  Fase X · #N  |  nenhum
 - **Spec-ref**: seção/regra da spec que justifica este item
 - **Detalhes**: 1-3 linhas descrevendo o que o artefato faz ou o que muda
 ```
 
-### Regras de ordenação
+### Regras de ordenação dentro de cada fase
 
-Os itens devem respeitar as dependências reais entre camadas e entre eventos:
+- Domain: SmartEnums → Value Objects → leaf Entities → parent Entities → Domain Events → Aggregate → Projection Models
+- Shared: Snapshot DTOs → Email Commands → Commands → Queries → Response DTOs
+- Application: Service interfaces → Validators → Command Handlers → Query Handlers → Projection Handlers → DI registration
+- Persistence: Schemas/Constants → DbContext → Projection context → EF Configurations → Migration
+- Infrastructure: ApplicationService → ModuleInstaller → ServiceInstallers
+- Web: Routes → CrossModule services → Endpoints → Consumers → ConsumerConfiguration → Registration updates
 
-1. **Domain antes de Application** — aggregate, domain event e SmartEnum vêm
-   antes de qualquer command/handler que os use
-2. **Shared antes de Application** — commands, validators, response DTOs e
-   email commands vivem em Shared e são consumidos pelos handlers
-3. **Migration antes de endpoint que depende dela** — se o endpoint lê/escreve
-   coluna nova, a migration precisa aparecer antes
-4. **EF Configurations junto ao aggregate** — `StoreEventConfiguration` e
-   `SnapshotConfiguration` aparecem logo após o aggregate que configuram
-5. **Projection model antes de query** — a query só existe se houver onde ler
-6. **Domain event antes de projection handler** — o handler consome o evento,
-   então o evento vem primeiro
-7. **Consumer registration depois do evento** — `ConfigureEventReceiveEndpoint`
-   é registrado depois que o evento existe
-8. **Endpoint por último no fluxo** — só entra depois que command, handler,
-   validator, response DTO e (quando aplicável) migration estão prontos
-9. **Email command antes do handler de negócio que o enfileira** — o handler
-   de negócio faz `Enqueue(new SendXxxEmailCommand(...))`, então o command
-   e seu handler já precisam existir
+---
 
 ## 4. Checklist de registro
 
@@ -94,9 +180,13 @@ mais comum ao adicionar feature nova.
 - [ ] `MigrateDatabaseStartupTask` — registro de `DbContext` novo (se houver)
 - [ ] `RegisterRecurringJobsStartupTask` — registro de jobs recorrentes (se houver)
 - [ ] `PersistenceServiceInstaller` — registro explícito de open generics (se aplicável)
+- [ ] `Web.csproj` — referência aos projetos novos (se módulo novo)
+- [ ] `CrossModuleServicesInstaller` — serviços cross-module (se aplicável)
 
 Para cada item marcado, indique **qual arquivo** e **o que exatamente** será
 adicionado.
+
+---
 
 ## 5. Riscos e pontos de atenção
 
@@ -118,9 +208,9 @@ Qualquer coisa que o humano precisa decidir ou validar antes de aprovar:
 ## Exemplo mínimo
 
 Fragmento de plano para uma spec fictícia "Convite de usuário por e-mail",
-mostrando 4 itens ordenados (não é exaustivo — apenas ilustra o formato):
+mostrando as fases 1 e 2 (não é exaustivo — apenas ilustra o formato):
 
-```
+```markdown
 # Plano — User Invite by Email
 
 **Spec**: specs/user-invite-email/spec.md @ product.societiza
@@ -132,9 +222,13 @@ dispara e-mail via Hangfire, convidado aceita e vira User.
 ## Pré-condições
 Nenhuma.
 
-## Itens
+## Fases de implementação
 
-### 1. Domain event `UserInviteSent`
+### Fase 1 — Domain
+
+**Referência**: `references/domain-architecture.md`
+
+#### 1. Domain event `UserInviteSent`
 - **Camada**: Domain
 - **Tipo**: DomainEvent
 - **Ação**: criar
@@ -143,7 +237,7 @@ Nenhuma.
 - **Spec-ref**: §2.1 "Admin envia convite"
 - **Detalhes**: record com InviteId, Email, Role (string via .Name), ExpiresAt, Version
 
-### 2. Método `UserInvite.Send()`
+#### 2. Método `UserInvite.Send()`
 - **Camada**: Domain
 - **Tipo**: Aggregate (modificação)
 - **Ação**: modificar
@@ -152,7 +246,15 @@ Nenhuma.
 - **Spec-ref**: §2.1
 - **Detalhes**: levanta UserInviteSent via RaiseEvent<T>(); When() hidrata Status via FromName()
 
-### 3. Command `SendUserInviteEmailCommand`
+**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+
+---
+
+### Fase 2 — Shared
+
+**Referência**: `references/shared-architecture.md`
+
+#### 1. Command `SendUserInviteEmailCommand`
 - **Camada**: Shared
 - **Tipo**: EmailCommand
 - **Ação**: criar
@@ -161,12 +263,14 @@ Nenhuma.
 - **Spec-ref**: §2.2 "E-mail de convite"
 - **Detalhes**: sealed record, apenas primitivos (Guid InviteId, string Email, string InviterName)
 
-### 4. Handler `SendInviteCommandHandler`
-- **Camada**: Application
-- **Tipo**: Handler
+#### 2. Command `SendInviteCommand`
+- **Camada**: Shared
+- **Tipo**: Command
 - **Ação**: criar
-- **Caminho**: src/Modules/Identity/Identity.Application/UseCases/UserInvites/SendInviteCommandHandler.cs
-- **Depende de**: #2, #3
-- **Spec-ref**: §2.1, §2.2
-- **Detalhes**: valida precondições, carrega UserInvite, chama Send(), enfileira SendUserInviteEmailCommand via IJobSchedulerService
+- **Caminho**: src/Modules/Identity/Identity.Shared/Commands/SendInviteCommand.cs
+- **Depende de**: nenhum
+- **Spec-ref**: §2.1
+- **Detalhes**: sealed record SendInviteCommand(Guid AccountancyId, string Email, string Role) : ICommand
+
+**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
 ```

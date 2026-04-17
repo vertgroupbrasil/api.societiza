@@ -55,28 +55,33 @@ Com a spec em mãos:
    implementar sem o humano dizer que o plano está aprovado.
 4. Se o humano pedir ajustes, atualize o `plan.md` e reapresente.
 
-### Fase 3 — Implementação
+### Fase 3 — Implementação (uma fase por vez)
 
-Com o plano aprovado, implemente cada item na ordem definida no `plan.md`:
+O `plan.md` está dividido em fases por camada. **Execute uma fase de cada vez.**
+Nunca avance para a próxima fase sem build limpo da atual (regra `build-gate`).
 
-1. **Siga a ordem de dependências** — nunca pule itens ou implemente fora de
-   sequência.
-2. **Para cada item**, leia a referência da camada correspondente em
-   `.claude/skills/architecture/references/` antes de escrever o código:
-   - Domain → `domain-architecture.md`
-   - Shared → `shared-architecture.md`
-   - Application → `application-architecture.md`
-   - Persistence → `persistence-architecture.md`
-   - Infrastructure → `infrastructure-architecture.md`
-   - Web → `web-architecture.md`
-   - Web (endpoint novo ou editado) → também a skill `/api-design`
-     (as convenções são validadas automaticamente pelo `EndpointConventionsTests` na pipeline)
-3. **Verifique o código existente** antes de criar ou modificar qualquer
-   arquivo — evite duplicação e garanta consistência com o que já existe.
-4. **Siga o checklist** em `references/checklist.md` para garantir que nenhum
-   registro de bootstrap foi esquecido.
-5. **Rode `dotnet build Societiza.sln`** após cada grupo lógico de artefatos
-   para detectar erros cedo.
+Para cada fase do plano:
+
+1. **Anuncie ao humano** qual fase está começando (ex.: "Iniciando Fase 1 — Domain").
+2. **Leia a referência de arquitetura da camada** antes de escrever qualquer código:
+   - Fase 1 Domain → `references/domain-architecture.md`
+   - Fase 2 Shared → `references/shared-architecture.md`
+   - Fase 3 Application → `references/application-architecture.md`
+   - Fase 4 Persistence → `references/persistence-architecture.md`
+   - Fase 5 Infrastructure → `references/infrastructure-architecture.md`
+   - Fase 6 Web → `references/web-architecture.md` + skill `/api-design`
+3. **Implemente os itens da fase em ordem** — respeite as dependências internas
+   listadas no plano. Verifique o código existente antes de criar cada arquivo.
+4. **Ao terminar todos os itens da fase**, rode:
+   ```bash
+   dotnet build Societiza.sln
+   ```
+5. **Se o build falhar**: corrija os erros antes de qualquer outra coisa.
+   Não acumule erros para resolver depois. Não inicie a próxima fase.
+6. **Se o build passar**: informe o humano ("Fase X concluída — build limpo")
+   e inicie a próxima fase automaticamente.
+
+Repita até todas as fases estarem concluídas.
 
 ### Fase 4 — Validação
 
@@ -98,6 +103,10 @@ Após implementar todos os itens do plano:
   pergunte ao humano antes de inventar.
 - **Nunca pule a fase de planejamento** — mesmo para features pequenas, o
   `plan.md` é obrigatório. O humano precisa revisar antes da implementação.
+- **Nunca inicie a próxima fase sem build limpo da atual** — regra `build-gate`
+  é absoluta. Zero errors antes de avançar.
+- **Nunca implemente itens de fases diferentes em paralelo** — uma fase de
+  cada vez, na ordem do plano.
 - **Nunca modifique código fora do escopo do plano** sem comunicar ao humano.
 - **Nunca comite secrets** (.env, connection strings, API keys).
 - **Nunca adicione pacotes NuGet** sem aprovação explícita do humano.
