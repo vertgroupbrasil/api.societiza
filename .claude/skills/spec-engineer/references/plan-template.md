@@ -25,7 +25,8 @@ O plano tem cinco blocos, sempre nesta ordem:
 ```
 # Plano — {nome da feature}
 
-**Spec**: specs/{feature}/spec.md @ product.societiza
+**Spec**:  specs/{feature}/spec.md @ product.societiza
+**Logic**: specs/{feature}/logic.md @ product.societiza
 **Módulos afetados**: {Accountancy, Identity, ...}
 **Módulo novo?**: sim | não
 **Resumo**: 1-2 linhas descrevendo a mudança em linguagem técnica.
@@ -154,7 +155,8 @@ Dentro de cada fase, os itens seguem este formato:
 - **Ação**: criar | modificar
 - **Caminho**: src/Modules/{Module}/{Module}.{Layer}/{subpath}/{File}.cs
 - **Depende de**: #{N}  |  Fase X · #N  |  nenhum
-- **Spec-ref**: seção/regra da spec que justifica este item
+- **Spec-ref**: seção/regra da spec ou do logic doc que justifica este item
+             (ex.: `spec §2.1`, `logic RN-04`, `logic §Estados`, `logic §Edge cases`)
 - **Detalhes**: 1-3 linhas descrevendo o que o artefato faz ou o que muda
 ```
 

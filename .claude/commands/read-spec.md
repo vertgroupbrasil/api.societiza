@@ -1,9 +1,9 @@
 ---
 name: read-spec
 description: >
-  Busca a spec ativa (spec.md) no repositório product.societiza via GitHub MCP.
-  Descobre features com status approved ou in-progress no frontmatter YAML de
-  cada spec. Entrega o conteúdo ao contexto do agente.
+  Busca spec.md e logic.md da feature ativa no repositório product.societiza
+  via GitHub MCP. Ambos devem existir com status approved — qualquer um faltando
+  ou não aprovado bloqueia o command. Entrega os dois ao contexto do agente.
 allowed-tools: mcp__github__get_file_contents
 argument-hint: "[feature-name]"
 ---
@@ -12,8 +12,11 @@ argument-hint: "[feature-name]"
 
 ## Propósito
 
-Buscar a spec de produto ativa — `spec.md` — do repositório
-`vertgroupbrasil/product.societiza` e disponibilizá-la no contexto do agente.
+Buscar `spec.md` e `logic.md` do repositório `vertgroupbrasil/product.societiza`
+e disponibilizá-los no contexto do agente. **Ambos são obrigatórios e devem ter
+`status: approved`.** Se qualquer um estiver ausente ou fora desse status, o
+command para imediatamente — o plano técnico não pode ser gerado sem os dois.
+
 Este command apenas faz fetch — não interpreta, não planeja, não executa.
 
 Se `$ARGUMENTS` for fornecido, use-o como nome da feature diretamente
@@ -33,47 +36,44 @@ branch:  main
 path:    specs/
 ```
 
-Para cada subdiretório encontrado, leia o arquivo `specs/{feature}/spec.md`
-usando `mcp__github__get_file_contents`. Extraia o frontmatter YAML (bloco
-entre `---`) e verifique o campo `status`.
+Para cada subdiretório encontrado, leia `specs/{feature}/spec.md` e extraia
+o frontmatter YAML. Selecione features com `status: approved`.
 
-Selecione a(s) feature(s) cujo status seja `approved` ou `in-progress`.
+**Se nenhuma tiver `status: approved`**, pare e pergunte ao humano qual feature
+usar. **Se mais de uma estiver aprovada**, liste e pergunte. Não prossiga sem
+uma feature definida.
 
-**Se nenhuma feature tiver status `approved` ou `in-progress`**, pare e
-pergunte ao humano qual feature planejar. Não prossiga sem uma feature
-definida.
+### 2. Buscar e validar os dois artefatos
 
-**Se mais de uma feature estiver ativa**, liste todas e pergunte ao humano
-qual delas usar. Não prossiga sem confirmação.
+Com a feature definida, busque **ambos** no branch `main` de
+`vertgroupbrasil/product.societiza`:
 
-### 2. Buscar o artefato da spec
+| Artefato | Caminho                    |
+|----------|----------------------------|
+| Spec     | `specs/{feature}/spec.md`  |
+| Logic    | `specs/{feature}/logic.md` |
 
-Com o nome da feature (`{feature}`) definido, use
-`mcp__github__get_file_contents` para buscar o arquivo abaixo no
-branch `main` do repositório `vertgroupbrasil/product.societiza`:
+Para cada artefato, aplique a mesma verificação:
 
-| Artefato | Caminho                   |
-|----------|---------------------------|
-| Spec     | `specs/{feature}/spec.md` |
-
-**Se o arquivo não existir**, pare imediatamente e exiba:
+**Se o arquivo não existir ou `status` não for `approved`**, pare e exiba:
 
 ```
-SPEC NÃO ENCONTRADA
+BLOQUEADO — spec técnica não pode ser gerada
 Feature:  {feature}
-Esperado: specs/{feature}/spec.md
-Repo:     vertgroupbrasil/product.societiza @main
-Ação:     garanta que a spec existe e tem status approved ou in-progress.
+Problema: {arquivo} — {não encontrado | status: {status atual}}
+Ação:     ambos spec.md e logic.md precisam existir com status approved
+          no repositório product.societiza antes de prosseguir.
 ```
 
-Não prossiga ao passo 3 se o artefato estiver faltando.
+Não prossiga ao passo 3 se qualquer artefato falhar na verificação.
 
 ### 3. Entregar o conteúdo
 
-Após buscar o arquivo com sucesso, disponibilize no contexto:
+Após ambos os arquivos passarem na verificação, disponibilize no contexto:
 
 - **Feature**: nome da feature identificada
 - **spec.md**: conteúdo completo
+- **logic.md**: conteúdo completo
 
 O command termina aqui. O agente decide o próximo passo com base no
 conteúdo entregue.

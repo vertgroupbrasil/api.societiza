@@ -1,30 +1,33 @@
 ---
 name: spec-engineer
 description: >
-  Traduz uma spec de produto em um plano técnico de implementação. Lê
-  `spec.md` (produzido por `read-spec`), cruza com as convenções de
-  arquitetura do projeto, e gera um plano sequencial em
-  `specs/{feature}/plan.md` — cada artefato com camada, caminho, dependências
-  e spec-ref. Nenhum código é escrito; o humano aprova antes da implementação.
+  Traduz spec.md + logic.md (produzidos por `read-spec`) em um plano técnico
+  de implementação. Cruza com as convenções de arquitetura do projeto e gera
+  um plano sequencial em `specs/{feature}/plan.md` — cada artefato com camada,
+  caminho, dependências e spec-ref. Nenhum código é escrito; o humano aprova
+  antes da implementação.
 ---
 
 # spec-engineer
 
 ## Propósito
 
-Uma spec de produto responde **o quê** e **o porquê** — escrita na linguagem
-do usuário, focada em intenção, regras de negócio e valor entregue. Ela não
-diz onde o código mora, quais arquivos nascem, ou em que ordem as camadas
-são tocadas.
+`spec.md` responde **o quê** e **o porquê** — escrita na linguagem do usuário,
+focada em intenção e valor entregue. `logic.md` detalha **como o sistema se
+comporta** — regras de negócio numeradas, máquinas de estado, fluxos por perfil
+de usuário e edge cases. Nenhum dos dois diz onde o código mora, quais arquivos
+nascem, ou em que ordem as camadas são tocadas.
 
-Esta skill cobre exatamente essa lacuna: transforma a spec aprovada em um
-**plano técnico de implementação** — a tradução fiel do *o quê* para o *como*,
-na linguagem de quem vai escrever o código.
+Esta skill cobre exatamente essa lacuna: transforma os dois artefatos aprovados
+em um **plano técnico de implementação** — a tradução fiel do *o quê* e do *como*
+para o *onde* e *quando*, na linguagem de quem vai escrever o código.
 
 Concretamente, a skill:
 
-1. **Lê o artefato de entrada** produzido pelo command `read-spec`:
-   - `spec.md` — descrição funcional, regras de negócio, critérios de aceite
+1. **Lê os dois artefatos de entrada** produzidos pelo command `read-spec`:
+   - `spec.md` — escopo, decisões funcionais, fora de escopo
+   - `logic.md` — regras de negócio numeradas, estados e transições, fluxos por
+     perfil, pontos de integração, edge cases
 2. **Cruza com as convenções do projeto** definidas na skill `/architecture`.
 3. **Produz um plano enumerado e sequencial**, onde cada item descreve:
    - o artefato concreto (aggregate, domain event, command, handler, endpoint,
@@ -63,7 +66,7 @@ você obterá:
 
 ---
 
-## Como ler a spec de produto
+## Como ler a spec de produto (spec.md)
 
 Leia `spec.md` e extraia explicitamente, na linguagem do projeto (DDD + CQRS +
 Event Sourcing + leitura via projections):
@@ -85,15 +88,6 @@ de read-side. Se a spec descreve uma tela ou dado novo, identifique quais
 eventos precisam ser projetados para alimentá-la — e, se o projection model
 não existe, ele entra no plano antes da query.
 
-**Estados possíveis** — campos com conjunto fixo de valores viram `SmartEnum`.
-Siga as regras de serialização definidas em `/architecture`.
-
-**Regras de negócio** — classifique cada regra pela camada correta, conforme
-a classificação definida em `/architecture`:
-- Formato/estrutura do input → `Validator` via FluentValidation
-- Precondição sobre estado, autorização, unicidade → `Handler`
-- Invariante do domínio → transição de estado no aggregate (não é validação)
-
 **Emails e notificações** — cada menção vira os três artefatos do email
 pattern (definido em `/architecture`).
 
@@ -106,6 +100,48 @@ A integração é sempre por domain event consumido no outro módulo. Se a spec
 descrever acoplamento direto entre módulos, isso é um sinal e deve virar um item
 explícito do plano: "publicar evento X em módulo A, consumir em módulo B
 via projection/handler".
+
+---
+
+## Como ler o logic doc (logic.md)
+
+O `logic.md` é a fonte primária para todas as decisões de comportamento do
+sistema. Leia-o **depois** do `spec.md` e extraia:
+
+**Regras de negócio numeradas** — cada regra deve ser classificada pela camada
+correta, conforme `/architecture`:
+- Formato/estrutura do input → `Validator` via FluentValidation
+- Precondição sobre estado, autorização, unicidade → `Handler`
+- Invariante do domínio → transição de estado no aggregate (não é validação)
+
+Cada regra do `logic.md` deve aparecer amarrada a pelo menos um artefato do
+plano via `Spec-ref`. Regras sem artefato correspondente são um sinal de que
+um item está faltando.
+
+**Estados e transições** — cada máquina de estado do `logic.md` se converte em:
+- `SmartEnum` com os valores listados (Fase 1 — Domain)
+- Método no aggregate que levanta o Domain Event da transição
+- `When()` no aggregate que aplica o evento e muda o estado
+
+Se o `logic.md` descreve uma transição que a spec não menciona explicitamente,
+ela entra no plano assim mesmo — o logic doc tem precedência sobre o fluxo feliz
+da spec para modelagem de estado.
+
+**Fluxos por perfil de usuário** — cada perfil (SystemAdmin, AccountancyAdmin,
+AccountancyEmployee, etc.) tem ações distintas. Para cada ação por perfil:
+- Confirme se há um endpoint correspondente
+- Confirme que a autorização está modelada no Handler (verificação de role/permissão)
+- Se o perfil não pode realizar a ação, o Handler deve rejeitar com erro adequado
+
+**Pontos de integração** — a seção de integração do `logic.md` define o contrato
+entre o que BE expõe e o que FE precisa receber. Use-a para:
+- Confirmar que os Response DTOs cobrem todos os dados necessários
+- Confirmar que os endpoints mapeiam todos os fluxos descritos
+- Identificar dados calculados que precisam ser projetados no MongoDB
+
+**Edge cases** — cada edge case do `logic.md` deve virar um artefato concreto
+no plano: uma validação no `Validator`, uma guarda no `Handler`, ou uma nota
+em "Riscos e pontos de atenção" se a decisão ainda não está clara.
 
 ---
 
@@ -145,8 +181,10 @@ Antes de gerar qualquer plano, leia os artefatos de entrada e as referências
 de arquitetura. Nunca gere o plano com base em convenções genéricas de .NET —
 sempre siga os padrões documentados neste projeto.
 
-1. Leia o artefato da spec ativa (produzido pelo command `read-spec`):
-   - `spec.md` — descrição funcional, regras de negócio, critérios de aceite
+1. Leia os artefatos produzidos pelo command `read-spec`:
+   - `spec.md` — escopo, decisões funcionais, fora de escopo
+   - `logic.md` — regras de negócio numeradas, estados e transições, fluxos por
+     perfil, pontos de integração, edge cases
 2. Leia a skill `/architecture` por completo (`.claude/skills/architecture/SKILL.md`).
 3. Leia o template do plano em `references/plan-template.md` (desta skill).
 4. Execute o procedimento descrito na seção "Procedimento de execução" abaixo.
@@ -155,19 +193,23 @@ sempre siga os padrões documentados neste projeto.
 
 ## Procedimento de execução
 
-### Passo 1 — Extração dos artefatos da spec
+### Passo 1 — Extração dos artefatos da spec e do logic doc
 
-Aplique a seção "Como ler a spec de produto" e "Como derivar impacto em
-módulos e aggregates" para produzir uma lista intermediária (não publicada) com:
+Aplique as seções "Como ler a spec de produto", "Como ler o logic doc" e
+"Como derivar impacto em módulos e aggregates" para produzir uma lista
+intermediária (não publicada) com:
 
 - Todos os aggregates (novos e existentes) tocados
 - Todos os domain events novos
-- Todos os SmartEnums novos
+- Todos os SmartEnums novos — com os valores exatos listados no `logic.md`
 - Todos os comportamentos (write side): cadeia completa por comportamento
 - Todas as leituras (read side): cadeia completa por leitura
 - Todos os emails/notificações: cadeia completa por email
 - Todos os registros de infraestrutura: migrations, EF configs, consumer registrations, etc.
 - Todos os eventos cross-module e a direção (módulo publicador → módulo consumidor)
+- Todas as regras de negócio numeradas do `logic.md`, com a camada atribuída
+- Todas as autorizações por perfil extraídas dos fluxos do `logic.md`
+- Todos os edge cases do `logic.md`, com o artefato de destino (Validator/Handler)
 
 ### Passo 2 — Cruzamento com o estado atual do código
 
@@ -286,18 +328,22 @@ Em particular:
 - Misturar itens de módulos diferentes sem explicitar a fronteira cross-module
 - Criar itens genéricos ("implementar validações") — cada item deve ser concreto
 - Incluir refactors fora da spec sem listá-los em "Riscos e pontos de atenção"
-- Ignorar ambiguidades da spec — toda ambiguidade vira ponto de atenção
+- Ignorar ambiguidades da spec ou do logic doc — toda ambiguidade vira ponto de atenção
 - Escrever o plano sem ter lido o estado atual do código
 - Duplicar conteúdo da skill `/architecture` — referenciar
+- Gerar o plano com base apenas no `spec.md` ignorando o `logic.md`
+- Deixar qualquer regra de negócio numerada do `logic.md` sem artefato correspondente no plano
+- Deixar qualquer edge case do `logic.md` sem destino no plano (Validator, Handler ou ponto de atenção)
 
 ## Sempre fazer
 
-- Executar `read-spec` antes desta skill (se o artefato não estiver no contexto)
+- Executar `read-spec` antes desta skill (se os artefatos não estiverem no contexto)
+- Confirmar que tanto `spec.md` quanto `logic.md` estão no contexto antes de iniciar
 - Ler a skill `/architecture` antes de gerar o plano
 - Verificar o código existente antes de planejar cada artefato
 - Seguir rigorosamente o formato de `references/plan-template.md`
 - Declarar dependências explícitas entre itens (`Depende de: #N, #M`)
-- Amarrar cada item a uma seção da spec (`Spec-ref`)
+- Amarrar cada item a uma seção da spec ou do logic doc (`Spec-ref`)
 - Preencher a checklist de registro por completo — o humano precisa ver que foram considerados
 - Listar riscos e pontos de atenção — mesmo que não haja, escrever "Nenhum"
 - Apresentar o plano e aguardar aprovação explícita antes de prosseguir

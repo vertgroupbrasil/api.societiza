@@ -32,16 +32,21 @@ patterns documentados neste projeto.
 
 ## Fluxo de trabalho
 
-### Fase 1 — Leitura da spec
+### Fase 1 — Leitura da spec e do logic doc
 
 Quando o humano pedir para implementar uma feature:
 
 1. Execute o command `/read-spec` (ou `/read-spec {feature-name}` se o nome for
-   conhecido) para buscar a spec ativa no repositório `product.societiza`.
-2. Leia o conteúdo da spec entregue e confirme com o humano qual feature será
-   implementada.
+   conhecido) para buscar `spec.md` e `logic.md` no repositório `product.societiza`.
+2. Confirme que ambos estão no contexto e com `status: approved`. Se o command
+   tiver retornado bloqueio por qualquer motivo, pare — não prossiga sem os dois
+   artefatos aprovados.
+3. Confirme com o humano qual feature será implementada.
 
-Se a spec não existir ou houver ambiguidade, pare e pergunte ao humano.
+`logic.md` é o documento mais importante para a implementação: contém as regras
+de negócio numeradas, máquinas de estado, fluxos por perfil e edge cases que
+ditam cada decisão de modelagem e validação. Toda ambiguidade técnica deve ser
+resolvida consultando-o primeiro.
 
 ### Fase 2 — Planejamento técnico
 
