@@ -35,7 +35,6 @@ public sealed class FillProcessStepFieldHandler(
         process.FillStepField(request.StepInstanceId, request.FieldInstanceId, request.Value);
 
         await applicationService.AppendEventsAsync(process, cancellationToken);
-
         return Result.Success();
     }
 }

@@ -31,8 +31,11 @@ public sealed class CreateWorkflowTemplateEndpoint(ISender sender) : EndpointBas
         Description = """
             Cria um novo template de workflow com status `Draft` e retorna o identificador criado.
 
-            **Regras:** Nenhuma validação de unicidade; o nome pode repetir entre templates.
+            **Regras:**
+            - Nenhuma validação de unicidade; o nome pode repetir entre templates.
+
             **Efeitos:** Template criado no status `Draft` — precisa ter ao menos uma etapa com uma tarefa antes de ser ativado.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]

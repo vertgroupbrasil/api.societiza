@@ -34,14 +34,11 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
 
             **Regras:**
             - Retorna 404 caso o template, a etapa ou a tarefa não existam.
-            - Valores aceitos para `fieldType`:
-              - `Text` — entrada de texto em linha única.
-              - `Boolean` — alternância verdadeiro/falso.
-              - `Integer` — entrada numérica.
-              - `Select` — lista suspensa com opções predefinidas.
-              - `Date` — seletor de data.
+            - Valores aceitos para `fieldType`: `Text` (entrada de texto em linha única), `Boolean` (alternância verdadeiro/falso), `Integer` (entrada numérica), `Select` (lista suspensa com opções predefinidas), `Date` (seletor de data).
             - `options` é obrigatório quando `fieldType` é `Select` e deve ser nulo para os demais tipos.
+
             **Efeitos:** Novo campo criado na tarefa.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepTaskFields])]

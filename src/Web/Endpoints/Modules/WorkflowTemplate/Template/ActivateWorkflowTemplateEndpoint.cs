@@ -32,11 +32,13 @@ public sealed class ActivateWorkflowTemplateEndpoint(ISender sender) : EndpointB
             Ativa um template de workflow.
 
             **Regras:**
-            - Status permitidos de origem: `Draft`
-            - Status não permitidos: `Active`, `Archived`
+            - Status permitidos de origem: `Draft`.
+            - Status não permitidos: `Active`, `Archived`.
             - O template deve conter ao menos uma etapa com ao menos uma tarefa antes de poder ser ativado.
             - Retorna 404 caso o template não exista.
+
             **Efeitos:** Status do template muda para `Active`.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]

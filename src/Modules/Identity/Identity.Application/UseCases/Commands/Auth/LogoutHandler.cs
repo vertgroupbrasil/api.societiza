@@ -5,10 +5,11 @@ using Core.Shared.Errors;
 using Core.Shared.Results;
 using Identity.Application.Services;
 using Identity.Application.Services.Abstractions;
-using Identity.Domain.Aggregates;
 using Identity.Shared.Commands.Auth;
 
 namespace Identity.Application.UseCases.Commands.Auth;
+
+using UserAggregate = Identity.Domain.Aggregates.User;
 
 public sealed class LogoutHandler(
     IIdentityApplicationService applicationService,
@@ -31,7 +32,7 @@ public sealed class LogoutHandler(
 
         var userId = Guid.Parse(userIdClaim);
 
-        var userResult = await applicationService.LoadAggregateAsync<User>(userId, cancellationToken);
+        var userResult = await applicationService.LoadAggregateAsync<UserAggregate>(userId, cancellationToken);
 
         if (!userResult.IsSuccess)
             return Result.Failure(new Error(
@@ -39,9 +40,7 @@ public sealed class LogoutHandler(
 
         var user = userResult.Value;
 
-        var tokenHash = Convert.ToBase64String(
-            SHA256.HashData(Encoding.UTF8.GetBytes(request.RefreshToken)));
-
+        var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(request.RefreshToken)));
         var existingToken = user.RefreshTokens.FirstOrDefault(t => t.TokenHash == tokenHash);
 
         if (existingToken is null || !existingToken.IsValid())
@@ -49,9 +48,9 @@ public sealed class LogoutHandler(
                 "Auth.InvalidToken", "Refresh token is invalid or expired"));
 
         user.RevokeRefreshToken(existingToken.Id);
+        user.RegenerateSecurityStamp();
 
         await applicationService.AppendEventsAsync(user, cancellationToken);
-
         return Result.Success();
     }
 }

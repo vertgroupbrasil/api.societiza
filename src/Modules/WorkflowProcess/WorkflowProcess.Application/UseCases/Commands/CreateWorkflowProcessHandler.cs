@@ -7,6 +7,8 @@ using WorkflowProcess.Shared.Errors;
 
 namespace WorkflowProcess.Application.UseCases.Commands;
 
+using WorkflowProcessAggregate = Domain.Aggregates.WorkflowProcess;
+
 public sealed class CreateWorkflowProcessHandler(
     IWorkflowProcessApplicationService applicationService,
     IWorkflowTemplateDataService templateDataService
@@ -20,7 +22,7 @@ public sealed class CreateWorkflowProcessHandler(
         if (template is null)
             return Result.Failure<IdentifierResponse>(WorkflowProcessErrors.TemplateNotActiveOrNotFound);
 
-        var process = Domain.Aggregates.WorkflowProcess.Create(
+        var process = WorkflowProcessAggregate.Create(
             accountancyId: request.AccountancyId,
             templateId: request.TemplateId,
             templateVersion: template.Value.Version,

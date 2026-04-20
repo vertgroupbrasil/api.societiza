@@ -12,24 +12,26 @@ public class User : AggregateRoot
     public string LastName { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public string? PasswordHash { get; private set; }
-    public UserRole Role { get; private set; }
+    public UserRole Role { get; private set; } = default!;
     public Guid? AccountancyId { get; private set; }
+    public Guid SecurityStamp { get; private set; }
     public List<RefreshToken> RefreshTokens { get; private set; } = [];
     public List<PasswordResetToken> PasswordResetTokens { get; private set; } = [];
 
-    public static User Create(Guid inviteId, string firstName, string lastName, string email, string passwordHash, UserRole role, Guid? accountancyId)
+    public static User Create(Guid invitationLinkId, string firstName, string lastName, string email, string passwordHash, UserRole role, Guid? accountancyId)
     {
         User user = new();
 
         user.RaiseEvent<DomainEvents.UserRegistrationCompleted>(version => new(
             Id: user.Id,
-            InviteId: inviteId,
+            InvitationLinkId: invitationLinkId,
             FirstName: firstName,
             LastName: lastName,
             Email: email,
             PasswordHash: passwordHash,
             Role: role.Name,
             AccountancyId: accountancyId,
+            SecurityStamp: Guid.NewGuid(),
             CreatedAt: user.CreatedAt,
             Version: version
         ));
@@ -61,6 +63,12 @@ public class User : AggregateRoot
             RevokedAt: DateTimeOffset.UtcNow,
             Version: version
         ));
+    }
+
+    public void RevokeAllRefreshTokens()
+    {
+        foreach (var token in RefreshTokens.Where(t => t.IsValid()))
+            RevokeRefreshToken(token.Id);
     }
 
     public Guid AddPasswordResetToken(string tokenHash, DateTimeOffset expiresAt)
@@ -99,6 +107,16 @@ public class User : AggregateRoot
         ));
     }
 
+    public void RegenerateSecurityStamp()
+    {
+        RaiseEvent<DomainEvents.UserSecurityStampRegenerated>(version => new(
+            UserId: Id,
+            SecurityStamp: Guid.NewGuid(),
+            UpdatedAt: DateTimeOffset.UtcNow,
+            Version: version
+        ));
+    }
+
     protected override void ApplyEvent(IDomainEvent @event)
         => When(@event as dynamic);
 
@@ -111,6 +129,7 @@ public class User : AggregateRoot
         PasswordHash = @event.PasswordHash;
         Role = UserRole.FromName(@event.Role);
         AccountancyId = @event.AccountancyId;
+        SecurityStamp = @event.SecurityStamp;
     }
 
     private void When(DomainEvents.UserRefreshTokenAdded @event)
@@ -134,6 +153,12 @@ public class User : AggregateRoot
     private void When(DomainEvents.UserPasswordUpdated @event)
     {
         PasswordHash = @event.PasswordHash;
+        UpdatedAt = @event.UpdatedAt;
+    }
+
+    private void When(DomainEvents.UserSecurityStampRegenerated @event)
+    {
+        SecurityStamp = @event.SecurityStamp;
         UpdatedAt = @event.UpdatedAt;
     }
 }

@@ -27,11 +27,14 @@ public sealed class LogoutEndpoint(ISender sender, IHttpContextAccessor httpCont
         OperationId = "Logout",
         Summary     = "Efetuar logout",
         Description = """
-            Revoga o refresh token atual, encerrando a sessão do usuário.
+            Revoga o refresh token atual e limpa o cookie `refresh_token` no cliente.
 
-            **Regras:** O refresh token é lido do cookie HttpOnly `refresh_token`.
-            **Efeitos:** Revoga o refresh token no servidor e limpa o cookie `refresh_token` no cliente.
-            **Autorização:** Autenticado.
+            **Respostas:**
+            - `200` — sessão encerrada com sucesso.
+            - `401` — access token ausente ou inválido.
+            - `403` — token válido mas sem permissão.
+
+            **Após o logout:** descarte o `accessToken` em memória no cliente — ele expira naturalmente pelo TTL do JWT.
             """,
         Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(CancellationToken cancellationToken)

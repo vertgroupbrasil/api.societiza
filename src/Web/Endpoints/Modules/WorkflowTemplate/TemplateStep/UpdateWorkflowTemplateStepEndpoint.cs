@@ -34,14 +34,10 @@ public sealed class UpdateWorkflowTemplateStepEndpoint(ISender sender) : Endpoin
             **Regras:**
             - Retorna 404 caso o template ou a etapa não existam.
             - Se a `order` solicitada já estiver ocupada, as etapas existentes são deslocadas para frente automaticamente.
-
-            **Campo `appliesTo`:**
-            - Lista de tipos de processo aos quais esta etapa se aplica.
-            - Valores aceitos: `Abertura`, `Alteracao`, `Baixa`.
-            - Lista vazia indica que a etapa se aplica a **todos** os tipos de processo.
-            - O backend não valida os valores enviados — valores inválidos são silenciosamente ignorados durante a filtragem do template.
+            - Valores aceitos para `appliesTo`: `Abertura`, `Alteracao`, `Baixa`. Lista vazia indica que a etapa se aplica a todos os tipos de processo. O backend não valida os valores enviados — valores inválidos são silenciosamente ignorados durante a filtragem do template.
 
             **Efeitos:** Dados da etapa atualizados, possivelmente reordenando etapas existentes.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Steps])]

@@ -34,7 +34,8 @@ public sealed class GetAccountancyByIdEndpoint(
         Description = """
             Retorna os dados completos de uma contabilidade a partir do seu identificador único.
 
-            **Regras:** Retorna 404 caso a contabilidade não exista.
+            **Regras:**
+            - Retorna 404 caso a contabilidade não exista.
 
             **Efeitos:** Nenhum.
 

@@ -21,6 +21,9 @@ public static class EndpointBaseExtensions
                     endpoint.NotFound(CreateProblemDetails("Not Found", StatusCodes.Status404NotFound, notFound.Error)),
                 var conflict when conflict.Error is ConflictError =>
                     endpoint.Conflict(CreateProblemDetails("Conflict", StatusCodes.Status409Conflict, conflict.Error)),
+                var forbidden when forbidden.Error is ForbiddenError =>
+                    endpoint.StatusCode(StatusCodes.Status403Forbidden,
+                        CreateProblemDetails("Forbidden", StatusCodes.Status403Forbidden, forbidden.Error)),
                 var badRequest =>
                     endpoint.BadRequest(CreateProblemDetails("Bad Request", StatusCodes.Status400BadRequest, badRequest.Error))
             };

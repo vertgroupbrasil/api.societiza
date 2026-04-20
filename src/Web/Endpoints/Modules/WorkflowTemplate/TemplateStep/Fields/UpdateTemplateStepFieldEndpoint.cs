@@ -33,14 +33,11 @@ public sealed class UpdateTemplateStepFieldEndpoint(ISender sender) : EndpointBa
 
             **Regras:**
             - Retorna 404 caso o template, a etapa ou o campo não existam.
-            - Valores aceitos para `fieldType`:
-              - `Text` — entrada de texto em linha única.
-              - `Boolean` — alternância verdadeiro/falso.
-              - `Integer` — entrada numérica.
-              - `Select` — lista suspensa com opções predefinidas.
-              - `Date` — seletor de data.
+            - Valores aceitos para `fieldType`: `Text` (entrada de texto em linha única), `Boolean` (alternância verdadeiro/falso), `Integer` (entrada numérica), `Select` (lista suspensa com opções predefinidas), `Date` (seletor de data).
             - `options` é obrigatório quando `fieldType` é `Select` e deve ser nulo para os demais tipos.
+
             **Efeitos:** Dados do campo atualizados.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepFields])]

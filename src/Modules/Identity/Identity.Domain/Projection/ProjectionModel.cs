@@ -13,20 +13,23 @@ public static class ProjectionModel
         Guid? AccountancyId,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt,
+        Guid? InvitationLinkId = null,
         bool IsDeleted = false
     ) : IProjectionModel;
 
-    public record UserInvite(
+    public record InvitationLink(
         Guid Id,
-        string Email,
-        string Role,
-        Guid? AccountancyId,
-        string TokenHash,
+        string TargetRole,
         string Status,
+        Guid? AccountancyId,
+        Guid CreatedByUserId,
+        string TokenHash,
+        int MaxUses,
+        int Uses,
         DateTimeOffset ExpiresAt,
-        DateTimeOffset? UsedAt,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt,
+        Guid? RevokedByUserId = null,
         bool IsDeleted = false
     ) : IProjectionModel;
 

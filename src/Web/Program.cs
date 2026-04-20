@@ -1,17 +1,20 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Asp.Versioning;
 using Core.Infrastructure.Extensions;
 using DotNetEnv;
 using Identity.Application.Authorization;
 using Identity.Application.Policies;
+using Identity.Application.Services;
+using Identity.Domain.Aggregates;
 using Identity.Infrastructure.Options;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Web.Extensions;
+using Web.StartupTasks;
 
 // Load environment variables (in order: .env first, then .env.local for overrides)
 if (File.Exists(".env"))
@@ -50,6 +53,9 @@ if (builder.Environment.IsDevelopment())
     });
 }
 
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddHostedService<SeedDevelopmentDataStartupTask>();
+
 builder.Services
     .InstallServicesFromAssemblies(
         builder.Configuration,
@@ -62,11 +68,11 @@ builder.Services
         Identity.Infrastructure.AssemblyReference.Assembly,
         WorkflowTemplate.Infrastructure.AssemblyReference.Assembly);
 
-JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
+        options.MapInboundClaims = false;
+
         var jwtOptions = builder.Services
             .BuildServiceProvider() //NOSONAR
             .GetRequiredService<IOptions<JwtOptions>>().Value;
@@ -82,6 +88,30 @@ builder.Services.AddAuthentication("Bearer")
                 Encoding.UTF8.GetBytes(jwtOptions.Key)),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var sub = context.Principal?.FindFirst("sub")?.Value;
+                var stamp = context.Principal?.FindFirst("security_stamp")?.Value;
+
+                if (sub is null || stamp is null || !Guid.TryParse(sub, out var userId))
+                {
+                    context.Fail("Invalid token claims.");
+                    return;
+                }
+
+                var appService = context.HttpContext.RequestServices
+                    .GetRequiredService<IIdentityApplicationService>();
+
+                var userResult = await appService.LoadAggregateAsync<User>(
+                    userId, context.HttpContext.RequestAborted);
+
+                if (!userResult.IsSuccess || userResult.Value.SecurityStamp.ToString() != stamp)
+                    context.Fail("Token has been invalidated.");
+            }
         };
     });
 

@@ -2,7 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Identity.Application.Services.Abstractions;
-using Identity.Domain.Aggregates;
+using UserAggregate = Identity.Domain.Aggregates.User;
 using Identity.Infrastructure.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -16,13 +16,14 @@ internal sealed class TokenService(IOptions<JwtOptions> options) : ITokenService
     private const int AccessTokenExpirationMinutes = 15;
     private const int RefreshTokenExpirationDays = 7;
 
-    public string GenerateAccessToken(User user)
+    public string GenerateAccessToken(UserAggregate user)
     {
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new("role", user.Role.Name)
+            new("role", user.Role.Name),
+            new("security_stamp", user.SecurityStamp.ToString())
         };
 
         if (user.AccountancyId.HasValue)
@@ -31,7 +32,7 @@ internal sealed class TokenService(IOptions<JwtOptions> options) : ITokenService
         return GenerateToken(claims, TimeSpan.FromMinutes(AccessTokenExpirationMinutes));
     }
 
-    public string GenerateRefreshToken(User user)
+    public string GenerateRefreshToken(UserAggregate user)
     {
         var claims = new List<Claim>
         {
@@ -59,7 +60,7 @@ internal sealed class TokenService(IOptions<JwtOptions> options) : ITokenService
 
         try
         {
-            return new JwtSecurityTokenHandler()
+            return new JwtSecurityTokenHandler { MapInboundClaims = false }
                 .ValidateToken(token, parameters, out _);
         }
         catch

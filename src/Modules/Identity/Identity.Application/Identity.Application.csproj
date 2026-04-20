@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="UseCases\Events\" />
-    <Folder Include="UseCases\Validators\" />
     <Folder Include="UseCases\Queries\" />
   </ItemGroup>
 

@@ -1,7 +1,8 @@
 using Core.Persistence.Configurations;
-using WorkflowProcessAggregate = WorkflowProcess.Domain.Aggregates.WorkflowProcess;
 
 namespace WorkflowProcess.Persistence.Configurations;
+
+using WorkflowProcessAggregate = WorkflowProcess.Domain.Aggregates.WorkflowProcess;
 
 public class StoreEventConfiguration
 {

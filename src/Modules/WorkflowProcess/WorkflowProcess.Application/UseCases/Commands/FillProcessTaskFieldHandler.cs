@@ -39,7 +39,6 @@ public sealed class FillProcessTaskFieldHandler(
         process.FillTaskField(request.StepInstanceId, request.TaskInstanceId, request.FieldInstanceId, request.Value);
 
         await applicationService.AppendEventsAsync(process, cancellationToken);
-
         return Result.Success();
     }
 }

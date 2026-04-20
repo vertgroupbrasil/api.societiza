@@ -1,12 +1,11 @@
 using Accountancy.Persistence.Context;
 using Identity.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
-using WorkflowProcess.Persistence.Context;
 using WorkflowTemplate.Persistence.Context;
 
 namespace Web.StartupTasks;
 
-internal sealed class MigrateDatabaseStartupTask(IServiceProvider provider) : BackgroundService
+internal sealed class MigrateDatabaseStartupTask(IServiceProvider provider, DatabaseMigrationSignal signal) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -15,7 +14,8 @@ internal sealed class MigrateDatabaseStartupTask(IServiceProvider provider) : Ba
         await MigrateDatabaseAsync<AccountancyDbContext>(scope, stoppingToken);
         await MigrateDatabaseAsync<IdentityDbContext>(scope, stoppingToken);
         await MigrateDatabaseAsync<WorkflowTemplateDbContext>(scope, stoppingToken);
-        await MigrateDatabaseAsync<WorkflowProcessDbContext>(scope, stoppingToken);
+
+        signal.Complete();
     }
 
     private static async Task MigrateDatabaseAsync<TDbContext>(IServiceScope scope, CancellationToken cancellationToken)

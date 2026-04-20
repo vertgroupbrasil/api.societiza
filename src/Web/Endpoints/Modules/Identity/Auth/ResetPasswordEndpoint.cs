@@ -27,15 +27,18 @@ public sealed class ResetPasswordEndpoint(ISender sender)
         Description = """
             Consome o token de redefinição e define a nova senha do usuário.
 
-            **Regras:** Retorna 400 quando o token é inválido, expirado ou já foi utilizado, ou quando a nova senha não atende os requisitos mínimos. Retorna 404 quando o usuário associado ao token não existe.
-            **Efeitos:** Atualiza a senha do usuário e invalida o token usado.
-            **Autorização:** Público (prova de posse via token).
+            **Respostas:**
+            - `200` — senha alterada; o token é invalidado e não pode ser reutilizado.
+            - `400` — token inválido, expirado ou já utilizado; ou nova senha fora dos requisitos mínimos.
+            - `404` — usuário associado ao token não encontrado.
+
+            **Requisitos de senha:** mínimo 8 caracteres, ao menos uma letra maiúscula, uma minúscula e um dígito.
             """,
         Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(
         ResetPasswordRequest request, CancellationToken cancellationToken)
         => await Result.Create(request)
-            .Map(r => new ResetPasswordCommand(Token: r.Token, NewPassword: r.NewPassword))
+            .Map(r => new ResetPasswordCommand(Token: r.Token, NewPassword: r.NewPassword, ConfirmPassword: r.ConfirmPassword))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(() => Ok(), this.HandleFailure);
 }

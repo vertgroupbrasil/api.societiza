@@ -34,12 +34,11 @@ public sealed class AddWorkflowTemplateStepTaskEndpoint(ISender sender) : Endpoi
 
             **Regras:**
             - Retorna 404 caso o template ou a etapa não existam.
-            - Valores aceitos para `type`:
-              - `Manual` — tarefa concluída manualmente por um usuário.
-              - `Automatic` — tarefa executada automaticamente pelo sistema.
-              - `Approval` — tarefa que requer aprovação explícita.
+            - Valores aceitos para `type`: `Manual` (tarefa concluída manualmente por um usuário), `Automatic` (tarefa executada automaticamente pelo sistema), `Approval` (tarefa que requer aprovação explícita).
             - Se a `order` solicitada já estiver ocupada, as tarefas existentes são deslocadas para frente automaticamente.
+
             **Efeitos:** Nova tarefa criada na etapa, possivelmente reordenando tarefas existentes.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepTasks])]

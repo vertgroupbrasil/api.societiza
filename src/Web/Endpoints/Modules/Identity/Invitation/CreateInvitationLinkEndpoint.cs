@@ -1,0 +1,54 @@
+using Ardalis.ApiEndpoints;
+using Asp.Versioning;
+using Core.Endpoints.Extensions;
+using Core.Shared.Results;
+using Identity.Application.Policies;
+using Identity.Shared.Commands.Invitation;
+using Identity.Shared.Response.Invitation;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using Web.Endpoints.Modules.Identity.Invitation.Requests.Commands;
+using Web.Endpoints.Routes;
+
+namespace Web.Endpoints.Modules.Identity.Invitation;
+
+[Authorize(Policy = IdentityPolicies.CanManageInvites)]
+public sealed class CreateInvitationLinkEndpoint(ISender sender) : EndpointBaseAsync
+    .WithRequest<CreateInvitationLinkRequest>
+    .WithActionResult<CreateInvitationLinkResponse>
+{
+    [ApiVersion("1.0")]
+    [HttpPost(IdentityRoutes.CreateInvitationLink)]
+    [ProducesResponseType(typeof(CreateInvitationLinkResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [SwaggerOperation(
+        OperationId = "CreateInvitationLink",
+        Summary     = "Criar link de convite",
+        Description = """
+            Cria um link de convite reutilizável com validade de 7 dias.
+
+            **Regras:**
+            - Apenas um link ativo por escopo (tipo + contabilidade) é permitido — retorna 409 se já existir um ativo.
+            - SystemAdmin pode criar links para SystemAdmin e AccountingAdmin.
+            - AccountingAdmin pode criar links para AccountingAdmin e AccountingEmployee.
+            - `MaxUses` é obrigatório apenas para links com TargetRole AccountingEmployee; para os demais é fixado em 1.
+            - `AccountancyId` deve ser nulo quando o convite for SA→SA; nos demais casos é obrigatório.
+
+            **Efeitos:** Nenhum.
+
+            **Autorização:** SystemAdmin ou AccountingAdmin.
+            """,
+        Tags = [Tags.Identity.Invites])]
+    public override async Task<ActionResult<CreateInvitationLinkResponse>> HandleAsync(
+        CreateInvitationLinkRequest request,
+        CancellationToken cancellationToken = default)
+        => await Result.Create(request)
+            .Map(r => new CreateInvitationLinkCommand(r.TargetRole, r.AccountancyId, r.MaxUses))
+            .Bind(command => sender.Send(command, cancellationToken))
+            .Match(Ok, this.HandleFailure);
+}

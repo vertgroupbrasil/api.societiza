@@ -30,8 +30,11 @@ public sealed class GetWorkflowTemplateByIdEndpoint(ISender sender) : EndpointBa
         Description = """
             Retorna os dados completos de um template de workflow a partir do seu identificador único.
 
-            **Regras:** Retorna 404 caso o template não exista.
+            **Regras:**
+            - Retorna 404 caso o template não exista.
+
             **Efeitos:** Nenhum.
+
             **Autorização:** Requer autenticação. Papéis: SystemAdmin, AccountingAdmin, AccountingEmployee.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]

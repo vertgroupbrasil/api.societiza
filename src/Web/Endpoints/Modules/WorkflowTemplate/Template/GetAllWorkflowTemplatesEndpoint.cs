@@ -29,7 +29,9 @@ public sealed class GetAllWorkflowTemplatesEndpoint(ISender sender) : EndpointBa
             Retorna uma lista resumida de todos os templates de workflow com `Id`, `Name` e `Description`.
 
             **Regras:** Nenhuma.
+
             **Efeitos:** Nenhum.
+
             **Autorização:** Requer autenticação. Papéis: SystemAdmin, AccountingAdmin, AccountingEmployee.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]

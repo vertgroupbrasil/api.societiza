@@ -4,16 +4,22 @@ internal static class IdentityRoutes
 {
     internal const string BaseUri = "v{version:apiVersion}/identity";
 
-    internal const string InviteId = "inviteId";
-
-    internal const string InviteUser = $"{BaseUri}/invite";
-    internal const string AcceptInvite = $"{BaseUri}/invite/accept";
-    internal const string ResendInvite = $"{BaseUri}/invite/{{{InviteId}:guid}}/resend";
-    internal const string RevokeInvite = $"{BaseUri}/invite/{{{InviteId}:guid}}/revoke";
-
-    internal const string Login          = $"{BaseUri}/auth/login";
-    internal const string Refresh        = $"{BaseUri}/auth/refresh";
-    internal const string Logout         = $"{BaseUri}/auth/logout";
+    // Authentication
+    internal const string Login = $"{BaseUri}/auth/login";
+    internal const string Logout = $"{BaseUri}/auth/logout";
+    internal const string Refresh = $"{BaseUri}/auth/refresh";
     internal const string ForgotPassword = $"{BaseUri}/auth/forgot-password";
-    internal const string ResetPassword  = $"{BaseUri}/auth/reset-password";
+    internal const string ResetPassword = $"{BaseUri}/auth/reset-password";
+
+    // Invitation Links
+    internal const string InvitationLinkId = "invitationLinkId";
+
+    internal const string CreateInvitationLink = $"{BaseUri}/invitation-link";
+    internal const string RevokeInvitationLink = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}/revoke";
+
+    internal const string GetInvitationLinkByToken = $"{BaseUri}/invitation-link/token/{{token}}";
+    internal const string ListInvitationLinks = $"{BaseUri}/invitation-link";
+    internal const string ListInvitationLinkUsers = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}/users";
+
+    internal const string Register = $"{BaseUri}/invitation-link/register";
 }

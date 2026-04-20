@@ -7,7 +7,9 @@ internal sealed class StartupTasksServiceInstaller : IServiceInstaller
 {
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<DatabaseMigrationSignal>();
         services.AddHostedService<MigrateDatabaseStartupTask>();
         services.AddHostedService<RegisterRecurringJobsStartupTask>();
+        services.AddHostedService<EnsureProjectionIndexesStartupTask>();
     }
 }

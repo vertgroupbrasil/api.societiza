@@ -31,7 +31,9 @@ public sealed class UpdateAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
         Description = """
             Atualiza os dados cadastrais de uma contabilidade existente.
 
-            **Regras:** Retorna 404 caso a contabilidade não exista. Todos os campos editáveis devem ser enviados no corpo.
+            **Regras:**
+            - Retorna 404 caso a contabilidade não exista.
+            - Todos os campos editáveis devem ser enviados no corpo.
 
             **Efeitos:** Nenhum.
 

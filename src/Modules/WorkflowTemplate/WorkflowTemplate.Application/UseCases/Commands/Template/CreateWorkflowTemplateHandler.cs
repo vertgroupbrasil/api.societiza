@@ -4,9 +4,9 @@ using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Shared.Commands.Template;
 
-using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
-
 namespace WorkflowTemplate.Application.UseCases.Commands.Template;
+
+using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
 public class CreateWorkflowTemplateHandler(
     IWorkflowTemplateApplicationService applicationService) : ICommandHandler<CreateWorkflowTemplateCommand, IdentifierResponse>

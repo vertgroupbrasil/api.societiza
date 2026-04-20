@@ -38,7 +38,6 @@ public sealed class CompleteProcessTaskHandler(
         process.CompleteTask(request.StepInstanceId, request.TaskInstanceId);
 
         await applicationService.AppendEventsAsync(process, cancellationToken);
-
         return Result.Success();
     }
 }

@@ -32,10 +32,12 @@ public sealed class ArchiveWorkflowTemplateEndpoint(ISender sender) : EndpointBa
             Arquiva um template de workflow.
 
             **Regras:**
-            - Status permitidos de origem: `Draft`, `Active`
-            - Status não permitidos: `Archived`
+            - Status permitidos de origem: `Draft`, `Active`.
+            - Status não permitidos: `Archived`.
             - Retorna 404 caso o template não exista.
+
             **Efeitos:** Status do template muda para `Archived`.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]

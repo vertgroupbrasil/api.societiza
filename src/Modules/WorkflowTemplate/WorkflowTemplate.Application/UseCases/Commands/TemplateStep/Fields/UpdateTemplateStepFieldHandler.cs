@@ -5,9 +5,9 @@ using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStep.Fields;
 
-using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
-
 namespace WorkflowTemplate.Application.UseCases.Commands.TemplateStep.Fields;
+
+using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
 public class UpdateTemplateStepFieldHandler(
     IWorkflowTemplateApplicationService applicationService) : ICommandHandler<UpdateTemplateStepFieldCommand>

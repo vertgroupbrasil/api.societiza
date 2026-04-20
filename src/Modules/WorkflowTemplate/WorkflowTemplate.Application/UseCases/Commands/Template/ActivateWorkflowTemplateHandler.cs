@@ -5,9 +5,9 @@ using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Commands.Template;
 using WorkflowTemplate.Shared.Errors;
 
-using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
-
 namespace WorkflowTemplate.Application.UseCases.Commands.Template;
+
+using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
 public class ActivateWorkflowTemplateHandler(
     IWorkflowTemplateApplicationService applicationService) : ICommandHandler<ActivateWorkflowTemplateCommand>

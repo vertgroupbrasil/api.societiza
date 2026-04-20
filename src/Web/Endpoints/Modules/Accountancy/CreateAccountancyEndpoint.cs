@@ -32,7 +32,8 @@ public sealed class CreateAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
         Description = """
             Cadastra uma nova contabilidade no sistema e retorna o identificador criado.
 
-            **Regras:** O CNPJ é único — retorna 409 caso já exista uma contabilidade com o mesmo CNPJ.
+            **Regras:**
+            - O CNPJ é único — retorna 409 caso já exista uma contabilidade com o mesmo CNPJ.
 
             **Efeitos:** Nenhum.
 

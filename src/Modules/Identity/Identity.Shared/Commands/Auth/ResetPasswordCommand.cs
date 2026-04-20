@@ -4,5 +4,6 @@ namespace Identity.Shared.Commands.Auth;
 
 public sealed record ResetPasswordCommand(
     string Token,
-    string NewPassword
+    string NewPassword,
+    string ConfirmPassword
 ) : ICommand;

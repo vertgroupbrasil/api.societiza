@@ -1,11 +1,12 @@
 using System.Security.Claims;
-using Identity.Domain.Aggregates;
 
 namespace Identity.Application.Services.Abstractions;
 
+using UserAggregate = Identity.Domain.Aggregates.User;
+
 public interface ITokenService
 {
-    string GenerateAccessToken(User user);
-    string GenerateRefreshToken(User user);
+    string GenerateAccessToken(UserAggregate user);
+    string GenerateRefreshToken(UserAggregate user);
     ClaimsPrincipal? ValidateRefreshToken(string token);
 }

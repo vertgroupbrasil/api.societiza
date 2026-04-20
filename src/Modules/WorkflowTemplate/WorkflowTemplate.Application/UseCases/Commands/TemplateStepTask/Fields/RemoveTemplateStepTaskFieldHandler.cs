@@ -4,9 +4,9 @@ using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Shared.Commands.TemplateStepTask.Fields;
 using WorkflowTemplate.Shared.Errors;
 
-using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
-
 namespace WorkflowTemplate.Application.UseCases.Commands.TemplateStepTask.Fields;
+
+using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
 public class RemoveTemplateStepTaskFieldHandler(
     IWorkflowTemplateApplicationService applicationService) : ICommandHandler<RemoveTemplateStepTaskFieldCommand>

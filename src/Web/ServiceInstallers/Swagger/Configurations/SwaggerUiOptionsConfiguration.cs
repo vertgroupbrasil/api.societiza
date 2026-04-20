@@ -22,5 +22,7 @@ internal sealed class SwaggerUiOptionsConfiguration(IApiVersionDescriptionProvid
         options.EnableFilter();
         options.EnableTryItOutByDefault();
         options.DocExpansion(DocExpansion.None);
+        options.ConfigObject.AdditionalItems["tagsSorter"] = "alpha";
+        options.ConfigObject.AdditionalItems["withCredentials"] = true;
     }
 }

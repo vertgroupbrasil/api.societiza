@@ -5,9 +5,9 @@ using WorkflowTemplate.Application.Services;
 using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStep;
 
-using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
-
 namespace WorkflowTemplate.Application.UseCases.Commands.TemplateStep;
+
+using WorkflowTemplateAggregate = WorkflowTemplate.Domain.Aggregates.WorkflowTemplate;
 
 public class AddWorkflowTemplateStepHandler(
     IWorkflowTemplateApplicationService applicationService) : ICommandHandler<AddWorkflowTemplateStepCommand, IdentifierResponse>

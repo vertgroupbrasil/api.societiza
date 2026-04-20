@@ -35,20 +35,20 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionPasswordResetTokenConsumer,
             IdentityDomainEvent.UserPasswordResetTokenUsed>(registrationContext, MODULE_NAME);
 
-        // UserInvite events
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer,
-            IdentityDomainEvent.UserInviteCreated>(registrationContext, MODULE_NAME);
+        // InvitationLink events
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionInvitationLinkConsumer,
+            IdentityDomainEvent.InvitationLinkCreated>(registrationContext, MODULE_NAME);
 
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer,
-            IdentityDomainEvent.UserInviteResent>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionInvitationLinkConsumer,
+            IdentityDomainEvent.InvitationLinkConsumed>(registrationContext, MODULE_NAME);
 
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer,
-            IdentityDomainEvent.UserInviteAccepted>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionInvitationLinkConsumer,
+            IdentityDomainEvent.InvitationLinkExhausted>(registrationContext, MODULE_NAME);
 
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer,
-            IdentityDomainEvent.UserInviteRevoked>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionInvitationLinkConsumer,
+            IdentityDomainEvent.InvitationLinkExpired>(registrationContext, MODULE_NAME);
 
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserInviteConsumer,
-            IdentityDomainEvent.UserInviteExpired>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionInvitationLinkConsumer,
+            IdentityDomainEvent.InvitationLinkRevoked>(registrationContext, MODULE_NAME);
     }
 }

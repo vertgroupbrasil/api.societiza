@@ -1,8 +1,8 @@
 ﻿using Core.Persistence.Configurations;
 
-using AccountancyAggregate = Accountancy.Domain.Aggregates.Accountancy;
-
 namespace Accountancy.Persistence.Configurations;
+
+using AccountancyAggregate = Accountancy.Domain.Aggregates.Accountancy;
 
 public class SnapshotConfiguration
 {

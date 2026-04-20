@@ -5,47 +5,47 @@ namespace Identity.Domain.Events;
 
 public static class DomainEvents
 {
-    #region UserInvite Events
-    public sealed record UserInviteCreated(
+    #region InvitationLink Events
+    public sealed record InvitationLinkCreated(
         Guid Id,
-        string Email,
-        string Role,
-        Guid? AccountancyId,
-        string TokenHash,
+        string TargetRole,
         string Status,
+        Guid? AccountancyId,
+        Guid CreatedByUserId,
+        string TokenHash,
+        int MaxUses,
         DateTimeOffset ExpiresAt,
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
 
-    public sealed record UserInviteResent(
+    public sealed record InvitationLinkConsumed(
         Guid Id,
-        string TokenHash,
-        DateTimeOffset ExpiresAt,
+        int Uses,
+        Guid ConsumedByUserId,
+        DateTimeOffset ConsumedAt,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
 
-    public sealed record UserInviteAccepted(
+    public sealed record InvitationLinkExhausted(
         Guid Id,
         string Status,
-        DateTimeOffset UsedAt,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
 
-    public sealed record UserInviteRevoked(
+    public sealed record InvitationLinkExpired(
         Guid Id,
         string Status,
-        DateTimeOffset UsedAt,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
 
-    public sealed record UserInviteExpired(
+    public sealed record InvitationLinkRevoked(
         Guid Id,
         string Status,
-        DateTimeOffset UsedAt,
+        Guid RevokedByUserId,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
@@ -54,13 +54,14 @@ public static class DomainEvents
     #region User Events
     public sealed record UserRegistrationCompleted(
         Guid Id,
-        Guid InviteId,
+        Guid InvitationLinkId,
         string FirstName,
         string LastName,
         string Email,
         string PasswordHash,
         string Role,
         Guid? AccountancyId,
+        Guid SecurityStamp,
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
@@ -100,6 +101,13 @@ public static class DomainEvents
     public sealed record UserPasswordUpdated(
         Guid Id,
         string PasswordHash,
+        DateTimeOffset UpdatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserSecurityStampRegenerated(
+        Guid UserId,
+        Guid SecurityStamp,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;

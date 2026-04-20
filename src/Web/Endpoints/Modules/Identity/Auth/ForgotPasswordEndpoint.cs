@@ -24,11 +24,13 @@ public sealed class ForgotPasswordEndpoint(ISender sender)
         OperationId = "ForgotPassword",
         Summary     = "Solicitar redefinição de senha",
         Description = """
-            Inicia o fluxo de redefinição de senha para o e-mail informado.
+            Dispara o e-mail de redefinição de senha para o endereço informado.
 
-            **Regras:** Sempre retorna 200, independentemente do e-mail existir, para evitar enumeração de contas.
-            **Efeitos:** Se o usuário existir, envia um e-mail com o link de redefinição contendo um token com validade limitada.
-            **Autorização:** Público.
+            **Respostas:**
+            - `200` — sempre retornado, independente do e-mail existir ou não (evita enumeração de contas).
+            - `400` — e-mail ausente ou formato inválido.
+
+            **Fluxo:** após receber o e-mail, o usuário acessa o link e chama `POST /reset-password` com o token recebido.
             """,
         Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(

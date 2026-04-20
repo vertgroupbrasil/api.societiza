@@ -6,16 +6,17 @@ internal static class Tags
 
     internal static class Identity
     {
-        internal const string Auth    = "Identity / Auth";
-        internal const string Invites = "Identity / Invites";
+        internal const string Auth    = "Identity / 01. Auth";
+        internal const string Invites = "Identity / 02. Invites";
+        internal const string Users    = "Identity / 03. Users";
     }
 
     internal static class WorkflowTemplate
     {
-        internal const string Templates      = "Workflow Templates / Templates";
-        internal const string Steps          = "Workflow Templates / Steps";
-        internal const string StepTasks      = "Workflow Templates / Step Tasks";
-        internal const string StepFields     = "Workflow Templates / Step Fields";
-        internal const string StepTaskFields = "Workflow Templates / Step Task Fields";
+        internal const string Templates      = "Workflow Templates / 01. Templates";
+        internal const string Steps          = "Workflow Templates / 02. Steps";
+        internal const string StepTasks      = "Workflow Templates / 03. Step Tasks";
+        internal const string StepFields     = "Workflow Templates / 04. Step Fields";
+        internal const string StepTaskFields = "Workflow Templates / 05. Step Task Fields";
     }
 }

@@ -27,5 +27,32 @@ internal sealed class SwaggerGenOptionsConfiguration(IApiVersionDescriptionProvi
         }
 
         options.CustomSchemaIds(type => type.ToString().Replace("+", "."));
+
+        var securityScheme = new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Enter your JWT access token."
+        };
+
+        options.AddSecurityDefinition("Bearer", securityScheme);
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
     }
 }

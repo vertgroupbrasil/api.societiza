@@ -27,7 +27,8 @@ public class ProjectionUserEventHandler(
                 @event.Role,
                 @event.AccountancyId,
                 @event.CreatedAt,
-                null),
+                null,
+                @event.InvitationLinkId),
             cancellationToken);
         }
         catch (Exception ex)

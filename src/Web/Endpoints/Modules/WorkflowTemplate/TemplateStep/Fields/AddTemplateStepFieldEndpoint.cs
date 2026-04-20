@@ -34,14 +34,11 @@ public sealed class AddTemplateStepFieldEndpoint(ISender sender) : EndpointBaseA
 
             **Regras:**
             - Retorna 404 caso o template ou a etapa não existam.
-            - Valores aceitos para `fieldType`:
-              - `Text` — entrada de texto em linha única.
-              - `Boolean` — alternância verdadeiro/falso.
-              - `Integer` — entrada numérica.
-              - `Select` — lista suspensa com opções predefinidas.
-              - `Date` — seletor de data.
+            - Valores aceitos para `fieldType`: `Text` (entrada de texto em linha única), `Boolean` (alternância verdadeiro/falso), `Integer` (entrada numérica), `Select` (lista suspensa com opções predefinidas), `Date` (seletor de data).
             - `options` é obrigatório quando `fieldType` é `Select` e deve ser nulo para os demais tipos.
+
             **Efeitos:** Novo campo criado na etapa.
+
             **Autorização:** Requer autenticação. Papel: SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepFields])]

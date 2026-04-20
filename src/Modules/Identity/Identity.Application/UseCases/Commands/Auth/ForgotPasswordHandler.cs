@@ -5,7 +5,6 @@ using Core.Application.Services.Interfaces;
 using Core.Infrastructure.Options;
 using Core.Shared.Results;
 using Identity.Application.Services;
-using Identity.Domain.Aggregates;
 using Identity.Domain.Projection;
 using Identity.Persistence.Projection;
 using Identity.Shared.Commands.Auth;
@@ -13,6 +12,8 @@ using Identity.Shared.Emails;
 using Microsoft.Extensions.Options;
 
 namespace Identity.Application.UseCases.Commands.Auth;
+
+using UserAggregate = Identity.Domain.Aggregates.User;
 
 public sealed class ForgotPasswordHandler(
     IIdentityApplicationService applicationService,
@@ -23,15 +24,12 @@ public sealed class ForgotPasswordHandler(
 {
     public async Task<Result> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
     {
-        var userProjectionModel = await userProjection.FindAsync(
-            x => x.Email == request.Email,
-            cancellationToken);
+        var userProjectionModel = await userProjection.FindAsync(x => x.Email == request.Email, cancellationToken);
 
         if (userProjectionModel is null)
             return Result.Success();
 
-        var userResult = await applicationService.LoadAggregateAsync<User>(
-            userProjectionModel.Id, cancellationToken);
+        var userResult = await applicationService.LoadAggregateAsync<UserAggregate>(userProjectionModel.Id, cancellationToken);
 
         if (!userResult.IsSuccess)
             return Result.Success();
@@ -43,7 +41,6 @@ public sealed class ForgotPasswordHandler(
         var expiresAt = DateTimeOffset.UtcNow.AddHours(1);
 
         user.AddPasswordResetToken(tokenHash, expiresAt);
-
         await applicationService.AppendEventsAsync(user, cancellationToken);
 
         var resetLink = $"{frontendOptions.Value.BaseUrl}/auth/reset-password?token={rawToken}";

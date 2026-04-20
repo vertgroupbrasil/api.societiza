@@ -5,13 +5,14 @@ using Core.Shared.Errors;
 using Core.Shared.Results;
 using Identity.Application.Services;
 using Identity.Application.Services.Abstractions;
-using Identity.Domain.Aggregates;
 using Identity.Domain.Projection;
 using Identity.Persistence.Projection;
 using Identity.Shared.Commands.Auth;
 using Identity.Shared.Response.Auth;
 
 namespace Identity.Application.UseCases.Commands.Auth;
+
+using UserAggregate = Identity.Domain.Aggregates.User;
 
 public sealed class LoginHandler(
     IIdentityApplicationService applicationService,
@@ -20,19 +21,15 @@ public sealed class LoginHandler(
     ITokenService tokenService
 ) : ICommandHandler<LoginCommand, LoginResponse>
 {
-    public async Task<Result<LoginResponse>> Handle(
-        LoginCommand request, CancellationToken cancellationToken)
+    public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var userProjectionModel = await userProjection.FindAsync(
-            x => x.Email == request.Email,
-            cancellationToken);
+        var userProjectionModel = await userProjection.FindAsync(x => x.Email == request.Email, cancellationToken);
 
         if (userProjectionModel is null)
             return Result.Failure<LoginResponse>(new Error(
                 "Auth.InvalidCredentials", "Invalid email or password"));
 
-        var userResult = await applicationService.LoadAggregateAsync<User>(
-            userProjectionModel.Id, cancellationToken);
+        var userResult = await applicationService.LoadAggregateAsync<UserAggregate>(userProjectionModel.Id, cancellationToken);
 
         if (!userResult.IsSuccess)
             return Result.Failure<LoginResponse>(new Error(
@@ -46,13 +43,11 @@ public sealed class LoginHandler(
 
         var accessToken = tokenService.GenerateAccessToken(user);
         var refreshTokenJwt = tokenService.GenerateRefreshToken(user);
-        var tokenHash = Convert.ToBase64String(
-            SHA256.HashData(Encoding.UTF8.GetBytes(refreshTokenJwt)));
+        var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshTokenJwt)));
 
         user.AddRefreshToken(tokenHash, DateTimeOffset.UtcNow.AddDays(7));
 
         await applicationService.AppendEventsAsync(user, cancellationToken);
-
         return Result.Success(new LoginResponse(accessToken, refreshTokenJwt));
     }
 }
