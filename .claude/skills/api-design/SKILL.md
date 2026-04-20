@@ -77,11 +77,16 @@ Todo endpoint tem os 4 campos abaixo preenchidos no método `HandleAsync`:
     OperationId = "{NomeDaClasseSemSufixoEndpoint}",
     Summary     = "{Verbo no infinitivo + recurso, ≤ 60 chars}",
     Description = """
-        {Propósito em 1 frase.}
+        {Propósito — 1 frase de negócio.}
 
-        **Regras:** {unicidade, estados permitidos, validações específicas}
-        **Efeitos:** {emails, eventos, soft-delete — ou "Nenhum"}
-        **Autorização:** {role/policy exigida ou "Público"}
+        **Regras:**
+        - {regra 1}
+        - {regra 2}
+        (substituir por "Nenhuma." se não houver regras)
+
+        **Efeitos:** {texto ou "Nenhum"}
+
+        **Autorização:** {texto}
         """,
     Tags = [Tags.{Module}.{SubTag}])]
 ```
@@ -119,17 +124,26 @@ Exemplos canônicos:
 
 #### 2.3. `Description`
 
-Sempre preenchido. Prosa em PT cobrindo as 4 seções (use `"""..."""` multi-linha quando precisar de formatação):
+Sempre preenchido. Prosa em PT cobrindo as 4 seções, sempre com uma **linha em branco** entre cada seção (sem isso o Swagger UI renderiza tudo como um único parágrafo). Use `"""..."""` multi-linha.
 
 ```
 {Propósito — 1 frase de negócio.}
 
-**Regras:** {o que causa 4xx: unicidade, estados, validações}
+**Regras:**
+- {regra 1}
+- {regra 2}
+(substituir por "Nenhuma." se não houver regras)
+
 **Efeitos:** {emails, eventos, soft-delete, shift de ordem, etc. Use "Nenhum" se não há.}
+
 **Autorização:** {Exemplos: "SystemAdmin", "AccountingAdmin ou SystemAdmin", "Autenticado (tenant próprio via claim `accountancy_id`)", "Público"}
 ```
 
-Se houver valores enumerados (ex: `fieldType`, `taskType`), liste-os dentro da seção **Regras** usando bullet list Markdown.
+Regras adicionais:
+
+- **Regras** sempre como bullet list (`- item`), mesmo quando houver apenas um item. Se não existir regra alguma, escrever `Nenhuma.` inline na mesma linha do bold label, sem bullets.
+- **Efeitos** e **Autorização** sempre inline na mesma linha do bold label.
+- Se houver valores enumerados (ex: `fieldType`, `type`, `appliesTo`), documente os valores aceitos dentro de um bullet de **Regras** — ex.: `- Valores aceitos para \`fieldType\`: \`Text\`, \`Number\`, \`Date\`, \`Boolean\``.
 
 #### 2.4. `Tags`
 

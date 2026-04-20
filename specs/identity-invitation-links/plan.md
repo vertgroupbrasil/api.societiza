@@ -142,16 +142,16 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Shared
 - **Tipo**: Command
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/InvitationLinks/CreateInvitationLinkCommand.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/Invitations/CreateInvitationLinkCommand.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §1 Fluxos por perfil`
-- **Detalhes**: `sealed record CreateInvitationLinkCommand(string TargetRole, Guid? AccountancyId, int? MaxUses, Guid CurrentUserId, string CurrentUserRole, Guid? CurrentUserAccountancyId) : ICommand<CreateInvitationLinkResponse>`. `TargetRole` é a role que o invitado vai receber ao se cadastrar. `AccountancyId` e identidade do caller vêm do endpoint (do `ICurrentUserService`), **não do payload HTTP**. `MaxUses` é obrigatório apenas quando `TargetRole = AccountancyEmployee`; para os demais o handler fixa `1`.
+- **Detalhes**: `sealed record CreateInvitationLinkCommand(string TargetRole, Guid? AccountancyId, int? MaxUses) : ICommand<CreateInvitationLinkResponse>`. `TargetRole` é a role que o invitado vai receber ao se cadastrar. `AccountancyId` vem do endpoint (do `ICurrentUserService` ou do payload HTTP para SA→AA); identidade do caller (`UserId`, `Role`, `AccountancyId`) é resolvida pelo handler via `ICurrentUserService` — **nunca trafega no command**. `MaxUses` é obrigatório apenas quando `TargetRole = AccountancyEmployee`; para os demais o handler fixa `1`.
 
 #### 2. Response DTO `CreateInvitationLinkResponse`
 - **Camada**: Shared
 - **Tipo**: ResponseDTO
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/InvitationLinks/CreateInvitationLinkResponse.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/Invitations/CreateInvitationLinkResponse.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `spec §4 "link pronto para copiar"`
 - **Detalhes**: `sealed record CreateInvitationLinkResponse(Guid Id, string Token, string Url, DateTimeOffset ExpiresAt)`. O raw token só existe neste retorno (e no DB fica apenas o hash).
@@ -160,25 +160,25 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Shared
 - **Tipo**: Command
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/InvitationLinks/RevokeInvitationLinkCommand.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/Invitations/RevokeInvitationLinkCommand.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §1 "Revogando um link"`, `logic §3` (quem pode revogar)
-- **Detalhes**: `sealed record RevokeInvitationLinkCommand(Guid InvitationLinkId, Guid CurrentUserId, string CurrentUserRole, Guid? CurrentUserAccountancyId) : ICommand`.
+- **Detalhes**: `sealed record RevokeInvitationLinkCommand(Guid InvitationLinkId) : ICommand`. Identidade do caller resolvida no handler via `ICurrentUserService`.
 
-#### 4. Command `RegisterCommand`
+#### 4. Command `RegisterUserCommand`
 - **Camada**: Shared
 - **Tipo**: Command
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/InvitationLinks/RegisterCommand.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/User/RegisterUserCommand.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §Convidado (sem conta na Societiza)`
-- **Detalhes**: `sealed record RegisterCommand(string Token, string FirstName, string LastName, string Email, string Password, string ConfirmPassword) : ICommand<IdentifierResponse>`. Cadastro via link → retorna id do usuário criado.
+- **Detalhes**: `sealed record RegisterUserCommand(string Token, string FirstName, string LastName, string Email, string Password, string ConfirmPassword) : ICommand<IdentifierResponse>`. Cadastro via link → retorna id do usuário criado.
 
 #### 5. Query `GetInvitationLinkByTokenQuery`
 - **Camada**: Shared
 - **Tipo**: Query
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/InvitationLinks/GetInvitationLinkByTokenQuery.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/Invitations/GetInvitationLinkByTokenQuery.cs`
 - **Depende de**: #6
 - **Spec-ref**: `logic §4 "Se o link acessado pelo convidado é válido (ativo) ou não, com o motivo"`
 - **Detalhes**: `sealed record GetInvitationLinkByTokenQuery(string Token) : IQuery<InvitationLinkPublicResponse>`. Usado pelo frontend **antes** do cadastro para decidir se mostra o formulário ou a mensagem de erro.
@@ -187,7 +187,7 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Shared
 - **Tipo**: ResponseDTO
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/InvitationLinks/InvitationLinkPublicResponse.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/Invitations/InvitationLinkPublicResponse.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §4` (frontend precisa saber status e motivo)
 - **Detalhes**: `sealed record InvitationLinkPublicResponse(string TargetRole, string Status, Guid? AccountancyId)`. Minimal — nenhum dado que vaze identificadores sensíveis (não expõe `CreatedByUserId`, `Uses`/`MaxUses`). `TargetRole` é o `UserRole.Name` do papel que o convidado receberá ao se cadastrar. O frontend só precisa saber o que mostrar; o backend é autoridade na validação.
@@ -196,16 +196,16 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Shared
 - **Tipo**: Query
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/InvitationLinks/ListInvitationLinksQuery.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/Invitations/ListInvitationLinksQuery.cs`
 - **Depende de**: #8
 - **Spec-ref**: `spec §1 "visão default mostra apenas links ativos"`, `logic §1 "Visualizando links"`, `logic §4 "Isolamento multi-tenant na listagem"`
-- **Detalhes**: `sealed record ListInvitationLinksQuery(bool OnlyActive, Guid? AccountancyId, Guid CurrentUserId, string CurrentUserRole, Guid? CurrentUserAccountancyId) : IQuery<List<InvitationLinkDetailResponse>>`. `OnlyActive == true` é a visão default; `false` retorna histórico (inclui terminais). `AccountancyId` é filtro para SystemAdmin navegando no contexto de uma contabilidade (SA→AA).
+- **Detalhes**: `sealed record ListInvitationLinksQuery(bool OnlyActive, Guid? AccountancyId) : IQuery<List<InvitationLinkDetailResponse>>`. `OnlyActive == true` é a visão default; `false` retorna histórico (inclui terminais). `AccountancyId` é filtro para SystemAdmin navegando no contexto de uma contabilidade (SA→AA). Identidade do caller resolvida no handler via `ICurrentUserService`.
 
 #### 8. Response DTO `InvitationLinkDetailResponse`
 - **Camada**: Shared
 - **Tipo**: ResponseDTO
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/InvitationLinks/InvitationLinkDetailResponse.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/Invitations/InvitationLinkDetailResponse.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §4` (frontend precisa de todos os campos listados)
 - **Detalhes**: `sealed record InvitationLinkDetailResponse(Guid Id, string TargetRole, string Status, Guid? AccountancyId, Guid CreatedByUserId, int MaxUses, int Uses, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, DateTimeOffset? UpdatedAt)`. `TargetRole` é o `UserRole.Name` do aggregate. Não inclui `TokenHash` (nunca sai do backend).
@@ -214,16 +214,16 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Shared
 - **Tipo**: Query
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/InvitationLinks/ListUsersByInvitationLinkQuery.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/Invitations/ListUsersByInvitationLinkQuery.cs`
 - **Depende de**: #10
 - **Spec-ref**: `spec §1 "junto com a lista de quem entrou por ele"`, `logic §4` "Lista de usuários que entraram por aquele link"
-- **Detalhes**: `sealed record ListUsersByInvitationLinkQuery(Guid InvitationLinkId, Guid CurrentUserId, string CurrentUserRole, Guid? CurrentUserAccountancyId) : IQuery<List<InvitationLinkUserResponse>>`.
+- **Detalhes**: `sealed record ListUsersByInvitationLinkQuery(Guid InvitationLinkId) : IQuery<List<InvitationLinkUserResponse>>`. Identidade do caller resolvida no handler via `ICurrentUserService`.
 
 #### 10. Response DTO `InvitationLinkUserResponse`
 - **Camada**: Shared
 - **Tipo**: ResponseDTO
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/InvitationLinks/InvitationLinkUserResponse.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Response/Invitations/InvitationLinkUserResponse.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §4` "Lista de usuários que entraram por aquele link (nome e data de entrada)"
 - **Detalhes**: `sealed record InvitationLinkUserResponse(Guid UserId, string FirstName, string LastName, string Email, DateTimeOffset JoinedAt)`.
@@ -236,45 +236,46 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 
 **Referência**: `.claude/skills/architecture/references/application-architecture.md`
 
-#### 1. Interface cross-module `IAccountancyExistenceService`
+#### 1. Interface cross-module `IAccountancyDataService`
 - **Camada**: Application
 - **Tipo**: Service (interface)
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/Services/CrossModule/IAccountancyExistenceService.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/Services/CrossModule/IAccountancyDataService.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §1 "Criando um link SA → AA"` (a contabilidade vem do contexto de navegação; o handler precisa confirmar que ela existe antes de emitir o link)
-- **Detalhes**: `public interface IAccountancyExistenceService { Task<bool> ExistsAsync(Guid accountancyId, CancellationToken ct); }`. Implementação vive em `src/Web/Services/CrossModule/AccountancyExistenceService.cs` (Fase 6) — padrão anti-corrupção documentado em `memory/feedback_cross_module_pattern.md`.
+- **Detalhes**: `public interface IAccountancyDataService { Task<bool> ExistsAsync(Guid accountancyId, CancellationToken ct); }`. Implementação vive em `src/Web/Services/CrossModule/AccountancyDataService.cs` (Fase 6) — padrão anti-corrupção documentado em `memory/feedback_cross_module_pattern.md`.
 
 #### 2. Validator `CreateInvitationLinkValidator`
 - **Camada**: Application
 - **Tipo**: Validator
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/InvitationLinks/CreateInvitationLinkValidator.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/Invitations/CreateInvitationLinkValidator.cs`
 - **Depende de**: Fase 2 · #1
 - **Spec-ref**: `logic §3 Regras`, `logic §5 "maxUses zero ou negativo"`
 - **Detalhes**: valida apenas a **forma** do comando:
   - `TargetRole`: não vazio, deve existir em `UserRole` (`UserRole.TryFromName`).
-  - `MaxUses`: se informado, deve ser `>= 1`. Obrigatoriedade/conformidade por combinação caller → TargetRole (ex.: `AccountancyAdmin → AccountancyEmployee` requer `MaxUses`; `* → SystemAdmin` fixa `MaxUses = 1`) fica **no handler** (regra de negócio, não forma).
+  - `MaxUses` quando `TargetRole == AccountingEmployee`: obrigatório (`NotNull`) e `>= 1`.
+  - `MaxUses` quando `TargetRole ∈ {SystemAdmin, AccountingAdmin}`: deve ser `null` — o handler fixa `1` e rejeitar aqui evita ambiguidade na API.
   - `AccountancyId`: quando exigido, deve ser `!= Guid.Empty` — mas **quem exige** é o handler (regra cruzada com `TargetRole` e com o role do caller).
-  - `CurrentUserId`, `CurrentUserRole`: não vazios (defesa em profundidade).
+  - Identidade do caller (`CurrentUserId`, `CurrentUserRole`) **não está no command** — resolvida via `ICurrentUserService` no handler; não há nada a validar aqui.
 
 #### 3. Handler `CreateInvitationLinkHandler`
 - **Camada**: Application
 - **Tipo**: Handler
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/InvitationLinks/CreateInvitationLinkHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/Invitations/CreateInvitationLinkHandler.cs`
 - **Depende de**: Fase 1 · #3, Fase 2 · #1, #2, #3 (deste grupo: #1, #2)
 - **Spec-ref**: `logic §1`, `logic §3`, `logic §5 "Tentativa de criar segundo link ativo no mesmo escopo"`, `logic §5 "Criação simultânea por dois admins do mesmo tenant"`
-- **Detalhes**: `public class CreateInvitationLinkHandler(IIdentityApplicationService appService, IIdentityProjection<ProjectionModel.InvitationLink> linkProjection, IAccountancyExistenceService accountancyExistence, IOptions<FrontendOptions> frontend) : ICommandHandler<CreateInvitationLinkCommand, CreateInvitationLinkResponse>`.
+- **Detalhes**: `public class CreateInvitationLinkHandler(IIdentityApplicationService appService, IIdentityProjection<ProjectionModel.InvitationLink> linkProjection, IAccountancyDataService accountancyData, ICurrentUserService currentUser, IOptions<FrontendOptions> frontend) : ICommandHandler<CreateInvitationLinkCommand, CreateInvitationLinkResponse>`.
   Ordem de validação no handler (cada passo retorna `Result.Failure` com `Error` específico):
-  1. **Parse** de `callerRole = UserRole.FromName(cmd.CurrentUserRole)` e `targetRole = UserRole.FromName(cmd.TargetRole)`. Se falhar, `ValidationError`.
+  1. **Resolução do caller** via `ICurrentUserService`: `callerId = currentUser.UserId`, `callerRole = UserRole.FromName(currentUser.Role)`, `callerAccountancyId = currentUser.AccountancyId`. **Parse** de `targetRole = UserRole.FromName(cmd.TargetRole)`. Se falhar, `ValidationError`.
   2. **Matriz de autorização** `callerRole → targetRole`:
      - `SystemAdmin` pode criar links com `TargetRole ∈ {SystemAdmin, AccountancyAdmin}`.
      - `AccountancyAdmin` pode criar links com `TargetRole ∈ {AccountancyAdmin, AccountancyEmployee}`.
      - Qualquer outra combinação → `ForbiddenError`.
   3. **Resolução de `accountancyId`**:
      - `TargetRole == SystemAdmin`: deve ser `null`. Rejeita se vier valor.
-     - `TargetRole == AccountancyAdmin` + caller `SystemAdmin`: vem do `cmd.AccountancyId`; valida existência via `accountancyExistence.ExistsAsync`; se não existe → `NotFoundError("Accountancy.NotFound")`.
+     - `TargetRole == AccountancyAdmin` + caller `SystemAdmin`: vem do `cmd.AccountancyId`; valida existência via `accountancyData.ExistsAsync`; se não existe → `NotFoundError("Accountancy.NotFound")`.
      - `TargetRole ∈ {AccountancyAdmin, AccountancyEmployee}` + caller `AccountancyAdmin`: força `accountancyId = cmd.CurrentUserAccountancyId`, ignorando qualquer valor do cliente (isolamento multi-tenant).
   4. **Limite de usos**:
      - `TargetRole ∈ {SystemAdmin, AccountancyAdmin}`: `maxUses = 1`, fixo.
@@ -288,36 +289,37 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Application
 - **Tipo**: Validator
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/InvitationLinks/RevokeInvitationLinkValidator.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/Invitations/RevokeInvitationLinkValidator.cs`
 - **Depende de**: Fase 2 · #3
 - **Spec-ref**: `logic §3`
-- **Detalhes**: `InvitationLinkId != Guid.Empty`, caller identity fields não vazios.
+- **Detalhes**: `InvitationLinkId != Guid.Empty`. Identidade do caller não está no command — sem regras de caller identity no validator.
 
 #### 5. Handler `RevokeInvitationLinkHandler`
 - **Camada**: Application
 - **Tipo**: Handler
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/InvitationLinks/RevokeInvitationLinkHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/Invitations/RevokeInvitationLinkHandler.cs`
 - **Depende de**: Fase 1 · #4, Fase 2 · #3
 - **Spec-ref**: `logic §1 "Revogando"`, `logic §3` (SystemAdmin só revoga SA→SA; AccountancyAdmin revoga qualquer ativo da sua contabilidade), `logic §5 "Revogação de link já inativo"`
 - **Detalhes**:
-  1. `LoadAggregateAsync<InvitationLink>(cmd.InvitationLinkId)` → se não existe, `NotFoundError`.
-  2. Se `link.Status != Active` → `ConflictError("InvitationLink.NotRevocable", "O link não está mais ativo.")`.
-  3. **Autoridade por escopo** (o tipo do link é inferido por `link.TargetRole` combinado com `link.AccountancyId`):
+  1. **Resolução do caller** via `ICurrentUserService`: `callerId = currentUser.UserId`, `callerRole = UserRole.FromName(currentUser.Role)`, `callerAccountancyId = currentUser.AccountancyId`.
+  2. `LoadAggregateAsync<InvitationLink>(cmd.InvitationLinkId)` → se não existe, `NotFoundError`.
+  3. Se `link.Status != Active` → `ConflictError("InvitationLink.NotRevocable", "O link não está mais ativo.")`.
+  4. **Autoridade por escopo** (o tipo do link é inferido por `link.TargetRole` combinado com `link.AccountancyId`):
      - Caller `SystemAdmin`: só pode revogar se `link.TargetRole == UserRole.SystemAdmin` (equivale ao antigo `SA→SA`). Spec §8 "SystemAdmin pode revogar apenas links SA→SA" reforça; `logic §3`: "Links AA→AA e AA→AE pertencem ao tenant. SystemAdmin não pode revogá-los." **Decisão**: seguir o `logic.md` — SystemAdmin revoga apenas links cujo `TargetRole == SystemAdmin`. Links com `TargetRole == AccountancyAdmin` criados por SystemAdmin (antigo `SA→AA`) são revogados pelos AAs do tenant de destino. **Este ponto vai para "Riscos e pontos de atenção" para confirmação humana.**
-     - Caller `AccountancyAdmin`: pode revogar qualquer link cujo `link.AccountancyId == cmd.CurrentUserAccountancyId` **E** `link.TargetRole ∈ {UserRole.AccountancyAdmin, UserRole.AccountancyEmployee}` (cobre os antigos `AA→AA`, `AA→AE` e também os `SA→AA` cujo `AccountancyId` é o tenant do caller). Caso contrário `ForbiddenError`.
+     - Caller `AccountancyAdmin`: pode revogar qualquer link cujo `link.AccountancyId == callerAccountancyId` **E** `link.TargetRole ∈ {UserRole.AccountancyAdmin, UserRole.AccountancyEmployee}` (cobre os antigos `AA→AA`, `AA→AE` e também os `SA→AA` cujo `AccountancyId` é o tenant do caller). Caso contrário `ForbiddenError`.
      - Demais roles: `ForbiddenError`.
-  4. `link.Revoke(cmd.CurrentUserId)`.
-  5. `AppendEventsAsync`.
+  5. `link.Revoke(callerId)`.
+  6. `AppendEventsAsync`.
 
-#### 6. Handler `RegisterHandler`
+#### 6. Handler `RegisterUserHandler`
 - **Camada**: Application
 - **Tipo**: Handler
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/InvitationLinks/RegisterHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/User/RegisterUserHandler.cs`
 - **Depende de**: Fase 1 · #4, #6, Fase 2 · #4
 - **Spec-ref**: `logic §Convidado (sem conta na Societiza)`, `logic §Convidado (com conta existente)`, `logic §5 "Race condition no último uso"`, `logic §5 "Link expirado sem varredura prévia"`
-- **Detalhes**: `public sealed class ... : ICommandHandler<RegisterCommand, IdentifierResponse>`. Injeções: `IIdentityApplicationService`, `IIdentityProjection<ProjectionModel.InvitationLink>`, `IIdentityProjection<ProjectionModel.User>`, `IPasswordService`.
+- **Detalhes**: `public sealed class ... : ICommandHandler<RegisterUserCommand, IdentifierResponse>`. Injeções: `IIdentityApplicationService`, `IIdentityProjection<ProjectionModel.InvitationLink>`, `IIdentityProjection<ProjectionModel.User>`, `IPasswordService`.
   1. **Lookup do link por token** via projection: `linkProjection.FindAsync(x => x.TokenHash == sha256(cmd.Token) && !x.IsDeleted)`. Se não → `NotFoundError("InvitationLink.NotFound")`.
   2. **Bloqueio de conta existente** (`logic §Convidado com conta existente`): `userProjection.FindAsync(x => x.Email == cmd.Email)`; se existe → `ConflictError("User.AlreadyExists", "Já existe uma conta com esse e-mail.")`.
   3. **Load do aggregate** `LoadAggregateAsync<InvitationLink>(linkProjection.Id)` (fonte de verdade).
@@ -328,11 +330,11 @@ completamente neste ciclo — migrations destrutivas incluídas.**
      - `appService.AppendEventsAsync(user)` e `appService.AppendEventsAsync(link)` — dois aggregates, duas transações sequenciais; ordem importa (link persiste depois para que o evento `InvitationLinkConsumed` saia após o `UserRegistrationCompleted`, garantindo que a projection do User consiga referenciar o link se necessário).
   7. Retorna `Result.Success(new IdentifierResponse(user.Id))`.
 
-#### 7. Validator `RegisterValidator`
+#### 7. Validator `RegisterUserValidator`
 - **Camada**: Application
 - **Tipo**: Validator
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/InvitationLinks/RegisterValidator.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/User/RegisterUserValidator.cs`
 - **Depende de**: Fase 2 · #4
 - **Spec-ref**: `logic §Convidado (sem conta na Societiza)`
 - **Detalhes**: `Token NotEmpty`, `Email NotEmpty + EmailAddress + MaxLength(150)`, `FirstName/LastName NotEmpty + MaxLength(100)`, `Password NotEmpty + MinLength(8) + MaxLength(100)`, `ConfirmPassword Equal(x => x.Password)`.
@@ -341,7 +343,7 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Application
 - **Tipo**: Handler (Query)
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/InvitationLinks/GetInvitationLinkByTokenHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/Invitations/GetInvitationLinkByTokenHandler.cs`
 - **Depende de**: Fase 2 · #5, #6
 - **Spec-ref**: `logic §4` (frontend precisa saber se o link é válido e motivo)
 - **Detalhes**: `public class ... : IQueryHandler<GetInvitationLinkByTokenQuery, InvitationLinkPublicResponse>`. Hash do token → `linkProjection.FindAsync`. Se não existe ou `IsDeleted` → `NotFoundError`. Calcula **status efetivo em tempo real** (`logic §4` "Expiração calculada no momento da validação"): se `Status == Active` mas `ExpiresAt <= UtcNow`, retorna `Status = "Expired"` no response (sem disparar evento aqui — job de expiração cuida da transição persistida). Retorna `new InvitationLinkPublicResponse(TargetRole, effectiveStatus, AccountancyId)`.
@@ -350,11 +352,11 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Application
 - **Tipo**: Handler (Query)
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/InvitationLinks/ListInvitationLinksHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/Invitations/ListInvitationLinksHandler.cs`
 - **Depende de**: Fase 2 · #7, #8
 - **Spec-ref**: `logic §1 "Visualizando links da contabilidade"`, `logic §4 "Isolamento multi-tenant na listagem"`, `logic §5 "AccountancyAdmin tenta ver links de outra contabilidade"`
-- **Detalhes**:
-  - `AccountingAdmin`: força `accountancyId = cmd.CurrentUserAccountancyId` (ignora filtro vindo do cliente); retorna links com `x.AccountancyId == currentAA`.
+- **Detalhes**: injeta `ICurrentUserService`. Resolve `callerRole` e `callerAccountancyId` via `currentUser`.
+  - `AccountingAdmin`: força `accountancyId = callerAccountancyId` (ignora filtro vindo do cliente); retorna links com `x.AccountancyId == callerAccountancyId`.
   - `SystemAdmin` sem `AccountancyId`: retorna apenas links `SA→SA` (tela geral de convites do SystemAdmin — `spec §8`).
   - `SystemAdmin` com `AccountancyId`: retorna links do tenant daquela contabilidade (`AA→AA`, `AA→AE`, `SA→AA` daquele tenant).
   - Filtro `OnlyActive`: `x.Status == "Active"` + `x.ExpiresAt > UtcNow` (cálculo em tempo real, conforme `logic §4`).
@@ -365,10 +367,10 @@ completamente neste ciclo — migrations destrutivas incluídas.**
 - **Camada**: Application
 - **Tipo**: Handler (Query)
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/InvitationLinks/ListUsersByInvitationLinkHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/Invitations/ListUsersByInvitationLinkHandler.cs`
 - **Depende de**: Fase 1 · #8, Fase 2 · #9, #10
 - **Spec-ref**: `spec §1`, `logic §4`
-- **Detalhes**: busca o link na projection. Autoriza acesso: `SystemAdmin` tem acesso aos links `SA→SA` e qualquer link onde `link.AccountancyId` pertence ao contexto que ele está visualizando (aqui, aceita sempre para SystemAdmin); `AccountingAdmin` só se `link.AccountancyId == currentUser.AccountancyId`; demais → `ForbiddenError`. Depois `userProjection.ListAsync(x => x.InvitationLinkId == linkId && !x.IsDeleted)`, ordena por `CreatedAt`, map para `InvitationLinkUserResponse(UserId, FirstName, LastName, Email, JoinedAt=CreatedAt)`.
+- **Detalhes**: injeta `ICurrentUserService`. Resolve `callerRole` e `callerAccountancyId` via `currentUser`. Busca o link na projection. Autoriza acesso: `SystemAdmin` tem acesso aos links `SA→SA` e qualquer link onde `link.AccountancyId` pertence ao contexto que ele está visualizando (aqui, aceita sempre para SystemAdmin); `AccountingAdmin` só se `link.AccountancyId == callerAccountancyId`; demais → `ForbiddenError`. Depois `userProjection.ListAsync(x => x.InvitationLinkId == linkId && !x.IsDeleted)`, ordena por `CreatedAt`, map para `InvitationLinkUserResponse(UserId, FirstName, LastName, Email, JoinedAt=CreatedAt)`.
 
 #### 11. Projection handler — composite `IProjectionInvitationLinkEventHandler`
 - **Camada**: Application
@@ -511,32 +513,32 @@ dotnet ef database update \
   internal const string RevokeInvitationLink    = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}/revoke";
   internal const string ListInvitationLinkUsers = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}/users";
   internal const string GetInvitationLinkByToken = $"{BaseUri}/invitation-link/token/{{token}}";
-  internal const string Register = $"{BaseUri}/invitation-link/register";
+  internal const string RegisterUser = $"{BaseUri}/invitation-link/register";
   ```
 
-#### 2. Implementação cross-module `AccountancyExistenceService`
+#### 2. Implementação cross-module `AccountancyDataService`
 - **Camada**: Web
 - **Tipo**: CrossModuleService
 - **Ação**: criar
-- **Caminho**: `src/Web/Services/CrossModule/AccountancyExistenceService.cs`
+- **Caminho**: `src/Web/Services/CrossModule/AccountancyDataService.cs`
 - **Depende de**: Fase 3 · #1
 - **Spec-ref**: `logic §1 SA→AA`
-- **Detalhes**: `public sealed class AccountancyExistenceService(ISender sender) : IAccountancyExistenceService` com `ExistsAsync(id, ct) => sender.Send(new GetAccountancyDetailByIdQuery(id)).IsSuccess`. Padrão idêntico a `WorkflowTemplateDataService`.
+- **Detalhes**: `public sealed class AccountancyDataService(ISender sender) : IAccountancyDataService` com `ExistsAsync(id, ct) => sender.Send(new GetAccountancyDetailByIdQuery(id)).IsSuccess`. Padrão idêntico a `WorkflowTemplateDataService`.
 
-#### 3. Registrar `IAccountancyExistenceService` em `CrossModuleServicesInstaller`
+#### 3. Registrar `IAccountancyDataService` em `CrossModuleServicesInstaller`
 - **Camada**: Web
 - **Tipo**: DI registration
 - **Ação**: modificar
 - **Caminho**: `src/Web/ServiceInstallers/CrossModule/CrossModuleServicesInstaller.cs`
 - **Depende de**: #2
 - **Spec-ref**: memória `feedback_cross_module_pattern.md`
-- **Detalhes**: adicionar `services.AddScoped<IAccountancyExistenceService, AccountancyExistenceService>();`.
+- **Detalhes**: adicionar `services.AddScoped<IAccountancyDataService, AccountancyDataService>();`.
 
 #### 4. Request `CreateInvitationLinkRequest`
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InvitationLinks/Requests/Commands/CreateInvitationLinkRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/Invitations/Requests/Commands/CreateInvitationLinkRequest.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §1`
 - **Detalhes**: `sealed class` com `string TargetRole = ""`, `Guid? AccountancyId`, `int? MaxUses`. `TargetRole` carrega o `UserRole.Name` que o link emitirá. O `AccountancyId` aqui só faz sentido quando `SystemAdmin` está criando um link com `TargetRole == AccountancyAdmin` (antigo `SA→AA`) — em todos os outros casos o handler ignora o valor do payload.
@@ -545,16 +547,16 @@ dotnet ef database update \
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InvitationLinks/Requests/Commands/RevokeInvitationLinkRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/Invitations/Requests/Commands/RevokeInvitationLinkRequest.cs`
 - **Depende de**: #1
 - **Spec-ref**: —
 - **Detalhes**: `[FromRoute(Name = IdentityRoutes.InvitationLinkId)] public Guid InvitationLinkId { get; set; }`.
 
-#### 6. Request `RegisterRequest`
+#### 6. Request `RegisterUserRequest`
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InvitationLinks/Requests/Commands/RegisterRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/Requests/Commands/RegisterUserRequest.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §Convidado`
 - **Detalhes**: `string Token, Email, FirstName, LastName, Password, ConfirmPassword` — todos FromBody.
@@ -563,7 +565,7 @@ dotnet ef database update \
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InvitationLinks/Requests/Queries/GetInvitationLinkByTokenRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/Invitations/Requests/Queries/GetInvitationLinkByTokenRequest.cs`
 - **Depende de**: #1
 - **Spec-ref**: `logic §4`
 - **Detalhes**: `[FromRoute(Name = "token")] public string Token { get; set; } = "";`.
@@ -572,7 +574,7 @@ dotnet ef database update \
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InvitationLinks/Requests/Queries/ListInvitationLinksRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/Invitations/Requests/Queries/ListInvitationLinksRequest.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: `logic §1, §4`
 - **Detalhes**: `[FromQuery] public bool OnlyActive { get; set; } = true;` + `[FromQuery] public Guid? AccountancyId { get; set; }`.
@@ -581,7 +583,7 @@ dotnet ef database update \
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InvitationLinks/Requests/Queries/ListInvitationLinkUsersRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/Invitations/Requests/Queries/ListInvitationLinkUsersRequest.cs`
 - **Depende de**: #1
 - **Spec-ref**: `spec §1`
 - **Detalhes**: `[FromRoute(Name = IdentityRoutes.InvitationLinkId)] public Guid InvitationLinkId { get; set; }`.
@@ -590,7 +592,7 @@ dotnet ef database update \
 - **Camada**: Web
 - **Tipo**: Endpoint
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/InvitationLinks/*.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/Invitations/*.cs` (exceto `RegisterUserEndpoint`, que fica em `src/Web/Endpoints/Modules/Identity/User/`)
 - **Depende de**: #1 a #9, Fase 3 completa
 - **Spec-ref**: `logic §1`, `logic §4`, `spec §1`
 - **Detalhes**: todos seguindo `/api-design`. Lista:
@@ -601,16 +603,16 @@ dotnet ef database update \
   | `ListInvitationLinksEndpoint` | `ListInvitationLinks` | GET | `[Authorize(Policy = IdentityPolicies.CanManageInvites)]` | `Identity.Invites` |
   | `ListInvitationLinkUsersEndpoint` | `ListInvitationLinkUsers` | GET | `[Authorize(Policy = IdentityPolicies.CanManageInvites)]` | `Identity.Invites` |
   | `GetInvitationLinkByTokenEndpoint` | `GetInvitationLinkByToken` | GET | **público** | `Identity.Invites` |
-  | `RegisterEndpoint` | `Register` | POST | **público** | `Identity.Invites` |
+  | `RegisterUserEndpoint` | `RegisterUser` | POST | **público** | `Identity.User` |
 
   Cada endpoint:
-  - Injeta `ISender` + `ICurrentUserService` (nos protegidos).
-  - No `.Map(...)` transforma `Request` → `Command`/`Query` preenchendo os campos de caller com `currentUser.UserId`, `currentUser.Role`, `currentUser.AccountancyId`.
+  - Injeta `ISender` (nos protegidos, `ICurrentUserService` é resolvido internamente pelo handler — não é injetado no endpoint).
+  - No `.Map(...)` transforma `Request` → `Command`/`Query` apenas com os dados de entrada do domínio (sem campos de caller identity).
   - `Summary`/`Description` em PT seguindo o template de 4 seções (`Propósito`, `**Regras**`, `**Efeitos**`, `**Autorização**`).
   - `[ProducesResponseType]` conforme tabela `/api-design §3`:
     - Create: `200 (CreateInvitationLinkResponse)`, `400`, `401`, `403`, `409`.
     - Revoke: `200`, `400`, `401`, `403`, `404`, `409`.
-    - Register (`RegisterEndpoint`): `200 (IdentifierResponse)`, `400`, `404`, `409`.
+    - RegisterUser (`RegisterUserEndpoint`): `200 (IdentifierResponse)`, `400`, `404`, `409`.
     - List: `200 (List<InvitationLinkDetailResponse>)`, `400`, `401`, `403`.
     - List Users: `200 (List<InvitationLinkUserResponse>)`, `400`, `401`, `403`, `404`.
     - GetByToken: `200 (InvitationLinkPublicResponse)`, `400`, `404`.
@@ -672,7 +674,7 @@ dotnet ef database update \
 - [x] **`RegisterRecurringJobsStartupTask`** — adiciona job `"expire-pending-invitation-links"` (Fase 6 · #13).
 - [x] **`PersistenceServiceInstaller`** — sem alteração em open generics (`IIdentityProjection<>` já registrado cobre `ProjectionModel.InvitationLink`).
 - [ ] **`Web.csproj`** — sem alteração. Nenhum projeto novo.
-- [x] **`CrossModuleServicesInstaller`** — adiciona `AddScoped<IAccountancyExistenceService, AccountancyExistenceService>()` (Fase 6 · #3).
+- [x] **`CrossModuleServicesInstaller`** — adiciona `AddScoped<IAccountancyDataService, AccountancyDataService>()` (Fase 6 · #3).
 - [x] **`StartupTasksServiceInstaller`** — adiciona `AddHostedService<EnsureProjectionIndexesStartupTask>()` (Fase 6 · #14).
 - [x] **`IIdentityProjectionDbContext`** — adiciona `EnsureIndexesAsync(CancellationToken)` com criação do índice parcial único para `InvitationLink` (Fase 4 · #4).
 - [x] **Migration EF** — `AddInvitationLinkAggregate` aplicada (Fase 4 · #3).
