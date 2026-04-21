@@ -25,15 +25,13 @@ public class CreateInvitationLinkHandler(
     IOptions<FrontendOptions> frontendOptions
 ) : ICommandHandler<CreateInvitationLinkCommand, CreateInvitationLinkResponse>
 {
-    public async Task<Result<CreateInvitationLinkResponse>> Handle(
-        CreateInvitationLinkCommand request, CancellationToken cancellationToken)
+    public async Task<Result<CreateInvitationLinkResponse>> Handle(CreateInvitationLinkCommand request, CancellationToken cancellationToken)
     {
         var callerId = currentUser.UserId;
 
         if (!UserRole.TryFromName(currentUser.Role, out var callerRole))
             return Result.Failure<CreateInvitationLinkResponse>(
-                new Error("InvitationLink.ValidationError",
-                    "Invalid caller role."));
+                new Error("InvitationLink.ValidationError", "Invalid caller role."));
 
         var targetRole = UserRole.FromName(request.TargetRole);
 
@@ -44,8 +42,7 @@ public class CreateInvitationLinkHandler(
 
         if (!allowed)
             return Result.Failure<CreateInvitationLinkResponse>(
-                new ForbiddenError(new("InvitationLink.Forbidden",
-                    "You do not have permission to create this type of link.")));
+                new ForbiddenError(new("InvitationLink.Forbidden", "You do not have permission to create this type of link.")));
 
         Guid? accountancyId;
 
@@ -53,8 +50,7 @@ public class CreateInvitationLinkHandler(
         {
             if (request.AccountancyId is not null)
                 return Result.Failure<CreateInvitationLinkResponse>(
-                    new Error("InvitationLink.ValidationError",
-                        "AccountancyId must not be provided for SA→SA links."));
+                    new Error("InvitationLink.ValidationError", "AccountancyId must not be provided for SA→SA links."));
 
             accountancyId = null;
         }
@@ -62,8 +58,7 @@ public class CreateInvitationLinkHandler(
         {
             if (request.AccountancyId is null)
                 return Result.Failure<CreateInvitationLinkResponse>(
-                    new Error("InvitationLink.ValidationError",
-                        "AccountancyId is required for SA→AA links."));
+                    new Error("InvitationLink.ValidationError", "AccountancyId is required for SA→AA links."));
 
             var exists = await accountancyDataService.ExistsAsync(request.AccountancyId.Value, cancellationToken);
 

@@ -5,7 +5,6 @@ using Accountancy.Persistence.Projection;
 using Core.Domain.Projection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Linq.Expressions;
 
 namespace Web.Tests.Modules.Accountancy.Application.Events;
 
@@ -76,36 +75,6 @@ public class ProjectionAccountancyEventHandlerTests
         Assert.Contains("Failed to update accountancy", ex.Message);
     }
 
-    [Fact]
-    public async Task Handle_AccountancyDeleted_CallsUpdateOneFieldAsync()
-    {
-        var @event = CreateAccountancyDeletedEvent();
-
-        await _handler.Handle(@event);
-
-        _accountancyProjection.Verify(x => x.UpdateOneFieldAsync(
-            @event.Id,
-            It.IsAny<Expression<Func<ProjectionModel.Accountancy, bool>>>(),
-            true,
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_AccountancyDeleted_WhenProjectionThrows_ThrowsInvalidOperationException()
-    {
-        _accountancyProjection
-            .Setup(x => x.UpdateOneFieldAsync(
-                It.IsAny<Guid>(),
-                It.IsAny<Expression<Func<ProjectionModel.Accountancy, bool>>>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("DB error"));
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.Handle(CreateAccountancyDeletedEvent()));
-
-        Assert.Contains("Failed to delete accountancy", ex.Message);
-    }
-
     private static DomainEvents.AccountancyCreated CreateAccountancyCreatedEvent() => new(
         Id: Guid.NewGuid(),
         CNPJ: "12345678000195",
@@ -133,8 +102,4 @@ public class ProjectionAccountancyEventHandlerTests
         Email: "updated@test.com",
         UpdatedAt: DateTimeOffset.UtcNow,
         Version: 2);
-
-    private static DomainEvents.AccountancyDeleted CreateAccountancyDeletedEvent() => new(
-        Id: Guid.NewGuid(),
-        Version: 3);
 }

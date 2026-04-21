@@ -209,63 +209,6 @@ public class AccountancyAggregateTests
         Assert.Equal(2UL, accountancy.Version);
     }
 
-    [Fact]
-    public void Update_WhenDeleted_ThrowsAggregateIsDeletedException()
-    {
-        var accountancy = CreateAccountancy();
-        accountancy.TryDequeueEvent(out _);
-        accountancy.Delete();
-        accountancy.TryDequeueEvent(out _);
-
-        Assert.Throws<AggregateIsDeletedException>(() =>
-            accountancy.Update("12345678000195", "Updated Ltda", null, "Rua Nova, 1", "Campinas", "SP", "13010100", "19988888888", null));
-    }
-
-    [Fact]
-    public void Delete_SetsIsDeletedToTrue()
-    {
-        var accountancy = CreateAccountancy();
-        accountancy.TryDequeueEvent(out _);
-
-        accountancy.Delete();
-
-        Assert.True(accountancy.IsDeleted);
-    }
-
-    [Fact]
-    public void Delete_RaisesAccountancyDeletedEvent()
-    {
-        var accountancy = CreateAccountancy();
-        accountancy.TryDequeueEvent(out _);
-
-        accountancy.Delete();
-
-        Assert.True(accountancy.TryDequeueEvent(out var @event));
-        Assert.IsType<DomainEvents.AccountancyDeleted>(@event);
-    }
-
-    [Fact]
-    public void Delete_IncrementsVersion()
-    {
-        var accountancy = CreateAccountancy();
-        accountancy.TryDequeueEvent(out _);
-
-        accountancy.Delete();
-
-        Assert.Equal(2UL, accountancy.Version);
-    }
-
-    [Fact]
-    public void Delete_WhenAlreadyDeleted_ThrowsAggregateIsDeletedException()
-    {
-        var accountancy = CreateAccountancy();
-        accountancy.TryDequeueEvent(out _);
-        accountancy.Delete();
-        accountancy.TryDequeueEvent(out _);
-
-        Assert.Throws<AggregateIsDeletedException>(() => accountancy.Delete());
-    }
-
     private static AccountancyAggregate CreateAccountancy() => AccountancyAggregate.Create(
         cnpj: "12345678000195",
         legalName: "Test Accountancy Ltda",

@@ -57,9 +57,6 @@ public class Accountancy : AggregateRoot
         ));
     }
 
-    public void Delete()
-        => RaiseEvent<DomainEvents.AccountancyDeleted>(version => new(Id: Id, Version: version));
-
     protected override void ApplyEvent(IDomainEvent @event)
         => When(@event as dynamic);
 
@@ -91,6 +88,4 @@ public class Accountancy : AggregateRoot
         UpdatedAt = @event.UpdatedAt;
     }
 
-    private void When(DomainEvents.AccountancyDeleted @event)
-        => IsDeleted = true;
 }

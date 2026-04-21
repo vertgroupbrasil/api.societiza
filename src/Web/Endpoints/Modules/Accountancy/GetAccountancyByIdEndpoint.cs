@@ -2,9 +2,9 @@ using Accountancy.Shared.Queries;
 using Accountancy.Shared.Response;
 using Ardalis.ApiEndpoints;
 using Asp.Versioning;
-using Core.Application.Services.Interfaces;
 using Core.Endpoints.Extensions;
 using Core.Shared.Results;
+using Identity.Application.Policies;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +14,8 @@ using Web.Endpoints.Routes;
 
 namespace Web.Endpoints.Modules.Accountancy;
 
-[Authorize]
-public sealed class GetAccountancyByIdEndpoint(
-    ISender sender,
-    ICurrentUserService currentUser) : EndpointBaseAsync
+[Authorize(Policy = IdentityPolicies.CanManageAccountancies)]
+public sealed class GetAccountancyByIdEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<GetAccountancyByIdRequest>
     .WithActionResult<AccountancyDetailResponse>
 {
@@ -32,25 +30,21 @@ public sealed class GetAccountancyByIdEndpoint(
         OperationId = "GetAccountancyById",
         Summary     = "Obter contabilidade por ID",
         Description = """
-            Retorna os dados completos de uma contabilidade a partir do seu identificador único.
+            Retorna os dados completos de uma contabilidade a partir do seu identificador único. Exclusivo para SystemAdmin.
 
-            **Regras:**
-            - Retorna 404 caso a contabilidade não exista.
-
-            **Efeitos:** Nenhum.
-
-            **Autorização:** SystemAdmin (acessa qualquer contabilidade). Demais roles só acessam a própria contabilidade (claim `accountancy_id`); tentativa em outra contabilidade resulta em 403.
+            **Respostas:**
+            - `200` — contabilidade encontrada; retorna os dados completos.
+            - `400` — identificador inválido ou ausente.
+            - `401` — access token ausente ou inválido.
+            - `403` — usuário sem permissão (requer SystemAdmin).
+            - `404` — contabilidade não encontrada.
             """,
         Tags = [Tags.Accountancy])]
     public override async Task<ActionResult<AccountancyDetailResponse>> HandleAsync(
         GetAccountancyByIdRequest request,
         CancellationToken cancellationToken = default)
-    {
-        currentUser.ResolveAccountancyId(request.Id);
-
-        return await Result.Create(request)
-            .Map(request => new GetAccountancyDetailByIdQuery(request.Id))
+        => await Result.Create(request)
+            .Map(r => new GetAccountancyDetailByIdQuery(r.Id))
             .Bind(query => sender.Send(query, cancellationToken))
             .Match(Ok, this.HandleFailure);
-    }
 }

@@ -3,18 +3,21 @@ using Accountancy.Persistence.Projection;
 using Accountancy.Shared.Queries;
 using Accountancy.Shared.Response;
 using Core.Application.Messaging.Queries;
+using Core.Application.Pagination;
+using Core.Domain.Pagination;
+using Core.Domain.Pagination.Interfaces;
 using Core.Shared.Results;
 
 namespace Accountancy.Application.UseCases.Queries;
 
 public class GetAllAccountanciesHandler(
-    IAccountancyProjection<ProjectionModel.Accountancy> projectionGateway) : IQueryHandler<GetAllAccountanciesQuery, List<AccountancyDetailResponse>>
+    IAccountancyProjection<ProjectionModel.Accountancy> projectionGateway) : IQueryHandler<GetAllAccountanciesQuery, IPagedResult<AccountancyDetailResponse>>
 {
-    public async Task<Result<List<AccountancyDetailResponse>>> Handle(GetAllAccountanciesQuery request, CancellationToken cancellationToken)
+    public async Task<Result<IPagedResult<AccountancyDetailResponse>>> Handle(GetAllAccountanciesQuery request, CancellationToken cancellationToken)
     {
         var accountancies = await projectionGateway.ListAsync(x => !x.IsDeleted, cancellationToken);
 
-        var response = accountancies
+        var ordered = accountancies
             .OrderBy(a => a.LegalName)
             .ThenBy(a => a.CreatedAt)
             .Select(a => new AccountancyDetailResponse(
@@ -30,8 +33,9 @@ public class GetAllAccountanciesHandler(
                 a.Email,
                 a.CreatedAt,
                 a.UpdatedAt))
-            .ToList();
+            .AsQueryable();
 
-        return Result.Success(response);
+        var paging = new Paging(request.PageSize, request.PageNumber);
+        return Result.Success(PagedResult<AccountancyDetailResponse>.Create(paging, ordered));
     }
 }

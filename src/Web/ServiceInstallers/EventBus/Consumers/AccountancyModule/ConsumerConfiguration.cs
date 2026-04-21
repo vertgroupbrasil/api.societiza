@@ -14,6 +14,5 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
     {
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionAccountancyConsumer, AccountancyDomainEvent.AccountancyCreated>(registrationContext, MODULE_NAME);
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionAccountancyConsumer, AccountancyDomainEvent.AccountancyUpdated>(registrationContext, MODULE_NAME);
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionAccountancyConsumer, AccountancyDomainEvent.AccountancyDeleted>(registrationContext, MODULE_NAME);
     }
 }

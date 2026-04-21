@@ -8,8 +8,7 @@ namespace Accountancy.Application.UseCases.Events;
 
 public interface IProjectionAccountancyEventHandler :
     IEventHandler<DomainEvents.AccountancyCreated>,
-    IEventHandler<DomainEvents.AccountancyUpdated>,
-    IEventHandler<DomainEvents.AccountancyDeleted>;
+    IEventHandler<DomainEvents.AccountancyUpdated>;
 
 public class ProjectionAccountancyEventHandler(
     IAccountancyProjection<ProjectionModel.Accountancy> accountancyProjection,
@@ -65,20 +64,4 @@ public class ProjectionAccountancyEventHandler(
         }
     }
 
-    public async Task Handle(DomainEvents.AccountancyDeleted @event, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await accountancyProjection.UpdateOneFieldAsync(
-                @event.Id,
-                x => x.IsDeleted,
-                true,
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to delete accountancy: {Id}.", @event.Id);
-            throw new InvalidOperationException($"Failed to delete accountancy: {@event.Id}.", ex);
-        }
-    }
 }

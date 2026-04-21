@@ -32,12 +32,12 @@ public sealed class CreateAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
         Description = """
             Cadastra uma nova contabilidade no sistema e retorna o identificador criado.
 
-            **Regras:**
-            - O CNPJ é único — retorna 409 caso já exista uma contabilidade com o mesmo CNPJ.
-
-            **Efeitos:** Nenhum.
-
-            **Autorização:** SystemAdmin.
+            **Respostas:**
+            - `200` — contabilidade criada; retorna o identificador gerado.
+            - `400` — dados inválidos ou ausentes.
+            - `401` — access token ausente ou inválido.
+            - `403` — usuário sem permissão (requer SystemAdmin).
+            - `409` — já existe uma contabilidade com o mesmo CNPJ.
             """,
         Tags = [Tags.Accountancy])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(CreateAccountancyRequest request, CancellationToken cancellationToken)

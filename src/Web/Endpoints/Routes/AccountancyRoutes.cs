@@ -8,8 +8,8 @@ internal static class AccountancyRoutes
 
     internal const string CreateAccountancy = $"{BaseUri}";
     internal const string UpdateAccountancy = $"{BaseUri}/{{{AccountancyId}:guid}}";
-    internal const string DeleteAccountancy = $"{BaseUri}/{{{AccountancyId}:guid}}";
 
     internal const string GetAllAccountancies = $"{BaseUri}";
     internal const string GetAccountancyById = $"{BaseUri}/{{{AccountancyId}:guid}}";
+    internal const string GetMyAccountancy = $"{BaseUri}/me";
 }

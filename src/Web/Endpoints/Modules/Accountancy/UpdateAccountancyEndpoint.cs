@@ -31,13 +31,12 @@ public sealed class UpdateAccountancyEndpoint(ISender sender) : EndpointBaseAsyn
         Description = """
             Atualiza os dados cadastrais de uma contabilidade existente.
 
-            **Regras:**
-            - Retorna 404 caso a contabilidade não exista.
-            - Todos os campos editáveis devem ser enviados no corpo.
-
-            **Efeitos:** Nenhum.
-
-            **Autorização:** SystemAdmin.
+            **Respostas:**
+            - `200` — dados atualizados com sucesso.
+            - `400` — dados inválidos ou ausentes; todos os campos editáveis são obrigatórios no corpo.
+            - `401` — access token ausente ou inválido.
+            - `403` — usuário sem permissão (requer SystemAdmin).
+            - `404` — contabilidade não encontrada.
             """,
         Tags = [Tags.Accountancy])]
     public override async Task<ActionResult> HandleAsync(UpdateAccountancyRequest request, CancellationToken cancellationToken = default)

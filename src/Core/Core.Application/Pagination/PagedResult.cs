@@ -1,24 +1,40 @@
-﻿using Core.Domain.Pagination;
+using Core.Domain.Pagination;
 using Core.Domain.Pagination.Interfaces;
-using System.Text.Json.Serialization;
 
 namespace Core.Application.Pagination;
 
-public record PagedResult<TItem>(IReadOnlyCollection<TItem> Items, Paging Paging) : IPagedResult<TItem> where TItem : class
+public record PagedResult<TItem> : IPagedResult<TItem> where TItem : class
 {
-    public Page Page => new Page
+    private readonly bool _hasNextPage;
+    private readonly Paging _paging;
+
+    private PagedResult(IReadOnlyCollection<TItem> items, Paging paging, bool hasNextPage)
     {
-        PageNumber = Paging.Number,
-        PageSize = Paging.Size,
-        HasNextPage = Items.Count > Paging.Size,
-        HasPreviousPage = Paging.Number > 0
+        Items = items;
+        _paging = paging;
+        _hasNextPage = hasNextPage;
+    }
+
+    public IReadOnlyCollection<TItem> Items { get; }
+
+    public Page Page => new()
+    {
+        PageNumber = _paging.Number,
+        PageSize = _paging.Size,
+        HasNextPage = _hasNextPage,
+        HasPreviousPage = _paging.Number > 1
     };
 
-    [JsonIgnore]
-    private Paging Paging { get; } = Paging;
-
     public static IPagedResult<TItem> Create(Paging paging, IQueryable<TItem> source)
-        => new PagedResult<TItem>(ApplyPagination(paging, source)?.ToList(), paging);
+    {
+        var items = ApplyPagination(paging, source).ToList();
+        var hasNextPage = items.Count > paging.Size;
+
+        if (hasNextPage)
+            items = items.Take(paging.Size).ToList();
+
+        return new PagedResult<TItem>(items, paging, hasNextPage);
+    }
 
     private static IQueryable<TItem> ApplyPagination(Paging paging, IQueryable<TItem> source)
         => source.Skip(paging.Size * (paging.Number - 1)).Take(paging.Size + 1);
