@@ -31,7 +31,7 @@ public class ListUsersByInvitationLinkHandler(
             return Result.Failure<List<InvitationLinkUserResponse>>(
                 new NotFoundError(new("InvitationLink.NotFound", "Invitation link not found.")));
 
-        if (callerRole == UserRole.AccountingAdmin)
+        if (callerRole == UserRole.AccountancyAdmin)
         {
             if (link.AccountancyId != currentUser.AccountancyId)
                 return Result.Failure<List<InvitationLinkUserResponse>>(

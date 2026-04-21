@@ -34,14 +34,14 @@ public sealed class CreateInvitationLinkEndpoint(ISender sender) : EndpointBaseA
 
             **Regras:**
             - Apenas um link ativo por escopo (tipo + contabilidade) é permitido — retorna 409 se já existir um ativo.
-            - SystemAdmin pode criar links para SystemAdmin e AccountingAdmin.
-            - AccountingAdmin pode criar links para AccountingAdmin e AccountingEmployee.
-            - `MaxUses` é obrigatório apenas para links com TargetRole AccountingEmployee; para os demais é fixado em 1.
+            - SystemAdmin pode criar links para SystemAdmin e AccountancyAdmin.
+            - AccountancyAdmin pode criar links para AccountancyAdmin e AccountancyEmployee.
+            - `MaxUses` é obrigatório apenas para links com TargetRole AccountancyEmployee; para os demais é fixado em 1.
             - `AccountancyId` deve ser nulo quando o convite for SA→SA; nos demais casos é obrigatório.
 
             **Efeitos:** Nenhum.
 
-            **Autorização:** SystemAdmin ou AccountingAdmin.
+            **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<CreateInvitationLinkResponse>> HandleAsync(

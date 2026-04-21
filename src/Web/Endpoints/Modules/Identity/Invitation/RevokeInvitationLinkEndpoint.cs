@@ -35,11 +35,11 @@ public sealed class RevokeInvitationLinkEndpoint(ISender sender) : EndpointBaseA
             **Regras:**
             - O link deve estar ativo — retorna 409 se já estiver inativo.
             - SystemAdmin pode revogar apenas links SA→SA.
-            - AccountingAdmin pode revogar links do próprio tenant (AA→AA, AA→AE, SA→AA).
+            - AccountancyAdmin pode revogar links do próprio tenant (AA→AA, AA→AE, SA→AA).
 
             **Efeitos:** Nenhum.
 
-            **Autorização:** SystemAdmin ou AccountingAdmin.
+            **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult> HandleAsync(

@@ -34,12 +34,12 @@ public sealed class ListInvitationLinkUsersEndpoint(ISender sender) : EndpointBa
 
             **Regras:**
             - O link deve existir — retorna 404 caso contrário.
-            - AccountingAdmin só pode consultar links do próprio tenant.
+            - AccountancyAdmin só pode consultar links do próprio tenant.
             - SystemAdmin tem acesso a qualquer link.
 
             **Efeitos:** Nenhum.
 
-            **Autorização:** SystemAdmin ou AccountingAdmin.
+            **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<List<InvitationLinkUserResponse>>> HandleAsync(

@@ -35,7 +35,7 @@ public sealed class GetWorkflowTemplateByIdEndpoint(ISender sender) : EndpointBa
 
             **Efeitos:** Nenhum.
 
-            **Autorização:** Requer autenticação. Papéis: SystemAdmin, AccountingAdmin, AccountingEmployee.
+            **Autorização:** Requer autenticação. Papéis: SystemAdmin, AccountancyAdmin, AccountancyEmployee.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult<WorkflowTemplateDetailResponse>> HandleAsync(

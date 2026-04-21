@@ -25,7 +25,7 @@ public class ListInvitationLinksHandler(
         var now = DateTimeOffset.UtcNow;
         List<ProjectionModel.InvitationLink> links;
 
-        if (callerRole == UserRole.AccountingAdmin)
+        if (callerRole == UserRole.AccountancyAdmin)
         {
             var callerAccountancyId = currentUser.AccountancyId;
             links = await linkProjection.ListAsync(

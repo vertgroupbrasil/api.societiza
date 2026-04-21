@@ -71,7 +71,7 @@ public class User : AggregateRoot
             RevokeRefreshToken(token.Id);
     }
 
-    public Guid AddPasswordResetToken(string tokenHash, DateTimeOffset expiresAt)
+    public Guid AddPasswordResetToken(string tokenHash)
     {
         var tokenId = Guid.NewGuid();
 
@@ -79,7 +79,7 @@ public class User : AggregateRoot
             UserId: Id,
             TokenId: tokenId,
             TokenHash: tokenHash,
-            ExpiresAt: expiresAt,
+            ExpiresAt: DateTimeOffset.UtcNow.AddHours(1),
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
         ));

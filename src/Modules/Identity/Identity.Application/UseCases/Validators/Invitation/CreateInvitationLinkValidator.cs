@@ -18,12 +18,12 @@ public sealed class CreateInvitationLinkValidator : AbstractValidator<CreateInvi
             .When(x => x.AccountancyId.HasValue);
 
         RuleFor(x => x.MaxUses)
-            .NotNull().WithMessage("MaxUses is required for AccountingEmployee links")
+            .NotNull().WithMessage("MaxUses is required for AccountancyEmployee links")
             .GreaterThanOrEqualTo(1).WithMessage("MaxUses must be at least 1")
-            .When(x => x.TargetRole == UserRole.AccountingEmployee.Name);
+            .When(x => x.TargetRole == UserRole.AccountancyEmployee.Name);
 
         RuleFor(x => x.MaxUses)
-            .Null().WithMessage("MaxUses must not be provided for SystemAdmin or AccountingAdmin links — limit is fixed to 1")
-            .When(x => UserRole.TryFromName(x.TargetRole, out var role) && role != UserRole.AccountingEmployee);
+            .Null().WithMessage("MaxUses must not be provided for SystemAdmin or AccountancyAdmin links — limit is fixed to 1")
+            .When(x => UserRole.TryFromName(x.TargetRole, out var role) && role != UserRole.AccountancyEmployee);
     }
 }

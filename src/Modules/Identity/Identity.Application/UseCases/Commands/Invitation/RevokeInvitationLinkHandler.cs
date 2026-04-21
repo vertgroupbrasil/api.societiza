@@ -41,10 +41,10 @@ public sealed class RevokeInvitationLinkHandler(
                 return Result.Failure(
                     new ForbiddenError(new("InvitationLink.Forbidden", "SystemAdmin can only revoke SA→SA links.")));
         }
-        else if (callerRole == UserRole.AccountingAdmin)
+        else if (callerRole == UserRole.AccountancyAdmin)
         {
             var canRevoke = link.AccountancyId == currentUser.AccountancyId
-                && (link.TargetRole == UserRole.AccountingAdmin || link.TargetRole == UserRole.AccountingEmployee);
+                && (link.TargetRole == UserRole.AccountancyAdmin || link.TargetRole == UserRole.AccountancyEmployee);
 
             if (!canRevoke)
                 return Result.Failure(

@@ -32,13 +32,13 @@ public sealed class ListInvitationLinksEndpoint(ISender sender) : EndpointBaseAs
             Retorna os links de convite visíveis para o usuário autenticado, ordenados do mais recente para o mais antigo.
 
             **Regras:**
-            - AccountingAdmin visualiza apenas links do próprio tenant.
+            - AccountancyAdmin visualiza apenas links do próprio tenant.
             - SystemAdmin sem AccountancyId visualiza links SA→SA; com AccountancyId visualiza links do tenant daquela contabilidade.
             - OnlyActive=true (padrão) filtra apenas links ativos e não expirados.
 
             **Efeitos:** Nenhum.
 
-            **Autorização:** SystemAdmin ou AccountingAdmin.
+            **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<List<InvitationLinkDetailResponse>>> HandleAsync(

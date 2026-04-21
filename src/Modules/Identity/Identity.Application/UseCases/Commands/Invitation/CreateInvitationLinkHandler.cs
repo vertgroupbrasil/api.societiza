@@ -38,9 +38,9 @@ public class CreateInvitationLinkHandler(
         var targetRole = UserRole.FromName(request.TargetRole);
 
         var allowed = (callerRole == UserRole.SystemAdmin
-            && (targetRole == UserRole.SystemAdmin || targetRole == UserRole.AccountingAdmin))
-            || (callerRole == UserRole.AccountingAdmin
-            && (targetRole == UserRole.AccountingAdmin || targetRole == UserRole.AccountingEmployee));
+            && (targetRole == UserRole.SystemAdmin || targetRole == UserRole.AccountancyAdmin))
+            || (callerRole == UserRole.AccountancyAdmin
+            && (targetRole == UserRole.AccountancyAdmin || targetRole == UserRole.AccountancyEmployee));
 
         if (!allowed)
             return Result.Failure<CreateInvitationLinkResponse>(
@@ -58,7 +58,7 @@ public class CreateInvitationLinkHandler(
 
             accountancyId = null;
         }
-        else if (targetRole == UserRole.AccountingAdmin && callerRole == UserRole.SystemAdmin)
+        else if (targetRole == UserRole.AccountancyAdmin && callerRole == UserRole.SystemAdmin)
         {
             if (request.AccountancyId is null)
                 return Result.Failure<CreateInvitationLinkResponse>(
@@ -80,7 +80,7 @@ public class CreateInvitationLinkHandler(
 
         int maxUses;
 
-        if (targetRole == UserRole.SystemAdmin || targetRole == UserRole.AccountingAdmin)
+        if (targetRole == UserRole.SystemAdmin || targetRole == UserRole.AccountancyAdmin)
         {
             maxUses = 1;
         }

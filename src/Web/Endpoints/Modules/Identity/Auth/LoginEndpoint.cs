@@ -22,7 +22,6 @@ public sealed class LoginEndpoint(ISender sender, IHttpContextAccessor httpConte
     [HttpPost(IdentityRoutes.Login)]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [SwaggerOperation(
         OperationId = "Login",
         Summary     = "Fazer login",
@@ -31,8 +30,7 @@ public sealed class LoginEndpoint(ISender sender, IHttpContextAccessor httpConte
 
             **Respostas:**
             - `200` — autenticação bem-sucedida; use `accessToken` no header `Authorization: Bearer`.
-            - `400` — corpo inválido (campos ausentes ou malformados).
-            - `401` — credenciais incorretas ou usuário inexistente.
+            - `400` — corpo inválido (campos ausentes ou malformados) ou credenciais incorretas/usuário inexistente.
 
             **Cookie `refresh_token`:** gerenciado automaticamente pelo browser. Use `POST /refresh` para renovar o access token sem reautenticar.
             """,
