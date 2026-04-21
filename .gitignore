@@ -5,6 +5,10 @@
 # Claude Code — local-only settings (contains machine-specific permissions)
 .claude/settings.local.json
 
+# Codex Code — local-only settings (contains machine-specific permissions)
+AGENTS.md
+.agents/
+
 # Backup files
 *.backup
 *.bak

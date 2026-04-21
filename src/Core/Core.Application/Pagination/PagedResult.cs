@@ -5,37 +5,56 @@ namespace Core.Application.Pagination;
 
 public record PagedResult<TItem> : IPagedResult<TItem> where TItem : class
 {
-    private readonly bool _hasNextPage;
+    private readonly int _totalCount;
     private readonly Paging _paging;
 
-    private PagedResult(IReadOnlyCollection<TItem> items, Paging paging, bool hasNextPage)
+    private PagedResult(IReadOnlyCollection<TItem> items, Paging paging, int totalCount)
     {
         Items = items;
         _paging = paging;
-        _hasNextPage = hasNextPage;
+        _totalCount = totalCount;
     }
 
     public IReadOnlyCollection<TItem> Items { get; }
 
-    public Page Page => new()
+    public Page Page
     {
-        PageNumber = _paging.Number,
-        PageSize = _paging.Size,
-        HasNextPage = _hasNextPage,
-        HasPreviousPage = _paging.Number > 1
-    };
+        get
+        {
+            var totalPages = _paging.Size > 0
+                ? (int)Math.Ceiling((double)_totalCount / _paging.Size)
+                : 0;
+
+            return new()
+            {
+                PageNumber = _paging.Number,
+                PageSize = _paging.Size,
+                HasNextPage = _paging.Number < totalPages,
+                HasPreviousPage = _paging.Number > 1,
+                TotalCount = _totalCount,
+                TotalPages = totalPages
+            };
+        }
+    }
 
     public static IPagedResult<TItem> Create(Paging paging, IQueryable<TItem> source)
     {
-        var items = ApplyPagination(paging, source).ToList();
-        var hasNextPage = items.Count > paging.Size;
+        var totalCount = source.Count();
+        var items = source
+            .Skip(paging.Size * (paging.Number - 1))
+            .Take(paging.Size)
+            .ToList();
 
-        if (hasNextPage)
-            items = items.Take(paging.Size).ToList();
-
-        return new PagedResult<TItem>(items, paging, hasNextPage);
+        return new PagedResult<TItem>(items, paging, totalCount);
     }
 
-    private static IQueryable<TItem> ApplyPagination(Paging paging, IQueryable<TItem> source)
-        => source.Skip(paging.Size * (paging.Number - 1)).Take(paging.Size + 1);
+    public static IPagedResult<TItem> Create(Paging paging, IQueryable<TItem> source, int totalCount)
+    {
+        var items = source
+            .Skip(paging.Size * (paging.Number - 1))
+            .Take(paging.Size)
+            .ToList();
+
+        return new PagedResult<TItem>(items, paging, totalCount);
+    }
 }

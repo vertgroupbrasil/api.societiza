@@ -6,4 +6,6 @@ public record Page
     public int PageSize { get; init; } = 10;
     public bool HasNextPage { get; init; }
     public bool HasPreviousPage { get; init; }
+    public int TotalCount { get; init; }
+    public int TotalPages { get; init; }
 }
