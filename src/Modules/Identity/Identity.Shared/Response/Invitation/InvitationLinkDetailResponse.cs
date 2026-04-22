@@ -10,5 +10,6 @@ public sealed record InvitationLinkDetailResponse(
     int Uses,
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt,
-    DateTimeOffset? UpdatedAt
+    DateTimeOffset? UpdatedAt,
+    string Url
 );

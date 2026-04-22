@@ -44,9 +44,7 @@ public sealed class CreateInvitationLinkEndpoint(ISender sender) : EndpointBaseA
             **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
-    public override async Task<ActionResult<CreateInvitationLinkResponse>> HandleAsync(
-        CreateInvitationLinkRequest request,
-        CancellationToken cancellationToken = default)
+    public override async Task<ActionResult<CreateInvitationLinkResponse>> HandleAsync(CreateInvitationLinkRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(r => new CreateInvitationLinkCommand(r.TargetRole, r.AccountancyId, r.MaxUses))
             .Bind(command => sender.Send(command, cancellationToken))

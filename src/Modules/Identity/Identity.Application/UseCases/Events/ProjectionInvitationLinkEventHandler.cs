@@ -10,8 +10,7 @@ public interface IProjectionInvitationLinkEventHandler :
     IEventHandler<DomainEvents.InvitationLinkCreated>,
     IEventHandler<DomainEvents.InvitationLinkConsumed>,
     IEventHandler<DomainEvents.InvitationLinkExhausted>,
-    IEventHandler<DomainEvents.InvitationLinkExpired>,
-    IEventHandler<DomainEvents.InvitationLinkRevoked>;
+    IEventHandler<DomainEvents.InvitationLinkExpired>;
 
 public class ProjectionInvitationLinkEventHandler(
     IIdentityProjection<ProjectionModel.InvitationLink> linkProjection,
@@ -28,6 +27,7 @@ public class ProjectionInvitationLinkEventHandler(
                 @event.Status,
                 @event.AccountancyId,
                 @event.CreatedByUserId,
+                @event.Token,
                 @event.TokenHash,
                 @event.MaxUses,
                 Uses: 0,
@@ -115,32 +115,6 @@ public class ProjectionInvitationLinkEventHandler(
         {
             logger.LogError(ex, "Failed to project invitation link expiration: {Id}.", @event.Id);
             throw new InvalidOperationException($"Failed to project invitation link expiration: {@event.Id}.", ex);
-        }
-    }
-
-    public async Task Handle(DomainEvents.InvitationLinkRevoked @event, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var existing = await linkProjection.FindAsync(x => x.Id == @event.Id, cancellationToken);
-
-            if (existing is null)
-            {
-                logger.LogWarning("Invitation link projection not found for revocation: {Id}.", @event.Id);
-                return;
-            }
-
-            await linkProjection.ReplaceInsertAsync(existing with
-            {
-                Status = @event.Status,
-                RevokedByUserId = @event.RevokedByUserId,
-                UpdatedAt = @event.UpdatedAt
-            }, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to project invitation link revocation: {Id}.", @event.Id);
-            throw new InvalidOperationException($"Failed to project invitation link revocation: {@event.Id}.", ex);
         }
     }
 }

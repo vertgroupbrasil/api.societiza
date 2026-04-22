@@ -12,6 +12,7 @@ public static class DomainEvents
         string Status,
         Guid? AccountancyId,
         Guid CreatedByUserId,
+        string Token,
         string TokenHash,
         int MaxUses,
         DateTimeOffset ExpiresAt,
@@ -38,14 +39,6 @@ public static class DomainEvents
     public sealed record InvitationLinkExpired(
         Guid Id,
         string Status,
-        DateTimeOffset UpdatedAt,
-        ulong Version
-    ) : Message, IDomainEvent;
-
-    public sealed record InvitationLinkRevoked(
-        Guid Id,
-        string Status,
-        Guid RevokedByUserId,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;

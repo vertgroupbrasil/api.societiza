@@ -99,7 +99,7 @@ public class CreateInvitationLinkHandler(
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
 
-        var link = InvitationLinkAggregate.Create(targetRole, accountancyId, callerId, tokenHash, maxUses);
+        var link = InvitationLinkAggregate.Create(targetRole, accountancyId, callerId, rawToken, tokenHash, maxUses);
         await applicationService.AppendEventsAsync(link, cancellationToken);
 
         var url = $"{frontendOptions.Value.BaseUrl}/auth/join?token={rawToken}";

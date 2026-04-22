@@ -15,22 +15,22 @@ using Web.Endpoints.Routes;
 namespace Web.Endpoints.Modules.Identity.Invitation;
 
 [Authorize(Policy = IdentityPolicies.CanManageInvites)]
-public sealed class ListInvitationLinkUsersEndpoint(ISender sender) : EndpointBaseAsync
-    .WithRequest<ListInvitationLinkUsersRequest>
-    .WithActionResult<List<InvitationLinkUserResponse>>
+public sealed class GetInvitationLinkByIdEndpoint(ISender sender) : EndpointBaseAsync
+    .WithRequest<GetInvitationLinkByIdRequest>
+    .WithActionResult<InvitationLinkByIdResponse>
 {
     [ApiVersion("1.0")]
-    [HttpGet(IdentityRoutes.ListInvitationLinkUsers)]
-    [ProducesResponseType(typeof(List<InvitationLinkUserResponse>), StatusCodes.Status200OK)]
+    [HttpGet(IdentityRoutes.GetInvitationLinkById)]
+    [ProducesResponseType(typeof(InvitationLinkByIdResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
-        OperationId = "ListInvitationLinkUsers",
-        Summary     = "Listar usuários de um link de convite",
+        OperationId = "GetInvitationLinkById",
+        Summary     = "Obter link de convite por ID",
         Description = """
-            Retorna os usuários que se cadastraram através de um link de convite específico, ordenados por data de cadastro.
+            Retorna os dados de um link de convite específico e a lista de usuários que se cadastraram através dele.
 
             **Regras:**
             - O link deve existir — retorna 404 caso contrário.
@@ -42,11 +42,9 @@ public sealed class ListInvitationLinkUsersEndpoint(ISender sender) : EndpointBa
             **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
-    public override async Task<ActionResult<List<InvitationLinkUserResponse>>> HandleAsync(
-        ListInvitationLinkUsersRequest request,
-        CancellationToken cancellationToken = default)
+    public override async Task<ActionResult<InvitationLinkByIdResponse>> HandleAsync(GetInvitationLinkByIdRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
-            .Map(r => new ListUsersByInvitationLinkQuery(r.InvitationLinkId))
+            .Map(r => new GetInvitationLinkByIdQuery(r.InvitationLinkId))
             .Bind(query => sender.Send(query, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

@@ -10,14 +10,14 @@ public class InvitationLink : AggregateRoot
     public UserRole TargetRole { get; private set; } = default!;
     public Guid? AccountancyId { get; private set; }
     public Guid CreatedByUserId { get; private set; }
+    public string Token { get; private set; } = string.Empty;
     public string TokenHash { get; private set; } = string.Empty;
     public int MaxUses { get; private set; }
     public int Uses { get; private set; }
     public InvitationLinkStatus Status { get; private set; } = default!;
     public DateTimeOffset ExpiresAt { get; private set; }
-    public Guid? RevokedByUserId { get; private set; }
 
-    public static InvitationLink Create(UserRole targetRole, Guid? accountancyId, Guid createdByUserId, string tokenHash, int maxUses)
+    public static InvitationLink Create(UserRole targetRole, Guid? accountancyId, Guid createdByUserId, string token, string tokenHash, int maxUses)
     {
         var link = new InvitationLink();
 
@@ -27,6 +27,7 @@ public class InvitationLink : AggregateRoot
             Status: InvitationLinkStatus.Active.Name,
             AccountancyId: accountancyId,
             CreatedByUserId: createdByUserId,
+            Token: token,
             TokenHash: tokenHash,
             MaxUses: maxUses,
             ExpiresAt: DateTimeOffset.UtcNow.AddDays(7),
@@ -74,19 +75,6 @@ public class InvitationLink : AggregateRoot
         ));
     }
 
-    public void Revoke(Guid revokedByUserId)
-    {
-        var now = DateTimeOffset.UtcNow;
-
-        RaiseEvent<DomainEvents.InvitationLinkRevoked>(version => new(
-            Id: Id,
-            Status: InvitationLinkStatus.Revoked.Name,
-            RevokedByUserId: revokedByUserId,
-            UpdatedAt: now,
-            Version: version
-        ));
-    }
-
     public bool IsUsable()
         => Status == InvitationLinkStatus.Active
         && Uses < MaxUses
@@ -102,6 +90,7 @@ public class InvitationLink : AggregateRoot
         Status = InvitationLinkStatus.FromName(@event.Status);
         AccountancyId = @event.AccountancyId;
         CreatedByUserId = @event.CreatedByUserId;
+        Token = @event.Token;
         TokenHash = @event.TokenHash;
         MaxUses = @event.MaxUses;
         Uses = 0;
@@ -123,13 +112,6 @@ public class InvitationLink : AggregateRoot
     private void When(DomainEvents.InvitationLinkExpired @event)
     {
         Status = InvitationLinkStatus.FromName(@event.Status);
-        UpdatedAt = @event.UpdatedAt;
-    }
-
-    private void When(DomainEvents.InvitationLinkRevoked @event)
-    {
-        Status = InvitationLinkStatus.FromName(@event.Status);
-        RevokedByUserId = @event.RevokedByUserId;
         UpdatedAt = @event.UpdatedAt;
     }
 }

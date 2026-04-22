@@ -3,6 +3,4 @@ using Identity.Shared.Response.Invitation;
 
 namespace Identity.Shared.Queries.Invitation;
 
-public sealed record GetInvitationLinkByTokenQuery(
-    string Token
-) : IQuery<InvitationLinkPublicResponse>;
+public sealed record GetInvitationLinkByIdQuery(Guid InvitationLinkId) : IQuery<InvitationLinkByIdResponse>;

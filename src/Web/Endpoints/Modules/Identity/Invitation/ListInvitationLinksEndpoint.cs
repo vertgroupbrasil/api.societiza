@@ -41,9 +41,7 @@ public sealed class ListInvitationLinksEndpoint(ISender sender) : EndpointBaseAs
             **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
-    public override async Task<ActionResult<List<InvitationLinkDetailResponse>>> HandleAsync(
-        ListInvitationLinksRequest request,
-        CancellationToken cancellationToken = default)
+    public override async Task<ActionResult<List<InvitationLinkDetailResponse>>> HandleAsync(ListInvitationLinksRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
             .Map(r => new ListInvitationLinksQuery(r.OnlyActive, r.AccountancyId))
             .Bind(query => sender.Send(query, cancellationToken))

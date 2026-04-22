@@ -23,13 +23,13 @@ public static class ProjectionModel
         string Status,
         Guid? AccountancyId,
         Guid CreatedByUserId,
+        string Token,
         string TokenHash,
         int MaxUses,
         int Uses,
         DateTimeOffset ExpiresAt,
         DateTimeOffset CreatedAt,
         DateTimeOffset? UpdatedAt,
-        Guid? RevokedByUserId = null,
         bool IsDeleted = false
     ) : IProjectionModel;
 

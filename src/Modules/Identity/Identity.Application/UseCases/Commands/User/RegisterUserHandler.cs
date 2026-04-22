@@ -82,9 +82,6 @@ public sealed class RegisterUserHandler(
         if (link.Status == InvitationLinkStatus.Exhausted)
             return ("InvitationLink.Exhausted", "This invitation link has reached its maximum number of uses.");
 
-        if (link.Status == InvitationLinkStatus.Revoked)
-            return ("InvitationLink.Revoked", "This invitation link has been revoked.");
-
         return ("InvitationLink.NotUsable", "This invitation link is no longer valid.");
     }
 }

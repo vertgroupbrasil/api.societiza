@@ -47,8 +47,5 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
 
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionInvitationLinkConsumer,
             IdentityDomainEvent.InvitationLinkExpired>(registrationContext, MODULE_NAME);
-
-        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionInvitationLinkConsumer,
-            IdentityDomainEvent.InvitationLinkRevoked>(registrationContext, MODULE_NAME);
     }
 }

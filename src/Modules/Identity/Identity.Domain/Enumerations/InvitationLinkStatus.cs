@@ -8,7 +8,6 @@ public class InvitationLinkStatus(string name, int value) : SmartEnum<Invitation
 {
     public static readonly InvitationLinkStatus Active    = new ActiveStatus();
     public static readonly InvitationLinkStatus Expired   = new ExpiredStatus();
-    public static readonly InvitationLinkStatus Revoked   = new RevokedStatus();
     public static readonly InvitationLinkStatus Exhausted = new ExhaustedStatus();
 
     public static implicit operator InvitationLinkStatus(string name)
@@ -25,6 +24,5 @@ public class InvitationLinkStatus(string name, int value) : SmartEnum<Invitation
 
     public class ActiveStatus()    : InvitationLinkStatus(nameof(Active),    0) { }
     public class ExpiredStatus()   : InvitationLinkStatus(nameof(Expired),   1) { }
-    public class RevokedStatus()   : InvitationLinkStatus(nameof(Revoked),   2) { }
     public class ExhaustedStatus() : InvitationLinkStatus(nameof(Exhausted), 3) { }
 }

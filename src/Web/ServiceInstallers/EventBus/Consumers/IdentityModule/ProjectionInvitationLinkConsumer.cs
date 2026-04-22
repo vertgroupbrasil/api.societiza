@@ -8,8 +8,7 @@ public class ProjectionInvitationLinkConsumer(IProjectionInvitationLinkEventHand
     IConsumer<DomainEvents.InvitationLinkCreated>,
     IConsumer<DomainEvents.InvitationLinkConsumed>,
     IConsumer<DomainEvents.InvitationLinkExhausted>,
-    IConsumer<DomainEvents.InvitationLinkExpired>,
-    IConsumer<DomainEvents.InvitationLinkRevoked>
+    IConsumer<DomainEvents.InvitationLinkExpired>
 {
     public Task Consume(ConsumeContext<DomainEvents.InvitationLinkCreated> context)
         => eventHandler.Handle(context.Message, context.CancellationToken);
@@ -21,8 +20,5 @@ public class ProjectionInvitationLinkConsumer(IProjectionInvitationLinkEventHand
         => eventHandler.Handle(context.Message, context.CancellationToken);
 
     public Task Consume(ConsumeContext<DomainEvents.InvitationLinkExpired> context)
-        => eventHandler.Handle(context.Message, context.CancellationToken);
-
-    public Task Consume(ConsumeContext<DomainEvents.InvitationLinkRevoked> context)
         => eventHandler.Handle(context.Message, context.CancellationToken);
 }

@@ -14,12 +14,9 @@ internal static class IdentityRoutes
     // Invitation Links
     internal const string InvitationLinkId = "invitationLinkId";
 
-    internal const string CreateInvitationLink = $"{BaseUri}/invitation-link";
-    internal const string RevokeInvitationLink = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}/revoke";
-
-    internal const string GetInvitationLinkByToken = $"{BaseUri}/invitation-link/token/{{token}}";
-    internal const string ListInvitationLinks = $"{BaseUri}/invitation-link";
-    internal const string ListInvitationLinkUsers = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}/users";
+    internal const string CreateInvitationLink    = $"{BaseUri}/invitation-link";
+    internal const string ListInvitationLinks     = $"{BaseUri}/invitation-link";
+    internal const string GetInvitationLinkById   = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}";
 
     internal const string Register = $"{BaseUri}/invitation-link/register";
 }
