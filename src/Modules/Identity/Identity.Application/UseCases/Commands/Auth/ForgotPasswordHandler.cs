@@ -42,7 +42,7 @@ public sealed class ForgotPasswordHandler(
         user.AddPasswordResetToken(tokenHash);
         await applicationService.AppendEventsAsync(user, cancellationToken);
 
-        var resetLink = $"{frontendOptions.Value.BaseUrl}/auth/reset-password?token={rawToken}";
+        var resetLink = $"{frontendOptions.Value.BaseUrl}/auth/reset-password?token={Uri.EscapeDataString(rawToken)}";
 
         jobScheduler.Enqueue(new SendPasswordResetEmailCommand(
             ToEmail: request.Email,

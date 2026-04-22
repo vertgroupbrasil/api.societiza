@@ -21,7 +21,8 @@ public sealed class ResetPasswordHandler(
 {
     public async Task<Result> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
     {
-        var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(request.Token)));
+        var rawToken = Uri.UnescapeDataString(request.Token);
+        var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
         var tokenProjectionModel = await passwordResetTokenProjection.FindAsync(x => x.TokenHash == tokenHash, cancellationToken);
 
         if (tokenProjectionModel is null)
