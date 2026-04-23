@@ -30,18 +30,21 @@ public sealed class CreateInvitationLinkEndpoint(ISender sender) : EndpointBaseA
         OperationId = "CreateInvitationLink",
         Summary     = "Criar link de convite",
         Description = """
-            Cria um link de convite reutilizável com validade de 7 dias.
+            Cria um link de convite reutilizável com validade de 7 dias e retorna o token gerado.
 
             **Regras:**
             - Apenas um link ativo por escopo (tipo + contabilidade) é permitido — retorna 409 se já existir um ativo.
             - SystemAdmin pode criar links para SystemAdmin e AccountancyAdmin.
             - AccountancyAdmin pode criar links para AccountancyAdmin e AccountancyEmployee.
             - `MaxUses` é obrigatório apenas para links com TargetRole AccountancyEmployee; para os demais é fixado em 1.
-            - `AccountancyId` deve ser nulo quando o convite for SA→SA; nos demais casos é obrigatório.
+            - `AccountancyId` deve ser nulo quando o convite for SA→SA; obrigatório quando for SA→AA; ignorado quando o criador for AccountancyAdmin (o sistema utiliza a contabilidade do usuário autenticado).
 
-            **Efeitos:** Nenhum.
-
-            **Autorização:** SystemAdmin ou AccountancyAdmin.
+            **Respostas:**
+            - `200` — link criado; retorna o identificador e o token gerado.
+            - `400` — dados inválidos ou ausentes.
+            - `401` — access token ausente ou inválido.
+            - `403` — usuário sem permissão (requer SystemAdmin ou AccountancyAdmin).
+            - `409` — já existe um link ativo para o mesmo escopo (tipo + contabilidade).
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<CreateInvitationLinkResponse>> HandleAsync(CreateInvitationLinkRequest request, CancellationToken cancellationToken = default)

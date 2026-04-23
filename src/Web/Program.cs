@@ -111,6 +111,14 @@ builder.Services.AddAuthentication("Bearer")
 
                 if (!userResult.IsSuccess || userResult.Value.SecurityStamp.ToString() != stamp)
                     context.Fail("Token has been invalidated.");
+            },
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var error = context.AuthenticateFailure?.Message ?? "Unauthorized";
+                return context.Response.WriteAsync($"{{\"error\":\"{error}\"}}");
             }
         };
     });

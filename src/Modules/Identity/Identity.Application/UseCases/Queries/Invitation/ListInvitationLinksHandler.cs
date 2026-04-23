@@ -1,5 +1,8 @@
 using Core.Application.Messaging.Queries;
+using Core.Application.Pagination;
 using Core.Application.Services.Interfaces;
+using Core.Domain.Pagination;
+using Core.Domain.Pagination.Interfaces;
 using Core.Infrastructure.Options;
 using Core.Shared.Errors;
 using Core.Shared.Results;
@@ -16,12 +19,12 @@ public class ListInvitationLinksHandler(
     IIdentityProjection<ProjectionModel.InvitationLink> linkProjection,
     ICurrentUserService currentUser,
     IOptions<FrontendOptions> frontendOptions
-) : IQueryHandler<ListInvitationLinksQuery, List<InvitationLinkDetailResponse>>
+) : IQueryHandler<ListInvitationLinksQuery, IPagedResult<InvitationLinkDetailResponse>>
 {
-    public async Task<Result<List<InvitationLinkDetailResponse>>> Handle(ListInvitationLinksQuery request, CancellationToken cancellationToken)
+    public async Task<Result<IPagedResult<InvitationLinkDetailResponse>>> Handle(ListInvitationLinksQuery request, CancellationToken cancellationToken)
     {
         if (!UserRole.TryFromName(currentUser.Role, out var callerRole))
-            return Result.Failure<List<InvitationLinkDetailResponse>>(
+            return Result.Failure<IPagedResult<InvitationLinkDetailResponse>>(
                 new Error("InvitationLink.ValidationError", "Invalid caller role."));
 
         var now = DateTimeOffset.UtcNow;
@@ -34,17 +37,13 @@ public class ListInvitationLinksHandler(
         else if (callerRole == UserRole.SystemAdmin)
         {
             if (request.AccountancyId is null)
-            {
                 links = await linkProjection.ListAsync(x => x.TargetRole == UserRole.SystemAdmin.Name && !x.IsDeleted, cancellationToken);
-            } 
             else
-            {
                 links = await linkProjection.ListAsync(x => x.AccountancyId == request.AccountancyId && !x.IsDeleted, cancellationToken);
-            }
         }
         else
         {
-            return Result.Failure<List<InvitationLinkDetailResponse>>(
+            return Result.Failure<IPagedResult<InvitationLinkDetailResponse>>(
                 new ForbiddenError(new("InvitationLink.Forbidden", "You do not have permission to list invitation links.")));
         }
 
@@ -53,7 +52,7 @@ public class ListInvitationLinksHandler(
 
         var baseUrl = frontendOptions.Value.BaseUrl;
 
-        var response = links
+        var ordered = links
             .OrderByDescending(x => x.Status == InvitationLinkStatus.Active.Name && x.ExpiresAt > now)
             .ThenByDescending(x => x.CreatedAt)
             .Select(x => new InvitationLinkDetailResponse(
@@ -68,8 +67,9 @@ public class ListInvitationLinksHandler(
                 x.ExpiresAt,
                 x.UpdatedAt,
                 Url: $"{baseUrl}/auth/join?token={x.Token}"))
-            .ToList();
+            .AsQueryable();
 
-        return Result.Success(response);
+        var paging = new Paging(request.PageSize, request.PageNumber);
+        return Result.Success(PagedResult<InvitationLinkDetailResponse>.Create(paging, ordered));
     }
 }

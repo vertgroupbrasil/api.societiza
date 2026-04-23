@@ -33,13 +33,15 @@ public sealed class GetInvitationLinkByIdEndpoint(ISender sender) : EndpointBase
             Retorna os dados de um link de convite específico e a lista de usuários que se cadastraram através dele.
 
             **Regras:**
-            - O link deve existir — retorna 404 caso contrário.
             - AccountancyAdmin só pode consultar links do próprio tenant.
             - SystemAdmin tem acesso a qualquer link.
 
-            **Efeitos:** Nenhum.
-
-            **Autorização:** SystemAdmin ou AccountancyAdmin.
+            **Respostas:**
+            - `200` — link encontrado; retorna os dados completos e os usuários registrados pelo link.
+            - `400` — identificador inválido ou ausente.
+            - `401` — access token ausente ou inválido.
+            - `403` — usuário sem permissão (requer SystemAdmin ou AccountancyAdmin).
+            - `404` — link de convite não encontrado.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<InvitationLinkByIdResponse>> HandleAsync(GetInvitationLinkByIdRequest request, CancellationToken cancellationToken = default)

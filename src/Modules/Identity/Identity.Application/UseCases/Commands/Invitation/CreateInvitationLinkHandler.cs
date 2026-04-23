@@ -54,7 +54,7 @@ public class CreateInvitationLinkHandler(
 
             accountancyId = null;
         }
-        else if (targetRole == UserRole.AccountancyAdmin && callerRole == UserRole.SystemAdmin)
+        else if (callerRole == UserRole.SystemAdmin && targetRole == UserRole.AccountancyAdmin)
         {
             if (request.AccountancyId is null)
                 return Result.Failure<CreateInvitationLinkResponse>(
