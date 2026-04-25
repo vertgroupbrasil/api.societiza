@@ -117,6 +117,43 @@ public class User : AggregateRoot
         ));
     }
 
+    public void UpdateName(string firstName, string lastName)
+    {
+        RaiseEvent<DomainEvents.UserNameUpdated>(version => new(
+            UserId: Id,
+            FirstName: firstName,
+            LastName: lastName,
+            UpdatedAt: DateTimeOffset.UtcNow,
+            Version: version
+        ));
+    }
+
+    public void PromoteToAccountancyAdmin(Guid promotedBy)
+    {
+        RaiseEvent<DomainEvents.UserPromotedToAccountancyAdmin>(version => new(
+            UserId: Id,
+            AccountancyId: AccountancyId!.Value,
+            Role: UserRole.AccountancyAdmin.Name,
+            PromotedBy: promotedBy,
+            PromotedAt: DateTimeOffset.UtcNow,
+            Version: version
+        ));
+    }
+
+    public void Delete(Guid deletedBy)
+    {
+        RevokeAllRefreshTokens();
+        RegenerateSecurityStamp();
+
+        RaiseEvent<DomainEvents.UserDeleted>(version => new(
+            UserId: Id,
+            AccountancyId: AccountancyId,
+            DeletedBy: deletedBy,
+            DeletedAt: DateTimeOffset.UtcNow,
+            Version: version
+        ));
+    }
+
     protected override void ApplyEvent(IDomainEvent @event)
         => When(@event as dynamic);
 
@@ -160,5 +197,24 @@ public class User : AggregateRoot
     {
         SecurityStamp = @event.SecurityStamp;
         UpdatedAt = @event.UpdatedAt;
+    }
+
+    private void When(DomainEvents.UserNameUpdated @event)
+    {
+        FirstName = @event.FirstName;
+        LastName = @event.LastName;
+        UpdatedAt = @event.UpdatedAt;
+    }
+
+    private void When(DomainEvents.UserPromotedToAccountancyAdmin @event)
+    {
+        Role = UserRole.FromName(@event.Role);
+        UpdatedAt = @event.PromotedAt;
+    }
+
+    private void When(DomainEvents.UserDeleted @event)
+    {
+        IsDeleted = true;
+        UpdatedAt = @event.DeletedAt;
     }
 }

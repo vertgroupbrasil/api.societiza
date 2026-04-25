@@ -104,5 +104,30 @@ public static class DomainEvents
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record UserNameUpdated(
+        Guid UserId,
+        string FirstName,
+        string LastName,
+        DateTimeOffset UpdatedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserPromotedToAccountancyAdmin(
+        Guid UserId,
+        Guid AccountancyId,
+        string Role,
+        Guid PromotedBy,
+        DateTimeOffset PromotedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record UserDeleted(
+        Guid UserId,
+        Guid? AccountancyId,
+        Guid DeletedBy,
+        DateTimeOffset DeletedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
     #endregion
 }

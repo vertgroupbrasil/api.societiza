@@ -19,4 +19,15 @@ internal static class IdentityRoutes
     internal const string GetInvitationLinkById   = $"{BaseUri}/invitation-link/{{{InvitationLinkId}:guid}}";
 
     internal const string Register = $"{BaseUri}/invitation-link/register";
+
+    // Users
+    internal const string UserId              = "userId";
+    internal const string AccountancyIdParam  = "accountancyId";
+
+    internal const string GetMyProfile              = $"{BaseUri}/users";
+    internal const string UpdateMyName              = $"{BaseUri}/users";
+    internal const string ListSystemAdmins          = $"{BaseUri}/system-admins";
+    internal const string DeleteUser                = $"{BaseUri}/users/{{{UserId}:guid}}";
+    internal const string ListAccountancyMembers    = $"{BaseUri}/accountancies/{{{AccountancyIdParam}:guid}}/members";
+    internal const string PromoteAccountancyMember  = $"{BaseUri}/accountancies/{{{AccountancyIdParam}:guid}}/members/{{{UserId}:guid}}/promote";
 }
