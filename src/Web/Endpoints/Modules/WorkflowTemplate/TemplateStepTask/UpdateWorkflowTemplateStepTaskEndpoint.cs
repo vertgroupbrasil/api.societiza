@@ -32,13 +32,19 @@ public sealed class UpdateWorkflowTemplateStepTaskEndpoint(ISender sender) : End
             Atualiza os dados de uma tarefa em uma etapa do template.
 
             **Regras:**
-            - Retorna 404 caso o template, a etapa ou a tarefa não existam.
             - Valores aceitos para `type`: `Manual` (tarefa concluída manualmente por um usuário), `Automatic` (tarefa executada automaticamente pelo sistema), `Approval` (tarefa que requer aprovação explícita).
             - Se a `order` solicitada já estiver ocupada, as tarefas existentes são deslocadas para frente automaticamente.
 
+            **Respostas:**
+            - `200` - tarefa atualizada com sucesso.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template, etapa ou tarefa não encontrados.
+
             **Efeitos:** Dados da tarefa atualizados, possivelmente reordenando tarefas existentes.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepTasks])]
     public override async Task<ActionResult> HandleAsync(UpdateWorkflowTemplateStepTaskRequest request, CancellationToken cancellationToken = default)

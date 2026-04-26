@@ -1,4 +1,4 @@
-namespace Web.Endpoints.Modules.Identity.User.Requests.Commands;
+namespace Web.Endpoints.Modules.Identity.Invitation.Requests.Commands;
 
 public sealed class RegisterUserRequest
 {

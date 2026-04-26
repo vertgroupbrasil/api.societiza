@@ -35,13 +35,19 @@ public sealed class ListInvitationLinksEndpoint(ISender sender) : EndpointBaseAs
             **Regras:**
             - AccountancyAdmin visualiza apenas links do próprio tenant.
             - SystemAdmin sem AccountancyId visualiza links SA→SA; com AccountancyId visualiza links do tenant daquela contabilidade.
-            - OnlyActive=true (padrão) filtra apenas links ativos e não expirados.
+            - `OnlyActive=true` (padrão) filtra apenas links ativos e não expirados.
+            - `pageNumber` deve ser maior ou igual a 1 e `pageSize` deve estar entre 1 e 100.
+            - `items` contém até `pageSize` registros e `page` traz metadados de paginação (`hasNextPage`, `hasPreviousPage`).
 
             **Respostas:**
-            - `200` — página de resultados; `items` contém até `pageSize` registros e `page` traz metadados de paginação (`hasNextPage`, `hasPreviousPage`).
-            - `400` — parâmetros de paginação inválidos (`pageNumber` < 1 ou `pageSize` fora de 1–100).
-            - `401` — access token ausente ou inválido.
-            - `403` — usuário sem permissão (requer SystemAdmin ou AccountancyAdmin).
+            - `200` - página de resultados.
+            - `400` - parâmetros de paginação inválidos.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+
+            **Efeitos:** Nenhum.
+
+            **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<IPagedResult<object>>> HandleAsync(ListInvitationLinksRequest request, CancellationToken cancellationToken = default)

@@ -32,13 +32,19 @@ public sealed class UpdateWorkflowTemplateStepEndpoint(ISender sender) : Endpoin
             Atualiza título, descrição, ordem e público-alvo de uma etapa do template.
 
             **Regras:**
-            - Retorna 404 caso o template ou a etapa não existam.
             - Se a `order` solicitada já estiver ocupada, as etapas existentes são deslocadas para frente automaticamente.
             - Valores aceitos para `appliesTo`: `Abertura`, `Alteracao`, `Baixa`. Lista vazia indica que a etapa se aplica a todos os tipos de processo. O backend não valida os valores enviados — valores inválidos são silenciosamente ignorados durante a filtragem do template.
 
+            **Respostas:**
+            - `200` - etapa atualizada com sucesso.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template ou etapa não encontrados.
+
             **Efeitos:** Dados da etapa atualizados, possivelmente reordenando etapas existentes.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Steps])]
     public override async Task<ActionResult> HandleAsync(UpdateWorkflowTemplateStepRequest request, CancellationToken cancellationToken = default)

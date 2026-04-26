@@ -30,14 +30,21 @@ public sealed class GetAccountancyByIdEndpoint(ISender sender) : EndpointBaseAsy
         OperationId = "GetAccountancyById",
         Summary     = "Obter contabilidade por ID",
         Description = """
-            Retorna os dados completos de uma contabilidade a partir do seu identificador único. Exclusivo para SystemAdmin.
+            Retorna os dados completos de uma contabilidade a partir do seu identificador único.
+
+            **Regras:**
+            - Exclusivo para SystemAdmin; outros perfis devem usar `GET /accountancies/me`.
 
             **Respostas:**
-            - `200` — contabilidade encontrada; retorna os dados completos.
-            - `400` — identificador inválido ou ausente.
-            - `401` — access token ausente ou inválido.
-            - `403` — usuário sem permissão (requer SystemAdmin).
-            - `404` — contabilidade não encontrada.
+            - `200` - contabilidade encontrada; retorna os dados completos.
+            - `400` - identificador inválido ou ausente.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - contabilidade não encontrada.
+
+            **Efeitos:** Nenhum.
+
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.Accountancy])]
     public override async Task<ActionResult<AccountancyDetailResponse>> HandleAsync(

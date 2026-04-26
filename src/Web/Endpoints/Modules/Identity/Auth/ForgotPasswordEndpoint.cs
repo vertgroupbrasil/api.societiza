@@ -26,11 +26,17 @@ public sealed class ForgotPasswordEndpoint(ISender sender)
         Description = """
             Dispara o e-mail de redefinição de senha para o endereço informado.
 
-            **Respostas:**
-            - `200` — sempre retornado, independente do e-mail existir ou não (evita enumeração de contas).
-            - `400` — e-mail ausente ou formato inválido.
+            **Regras:**
+            - Sempre retorna `200` independente do e-mail existir ou não (evita enumeração de contas).
+            - Após receber o e-mail, o usuário acessa o link e chama `POST /reset-password` com o token recebido.
 
-            **Fluxo:** após receber o e-mail, o usuário acessa o link e chama `POST /reset-password` com o token recebido.
+            **Respostas:**
+            - `200` - solicitação aceita.
+            - `400` - e-mail ausente ou formato inválido.
+
+            **Efeitos:** E-mail de redefinição enviado de forma assíncrona quando o e-mail estiver cadastrado.
+
+            **Autorização:** Público.
             """,
         Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(

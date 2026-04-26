@@ -37,11 +37,15 @@ public sealed class GetInvitationLinkByIdEndpoint(ISender sender) : EndpointBase
             - SystemAdmin tem acesso a qualquer link.
 
             **Respostas:**
-            - `200` — link encontrado; retorna os dados completos e os usuários registrados pelo link.
-            - `400` — identificador inválido ou ausente.
-            - `401` — access token ausente ou inválido.
-            - `403` — usuário sem permissão (requer SystemAdmin ou AccountancyAdmin).
-            - `404` — link de convite não encontrado.
+            - `200` - link encontrado; retorna os dados completos e os usuários registrados pelo link.
+            - `400` - identificador inválido ou ausente.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - link de convite não encontrado.
+
+            **Efeitos:** Nenhum.
+
+            **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<InvitationLinkByIdResponse>> HandleAsync(GetInvitationLinkByIdRequest request, CancellationToken cancellationToken = default)

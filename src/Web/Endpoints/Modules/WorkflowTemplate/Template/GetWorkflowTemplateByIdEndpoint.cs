@@ -30,12 +30,17 @@ public sealed class GetWorkflowTemplateByIdEndpoint(ISender sender) : EndpointBa
         Description = """
             Retorna os dados completos de um template de workflow a partir do seu identificador único.
 
-            **Regras:**
-            - Retorna 404 caso o template não exista.
+            **Regras:** Nenhuma.
+
+            **Respostas:**
+            - `200` - template encontrado; retorna os dados completos.
+            - `400` - identificador inválido ou ausente.
+            - `401` - access token ausente ou inválido.
+            - `404` - template não encontrado.
 
             **Efeitos:** Nenhum.
 
-            **Autorização:** Requer autenticação. Papéis: SystemAdmin, AccountancyAdmin, AccountancyEmployee.
+            **Autorização:** Qualquer usuário autenticado.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult<WorkflowTemplateDetailResponse>> HandleAsync(

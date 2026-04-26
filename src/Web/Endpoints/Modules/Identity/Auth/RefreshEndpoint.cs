@@ -26,14 +26,21 @@ public sealed class RefreshEndpoint(ISender sender, IHttpContextAccessor httpCon
         OperationId = "Refresh",
         Summary     = "Renovar access token",
         Description = """
-            Rotaciona o par access/refresh token usando o cookie `refresh_token`. Não requer `Authorization` header.
+            Rotaciona o par access/refresh token usando o cookie `refresh_token`.
+
+            **Regras:**
+            - Não requer header `Authorization` — autenticação ocorre pelo cookie `refresh_token`.
+            - Refresh token é single-use: cada chamada invalida o token anterior.
+            - Estratégia recomendada: chamar este endpoint ao receber `401` em outra requisição; se este também retornar `401`, redirecionar para login.
 
             **Respostas:**
-            - `200` — novo `accessToken` no corpo; novo `refresh_token` setado como cookie HttpOnly.
-            - `400` — cookie `refresh_token` ausente.
-            - `401` — token inválido, expirado ou já revogado (single-use).
+            - `200` - retorna novo `accessToken` no corpo.
+            - `400` - cookie `refresh_token` ausente.
+            - `401` - token inválido, expirado ou já revogado.
 
-            **Estratégia recomendada:** chame este endpoint assim que receber `401` em qualquer outra requisição. Se Refresh também retornar `401`, redirecione para login.
+            **Efeitos:** Novo `refresh_token` definido como cookie HttpOnly; refresh token anterior é invalidado.
+
+            **Autorização:** Público (autenticação por cookie `refresh_token`).
             """,
         Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult<RefreshResponse>> HandleAsync(

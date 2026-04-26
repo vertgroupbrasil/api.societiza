@@ -33,13 +33,19 @@ public sealed class AddWorkflowTemplateStepEndpoint(ISender sender) : EndpointBa
             Adiciona uma nova etapa a um template de workflow e retorna o identificador criado.
 
             **Regras:**
-            - Retorna 404 caso o template não exista.
             - Se a `order` solicitada já estiver ocupada, as etapas existentes são deslocadas para frente automaticamente.
             - Valores aceitos para `appliesTo`: `Abertura`, `Alteracao`, `Baixa`. Lista vazia indica que a etapa se aplica a todos os tipos de processo. O backend não valida os valores enviados — valores inválidos são silenciosamente ignorados durante a filtragem do template.
 
+            **Respostas:**
+            - `200` - etapa criada; retorna o identificador gerado.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template não encontrado.
+
             **Efeitos:** Nova etapa criada no template, possivelmente reordenando etapas existentes.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Steps])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddWorkflowTemplateStepRequest request, CancellationToken cancellationToken = default)

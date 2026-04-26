@@ -31,12 +31,18 @@ public sealed class UpdateWorkflowTemplateEndpoint(ISender sender) : EndpointBas
         Description = """
             Atualiza o nome e a descrição de um template de workflow existente.
 
-            **Regras:**
-            - Retorna 404 caso o template não exista.
+            **Regras:** Nenhuma.
 
-            **Efeitos:** Nenhum.
+            **Respostas:**
+            - `200` - dados atualizados com sucesso.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template não encontrado.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Efeitos:** Nome e descrição do template atualizados.
+
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult> HandleAsync(UpdateWorkflowTemplateRequest request, CancellationToken cancellationToken = default)

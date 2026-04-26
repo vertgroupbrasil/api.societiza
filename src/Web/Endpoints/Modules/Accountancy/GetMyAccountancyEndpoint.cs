@@ -29,13 +29,21 @@ public sealed class GetMyAccountancyEndpoint(ISender sender, ICurrentUserService
         OperationId = "GetMyAccountancy",
         Summary     = "Obter minha contabilidade",
         Description = """
-            Retorna os dados completos da contabilidade associada ao usuário autenticado, a partir da claim `accountancy_id`. Destinado a AccountancyAdmin e AccountancyEmployee.
+            Retorna os dados completos da contabilidade associada ao usuário autenticado, a partir da claim `accountancy_id`.
+
+            **Regras:**
+            - Destinado a AccountancyAdmin e AccountancyEmployee.
+            - Usuário sem a claim `accountancy_id` (ex.: SystemAdmin sem vínculo) recebe 403.
 
             **Respostas:**
-            - `200` — contabilidade encontrada; retorna os dados completos.
-            - `401` — access token ausente ou inválido.
-            - `403` — usuário não possui a claim `accountancy_id` (ex.: SystemAdmin sem vínculo a uma contabilidade).
-            - `404` — contabilidade não encontrada.
+            - `200` - contabilidade encontrada; retorna os dados completos.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - contabilidade não encontrada.
+
+            **Efeitos:** Nenhum.
+
+            **Autorização:** AccountancyAdmin ou AccountancyEmployee.
             """,
         Tags = [Tags.Accountancy])]
     public override async Task<ActionResult<AccountancyDetailResponse>> HandleAsync(CancellationToken cancellationToken = default)

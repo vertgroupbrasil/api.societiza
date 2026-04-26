@@ -27,12 +27,19 @@ public sealed class ResetPasswordEndpoint(ISender sender)
         Description = """
             Consome o token de redefinição e define a nova senha do usuário.
 
-            **Respostas:**
-            - `200` — senha alterada; o token é invalidado e não pode ser reutilizado.
-            - `400` — token inválido, expirado ou já utilizado; ou nova senha fora dos requisitos mínimos.
-            - `404` — usuário associado ao token não encontrado.
+            **Regras:**
+            - Token é single-use: após o consumo, não pode ser reutilizado.
+            - Nova senha deve ter no mínimo 8 caracteres, ao menos uma letra maiúscula, uma minúscula e um dígito.
+            - `ConfirmPassword` deve ser igual a `NewPassword`.
 
-            **Requisitos de senha:** mínimo 8 caracteres, ao menos uma letra maiúscula, uma minúscula e um dígito.
+            **Respostas:**
+            - `200` - senha alterada com sucesso.
+            - `400` - token inválido, expirado ou já utilizado, ou nova senha fora dos requisitos.
+            - `404` - usuário associado ao token não encontrado.
+
+            **Efeitos:** Senha do usuário atualizada; token de redefinição invalidado.
+
+            **Autorização:** Público.
             """,
         Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult> HandleAsync(

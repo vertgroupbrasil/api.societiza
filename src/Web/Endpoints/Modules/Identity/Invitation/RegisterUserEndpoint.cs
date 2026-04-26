@@ -7,10 +7,10 @@ using Identity.Shared.Commands.User;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Web.Endpoints.Modules.Identity.User.Requests.Commands;
+using Web.Endpoints.Modules.Identity.Invitation.Requests.Commands;
 using Web.Endpoints.Routes;
 
-namespace Web.Endpoints.Modules.Identity.User;
+namespace Web.Endpoints.Modules.Identity.Invitation;
 
 public sealed class RegisterUserEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<RegisterUserRequest>
@@ -32,13 +32,19 @@ public sealed class RegisterUserEndpoint(ISender sender) : EndpointBaseAsync
             - O token deve corresponder a um link ativo, não expirado e não esgotado — retorna 404 se o link não existir ou 400 com motivo específico se estiver inválido (Expired, Exhausted, Revoked).
             - Retorna 409 se já existir uma conta com o mesmo e-mail.
             - Senha deve ter no mínimo 8 caracteres.
-            - ConfirmPassword deve ser igual a Password.
+            - `ConfirmPassword` deve ser igual a `Password`.
 
-            **Efeitos:** Nenhum.
+            **Respostas:**
+            - `200` - usuário criado; retorna o identificador gerado.
+            - `400` - dados inválidos ou link em estado inválido (Expired, Exhausted, Revoked).
+            - `404` - link de convite não encontrado.
+            - `409` - já existe uma conta com o mesmo e-mail.
+
+            **Efeitos:** Novo usuário criado e vinculado ao link de convite.
 
             **Autorização:** Público.
             """,
-        Tags = [Tags.Identity.Users])]
+        Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(
         RegisterUserRequest request,
         CancellationToken cancellationToken = default)

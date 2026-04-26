@@ -34,9 +34,15 @@ public sealed class CreateWorkflowTemplateEndpoint(ISender sender) : EndpointBas
             **Regras:**
             - Nenhuma validação de unicidade; o nome pode repetir entre templates.
 
-            **Efeitos:** Template criado no status `Draft` — precisa ter ao menos uma etapa com uma tarefa antes de ser ativado.
+            **Respostas:**
+            - `200` - template criado; retorna o identificador gerado.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Efeitos:** Novo template criado no status `Draft` — precisa ter ao menos uma etapa com uma tarefa antes de ser ativado.
+
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(CreateWorkflowTemplateRequest request, CancellationToken cancellationToken = default)

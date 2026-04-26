@@ -32,13 +32,19 @@ public sealed class UpdateTemplateStepFieldEndpoint(ISender sender) : EndpointBa
             Atualiza os dados de um campo de uma etapa do template.
 
             **Regras:**
-            - Retorna 404 caso o template, a etapa ou o campo não existam.
             - Valores aceitos para `fieldType`: `Text` (entrada de texto em linha única), `Boolean` (alternância verdadeiro/falso), `Integer` (entrada numérica), `Select` (lista suspensa com opções predefinidas), `Date` (seletor de data).
             - `options` é obrigatório quando `fieldType` é `Select` e deve ser nulo para os demais tipos.
 
+            **Respostas:**
+            - `200` - campo atualizado com sucesso.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template, etapa ou campo não encontrados.
+
             **Efeitos:** Dados do campo atualizados.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepFields])]
     public override async Task<ActionResult> HandleAsync(UpdateTemplateStepFieldRequest request, CancellationToken cancellationToken = default)

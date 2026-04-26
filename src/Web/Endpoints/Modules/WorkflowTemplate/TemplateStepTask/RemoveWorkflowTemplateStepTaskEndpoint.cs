@@ -31,12 +31,18 @@ public sealed class RemoveWorkflowTemplateStepTaskEndpoint(ISender sender) : End
         Description = """
             Remove uma tarefa de uma etapa do template, junto com todos os seus campos.
 
-            **Regras:**
-            - Retorna 404 caso o template, a etapa ou a tarefa não existam.
+            **Regras:** Nenhuma.
+
+            **Respostas:**
+            - `200` - tarefa removida com sucesso.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template, etapa ou tarefa não encontrados.
 
             **Efeitos:** Tarefa e todos os campos aninhados são removidos permanentemente.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepTasks])]
     public override async Task<ActionResult> HandleAsync(RemoveWorkflowTemplateStepTaskRequest request, CancellationToken cancellationToken = default)

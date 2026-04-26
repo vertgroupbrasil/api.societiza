@@ -26,13 +26,19 @@ public sealed class LoginEndpoint(ISender sender, IHttpContextAccessor httpConte
         OperationId = "Login",
         Summary     = "Fazer login",
         Description = """
-            Autentica por e-mail e senha. Em caso de sucesso, retorna um `accessToken` JWT no corpo e define um cookie HttpOnly `refresh_token` (Secure, SameSite=Strict).
+            Autentica por e-mail e senha.
+
+            **Regras:**
+            - Credenciais incorretas ou usuário inexistente retornam 400 sem distinção (evita enumeração de contas).
+            - O `accessToken` deve ser enviado no header `Authorization: Bearer` em requisições autenticadas.
 
             **Respostas:**
-            - `200` — autenticação bem-sucedida; use `accessToken` no header `Authorization: Bearer`.
-            - `400` — corpo inválido (campos ausentes ou malformados) ou credenciais incorretas/usuário inexistente.
+            - `200` - autenticação bem-sucedida; retorna `accessToken` no corpo.
+            - `400` - corpo inválido ou credenciais incorretas.
 
-            **Cookie `refresh_token`:** gerenciado automaticamente pelo browser. Use `POST /refresh` para renovar o access token sem reautenticar.
+            **Efeitos:** Define o cookie HttpOnly `refresh_token` (Secure, SameSite=Strict). Use `POST /refresh` para renovar o access token sem reautenticar.
+
+            **Autorização:** Público.
             """,
         Tags = [Tags.Identity.Auth])]
     public override async Task<ActionResult<LoginResponse>> HandleAsync(

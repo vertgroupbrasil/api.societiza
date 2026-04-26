@@ -33,13 +33,19 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
             Adiciona um novo campo a uma tarefa de uma etapa do template e retorna o identificador criado.
 
             **Regras:**
-            - Retorna 404 caso o template, a etapa ou a tarefa não existam.
             - Valores aceitos para `fieldType`: `Text` (entrada de texto em linha única), `Boolean` (alternância verdadeiro/falso), `Integer` (entrada numérica), `Select` (lista suspensa com opções predefinidas), `Date` (seletor de data).
             - `options` é obrigatório quando `fieldType` é `Select` e deve ser nulo para os demais tipos.
 
+            **Respostas:**
+            - `200` - campo criado; retorna o identificador gerado.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template, etapa ou tarefa não encontrados.
+
             **Efeitos:** Novo campo criado na tarefa.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepTaskFields])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddTemplateStepTaskFieldRequest request, CancellationToken cancellationToken = default)

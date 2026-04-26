@@ -35,11 +35,17 @@ public sealed class ActivateWorkflowTemplateEndpoint(ISender sender) : EndpointB
             - Status permitidos de origem: `Draft`.
             - Status não permitidos: `Active`, `Archived`.
             - O template deve conter ao menos uma etapa com ao menos uma tarefa antes de poder ser ativado.
-            - Retorna 404 caso o template não exista.
+
+            **Respostas:**
+            - `200` - template ativado com sucesso.
+            - `400` - template em status inválido ou sem etapas/tarefas mínimas.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template não encontrado.
 
             **Efeitos:** Status do template muda para `Active`.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult> HandleAsync(ActivateWorkflowTemplateRequest request, CancellationToken cancellationToken = default)

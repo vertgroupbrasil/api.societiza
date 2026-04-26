@@ -40,11 +40,15 @@ public sealed class CreateInvitationLinkEndpoint(ISender sender) : EndpointBaseA
             - `AccountancyId` deve ser nulo quando o convite for SA→SA; obrigatório quando for SA→AA; ignorado quando o criador for AccountancyAdmin (o sistema utiliza a contabilidade do usuário autenticado).
 
             **Respostas:**
-            - `200` — link criado; retorna o identificador e o token gerado.
-            - `400` — dados inválidos ou ausentes.
-            - `401` — access token ausente ou inválido.
-            - `403` — usuário sem permissão (requer SystemAdmin ou AccountancyAdmin).
-            - `409` — já existe um link ativo para o mesmo escopo (tipo + contabilidade).
+            - `200` - link criado; retorna o identificador e o token gerado.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `409` - já existe um link ativo para o mesmo escopo.
+
+            **Efeitos:** Novo link de convite criado com validade de 7 dias.
+
+            **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Invites])]
     public override async Task<ActionResult<CreateInvitationLinkResponse>> HandleAsync(CreateInvitationLinkRequest request, CancellationToken cancellationToken = default)

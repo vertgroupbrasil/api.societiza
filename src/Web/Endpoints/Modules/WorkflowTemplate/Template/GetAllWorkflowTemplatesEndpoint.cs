@@ -30,9 +30,14 @@ public sealed class GetAllWorkflowTemplatesEndpoint(ISender sender) : EndpointBa
 
             **Regras:** Nenhuma.
 
+            **Respostas:**
+            - `200` - lista de templates de workflow.
+            - `400` - requisição inválida.
+            - `401` - access token ausente ou inválido.
+
             **Efeitos:** Nenhum.
 
-            **Autorização:** Requer autenticação. Papéis: SystemAdmin, AccountancyAdmin, AccountancyEmployee.
+            **Autorização:** Qualquer usuário autenticado.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult<List<WorkflowTemplateResponse>>> HandleAsync(CancellationToken cancellationToken = default)

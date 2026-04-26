@@ -34,11 +34,17 @@ public sealed class ArchiveWorkflowTemplateEndpoint(ISender sender) : EndpointBa
             **Regras:**
             - Status permitidos de origem: `Draft`, `Active`.
             - Status não permitidos: `Archived`.
-            - Retorna 404 caso o template não exista.
+
+            **Respostas:**
+            - `200` - template arquivado com sucesso.
+            - `400` - template já está arquivado.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template não encontrado.
 
             **Efeitos:** Status do template muda para `Archived`.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.Templates])]
     public override async Task<ActionResult> HandleAsync(ArchiveWorkflowTemplateRequest request, CancellationToken cancellationToken = default)

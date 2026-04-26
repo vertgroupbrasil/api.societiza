@@ -31,12 +31,18 @@ public sealed class RemoveTemplateStepFieldEndpoint(ISender sender) : EndpointBa
         Description = """
             Remove um campo de uma etapa do template.
 
-            **Regras:**
-            - Retorna 404 caso o template, a etapa ou o campo não existam.
+            **Regras:** Nenhuma.
+
+            **Respostas:**
+            - `200` - campo removido com sucesso.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template, etapa ou campo não encontrados.
 
             **Efeitos:** Campo removido permanentemente da etapa.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepFields])]
     public override async Task<ActionResult> HandleAsync(RemoveTemplateStepFieldRequest request, CancellationToken cancellationToken = default)

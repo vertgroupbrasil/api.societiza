@@ -33,13 +33,19 @@ public sealed class AddWorkflowTemplateStepTaskEndpoint(ISender sender) : Endpoi
             Adiciona uma nova tarefa a uma etapa do template e retorna o identificador criado.
 
             **Regras:**
-            - Retorna 404 caso o template ou a etapa não existam.
             - Valores aceitos para `type`: `Manual` (tarefa concluída manualmente por um usuário), `Automatic` (tarefa executada automaticamente pelo sistema), `Approval` (tarefa que requer aprovação explícita).
             - Se a `order` solicitada já estiver ocupada, as tarefas existentes são deslocadas para frente automaticamente.
 
+            **Respostas:**
+            - `200` - tarefa criada; retorna o identificador gerado.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - template ou etapa não encontrados.
+
             **Efeitos:** Nova tarefa criada na etapa, possivelmente reordenando tarefas existentes.
 
-            **Autorização:** Requer autenticação. Papel: SystemAdmin.
+            **Autorização:** SystemAdmin.
             """,
         Tags = [Tags.WorkflowTemplate.StepTasks])]
     public override async Task<ActionResult<IdentifierResponse>> HandleAsync(AddWorkflowTemplateStepTaskRequest request, CancellationToken cancellationToken = default)
