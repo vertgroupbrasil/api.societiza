@@ -1,11 +1,11 @@
-# Layer: Shared
+# Camada: Shared
 
-> The Shared layer exposes everything that other parts of the system need from this module — Commands, and Response DTOs — without creating circular dependencies.
-> Depends only on Core. Never references the module's Domain or Application layers.
+> A camada Shared expõe tudo que outras partes do sistema precisam deste módulo — comandos e DTOs de resposta — sem criar dependências circulares.
+> Depende apenas de Core. Nunca referencia as camadas Domain ou Application do módulo.
 
 ---
 
-## Structure
+## Estrutura
 
 ```
 {Module}.Shared/
@@ -17,13 +17,13 @@
 
 ---
 
-## Commands
+## Comandos
 
-All Commands are `sealed record` implementing `ICommand` or `ICommand<TResponse>`.
+Todos os comandos são `sealed record` que implementam `ICommand` ou `ICommand<TResponse>`.
 
-### Command without response
+### Comando sem resposta
 
-Use for mutations that do not return data:
+Use para mutações que não retornam dados:
 
 ```csharp
 // src/Modules/Identity/Identity.Shared/Commands/RevokeInviteCommand.cs
@@ -32,9 +32,9 @@ namespace Identity.Shared.Commands;
 public sealed record RevokeInviteCommand(Guid InviteId) : ICommand;
 ```
 
-### Command with response
+### Comando com resposta
 
-Use when the command creates a resource and the caller needs its Id:
+Use quando o comando cria um recurso e o chamador precisa do Id:
 
 ```csharp
 // src/Modules/Identity/Identity.Shared/Commands/InviteUserCommand.cs
@@ -47,13 +47,13 @@ public sealed record InviteUserCommand(
 ) : ICommand<IdentifierResponse>;
 ```
 
-`IdentifierResponse` is the standard return type for resource creation — defined in `Core.Shared`.
+`IdentifierResponse` é o tipo de retorno padrão para criação de recurso — definido em `Core.Shared`.
 
 ---
 
-## Email Commands
+## Comandos de Email
 
-Live in `{Module}.Shared/Emails/` — not in `Commands/` — because they are delivery commands, not business commands.
+Vivem em `{Module}.Shared/Emails/` — não em `Commands/` — porque são comandos de entrega, não comandos de negócio.
 
 ```csharp
 // src/Modules/Identity/Identity.Shared/Emails/SendInviteEmailCommand.cs
@@ -66,14 +66,14 @@ public sealed record SendInviteEmailCommand(
 ) : ICommand;
 ```
 
-**All fields must be primitive types (`string`, `int`, `Guid`, `bool`).**
-Hangfire must serialize and deserialize the command — no domain objects, no SmartEnums, no complex types.
+**Todos os campos devem ser tipos primitivos (`string`, `int`, `Guid`, `bool`).**
+O Hangfire precisa serializar e desserializar o comando — sem objetos de domínio, sem SmartEnums, sem tipos complexos.
 
 ---
 
-## Response DTOs
+## DTOs de Resposta
 
-Response DTOs are returned by Query handlers and exposed through endpoints. They live in `{Module}.Shared/Response/`.
+DTOs de resposta são retornados por handlers de Query e expostos por endpoints. Eles vivem em `{Module}.Shared/Response/`.
 
 ```csharp
 // src/Modules/Accountancy/Accountancy.Shared/Response/AccountancyDetailResponse.cs
@@ -95,18 +95,18 @@ public sealed record AccountancyDetailResponse(
 );
 ```
 
-**Response rules:**
-- `sealed record` — no inheritance, no interfaces
-- All fields are primitives, `Guid`, `DateTimeOffset`, or nullable variants — never Domain types or SmartEnums
-- Named after the resource and intent: `{Resource}DetailResponse`, `{Resource}ListResponse`, `{Resource}SummaryResponse`
-- Defined in `{Module}.Shared/Response/` — never in Application or Web
+**Regras de resposta:**
+- `sealed record` — sem herança, sem interfaces
+- Todos os campos são primitivos, `Guid`, `DateTimeOffset` ou variantes nullable — nunca tipos de Domain ou SmartEnums
+- Nomeados conforme o recurso e a intenção: `{Resource}DetailResponse`, `{Resource}ListResponse`, `{Resource}SummaryResponse`
+- Definidos em `{Module}.Shared/Response/` — nunca em Application ou Web
 
 ---
 
-## What to NEVER do in Shared
+## O que NUNCA fazer em Shared
 
-- Never reference the module's Domain or Application layers from Shared.
-- Never use SmartEnum, entities, or value objects as Command or Response fields — primitives only.
-- Never define Response DTOs in Application or Web — they always belong in Shared.
-- Never place email commands in `Commands/` — they belong in `Emails/`.
-- Never use non-primitive types in email command fields — Hangfire serialization will break.
+- Nunca referencie as camadas Domain ou Application do módulo a partir de Shared.
+- Nunca use SmartEnum, entities ou value objects como campos de comando ou resposta — apenas primitivos.
+- Nunca defina DTOs de resposta em Application ou Web — eles sempre pertencem a Shared.
+- Nunca coloque comandos de email em `Commands/` — eles pertencem a `Emails/`.
+- Nunca use tipos não primitivos em campos de comandos de email — a serialização do Hangfire vai quebrar.

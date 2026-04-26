@@ -1,48 +1,88 @@
 ---
 name: architecture
 description: >
-  Use this skill for any code change in the Societiza repository — features, bug fixes,
-  refactors, migrations, or cleanups. Contains the mandatory patterns for every layer:
-  Domain (Aggregate, SmartEnum, Domain Events, Projection Models), Shared (Commands, Email
-  Commands, Response DTOs), Application (Handlers, Validators, Projection Handlers, Job
-  Handlers), Persistence (Event Store, EF Core configurations, MongoDB projections),
-  Infrastructure (ServiceInstallers, Scrutor scan, ModuleInstaller), and Web (Endpoints,
-  Routes, MassTransit Consumers). Also covers naming conventions, what NOT to do per layer,
-  and the feature implementation checklist. If you are editing any .cs or .csproj file,
-  read this skill first.
+  Use esta skill para alterações de código no repositório Societiza: funcionalidades,
+  correções de bugs, refactors, migrations e limpezas. Este é o roteador de
+  arquitetura para Domain, Shared, Application, Persistence, Infrastructure e Web.
+  Ele aponta para os arquivos de referência específicos que contêm os patterns
+  obrigatórios de cada camada.
 ---
 
-# Architecture Base
+# Base de Arquitetura
 
-## Module Structure
+Esta skill é o ponto de entrada para as regras de arquitetura do Societiza.
 
-```
+Ela deve permanecer compacta, mas não vazia. Sua função é explicar o formato do
+repositório, direcionar o agente para as referências corretas e evitar orientação
+duplicada entre documentos.
+
+Antes de implementar qualquer coisa, leia o arquivo de referência da camada que
+será alterada. Não confie em convenções genéricas de .NET quando existir uma
+referência do projeto.
+
+## Estrutura da Solução
+
+```text
 src/
-├── Core/                        # Cross-cutting infrastructure (shared)
-├── Modules/
-│   ├── {Module}.Domain/
-│   ├── {Module}.Application/
-│   ├── {Module}.Infrastructure/
-│   ├── {Module}.Persistence/
-│   └── {Module}.Shared/
-└── Web/                         # ASP.NET Core host — entry point
-    └── Endpoints/Modules/{Module}/
++-- Core/                         # Cross-cutting infrastructure shared by modules
++-- Modules/
+|   +-- {Module}.Domain/          # Aggregates, SmartEnums, Domain Events, Projection Models
+|   +-- {Module}.Application/     # Use cases, handlers, validators, projection handlers
+|   +-- {Module}.Infrastructure/  # Module installers and external service wiring
+|   +-- {Module}.Persistence/     # EF Core, Event Store, MongoDB projections
+|   +-- {Module}.Shared/          # Commands, queries, response DTOs, email/job contracts
++-- Web/                          # ASP.NET Core host: endpoints, routes, consumers, startup tasks
 ```
 
-Existing modules: `Accountancy` · `Identity` · `WorkflowTemplate`
+Não liste nomes concretos de módulos aqui. Módulos mudam ao longo do tempo; esta
+skill documenta o formato arquitetural, não o inventário atual.
 
----
+## Referências de Camada
 
-## How to Use This Skill
+- `references/domain-architecture.md` - Aggregates, Domain Events, SmartEnum, Projection Models.
+- `references/shared-architecture.md` - Comandos, comandos de email, comandos de job, queries, DTOs de resposta.
+- `references/application-architecture.md` - Handlers, validators, projection handlers, email handlers, job handlers.
+- `references/persistence-architecture.md` - Event Store, configurações EF Core, projections MongoDB.
+- `references/infrastructure-architecture.md` - ModuleInstaller, ServiceInstallers, scan do Scrutor, ApplicationService.
+- `references/checklist.md` - Checklist de implementação end-to-end de funcionalidade.
 
-Before implementing anything, read the reference file for the layer you are about to work on. Never rely on generic .NET conventions — always follow the patterns documented here.
+Comece por `references/domain-architecture.md` ao modelar uma nova funcionalidade.
 
-- `references/domain-architecture.md` — Aggregate, Domain Events, SmartEnum, Projection Models
-- `references/shared-architecture.md` — Commands, Email Commands, Response DTOs
-- `references/application-architecture.md` — Handler, Validator, Projection Handler, Email Handler, Job Handler
-- `references/persistence-architecture.md` — Event Store, MongoDB Projections, EF Configurations
-- `references/infrastructure-architecture.md` — ModuleInstaller, ServiceInstallers, Scrutor scan, ApplicationService
-- `references/web-architecture.md` — Endpoint, Request DTO, Routes, railway-oriented pipeline, MassTransit Consumers
+Comece por `references/checklist.md` ao implementar um modelo já definido de
+ponta a ponta.
 
-Start with `references/domain-architecture.md` if you are modeling a new feature.
-Start with `references/checklist.md` if you are implementing an existing model end-to-end.
+## Referências de Web
+
+A referência antiga de Web foi dividida intencionalmente por responsabilidade.
+
+Se criar ou editar um endpoint, leia ambos:
+
+- `references/web-endpoints.md` - Estrutura da classe de endpoint, DTOs de requisição, rotas, autorização, declarações de status, pipeline railway.
+- `references/web-swagger.md` - Texto do Swagger, OperationId, Summary, Description, Tags, wording de resposta.
+
+Se criar ou editar consumers MassTransit, leia:
+
+- `references/web-consumers.md` - Classes consumer, ConsumerConfiguration, nomenclatura de filas, registro de endpoint de recebimento de evento.
+
+Se criar ou editar startup tasks, leia:
+
+- `references/web-startup.md` - Startup tasks hospedadas, sinal de migration, jobs recorrentes, índices de projection, seed de desenvolvimento.
+
+## Regras de Responsabilidade
+
+- Domain é dona das invariantes de negócio e dos domain events.
+- Shared é dona dos contratos que podem cruzar fronteiras de camada.
+- Application é dona dos casos de uso e da orquestração.
+- Persistence é dona dos mapeamentos de banco, da persistência de eventos e das projections.
+- Infrastructure é dona dos serviços externos e do registro de módulos/serviços.
+- Web é dona apenas dos adapters HTTP/barramento de eventos.
+
+## Regras de Documentação
+
+- Mantenha este arquivo como roteador.
+- Mantenha regras detalhadas de camada nos arquivos de referência.
+- Mantenha a estrutura de endpoints em `web-endpoints.md`.
+- Mantenha o wording de Swagger em `web-swagger.md`.
+- Não duplique exemplos grandes de endpoint em múltiplas referências.
+- Não liste módulos concretos atuais nesta skill.
+- Atualize as referências quando as convenções do projeto mudarem.

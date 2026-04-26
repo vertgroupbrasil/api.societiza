@@ -5,15 +5,15 @@ description: >
   da fase anterior. Aplica-se a qualquer tarefa que escreva código .cs ou .csproj.
 ---
 
-# Build Gate
+# Gate de Build
 
-O plano técnico de qualquer feature é dividido em fases por camada. Esta regra
+O plano técnico de qualquer funcionalidade é dividido em fases por camada. Esta regra
 define o comportamento obrigatório entre fases.
 
 ## Regra
 
 **Nunca inicie a próxima fase sem rodar `dotnet build Societiza.sln` e obter
-zero errors na fase atual.**
+zero erros na fase atual.**
 
 ## Por que existe
 
@@ -33,7 +33,7 @@ tornando o diagnóstico muito mais difícil e o retrabalho muito maior.
 3. Se houver apenas warnings sobre código próprio (não de dependências): avalie
    se são consequência de artefatos que serão criados na próxima fase. Se sim,
    pode avançar — mas documente no resumo da fase.
-4. Só após build limpo (zero errors): informe o humano que a fase foi concluída
+4. Só após build limpo (zero erros): informe o humano que a fase foi concluída
    e inicie a próxima.
 
 ## Exceção: Fase 0 — Scaffold

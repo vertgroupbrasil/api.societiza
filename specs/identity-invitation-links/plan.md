@@ -287,7 +287,7 @@ via DbSet dinâmico — já suportado pelo `ApplicationService` existente. A cla
 
 ### Fase 6 — Web
 
-**Referência**: `.claude/skills/architecture/references/web-architecture.md` + skill `/api-design`
+**Referência**: `.claude/skills/architecture/references/web-endpoints.md` + `.claude/skills/architecture/references/web-swagger.md`
 
 #### 1. Rotas em `IdentityRoutes`
 - **Caminho**: `src/Web/Endpoints/Routes/IdentityRoutes.cs`

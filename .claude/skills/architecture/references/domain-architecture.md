@@ -1,13 +1,13 @@
-# Layer: Domain
+# Camada: Domain
 
-> This is where everything starts. No feature exists before it is modeled in the Domain.
-> Never skip this layer. Never implement business logic outside of it.
+> É aqui que tudo começa. Nenhuma funcionalidade existe antes de ser modelada no Domain.
+> Nunca pule esta camada. Nunca implemente lógica de negócio fora dela.
 
 ---
 
-## Base Primitives
+## Primitivos Base
 
-Every Aggregate and Entity inherits from types defined in `Core.Domain.Primitives`:
+Todo Aggregate e toda Entity herdam de tipos definidos em `Core.Domain.Primitives`:
 
 ```csharp
 // src/Core/Core.Domain/Primitives/Entity.cs
@@ -21,11 +21,11 @@ Entity        → Guid Id, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt, 
 AggregateRoot → ulong Version, IDomainEvent queue, RaiseEvent<T>(), ApplyEvent()
 ```
 
-Always reference `Core.Domain.Primitives` — never redefine or duplicate these base types.
+Sempre referencie `Core.Domain.Primitives` — nunca redefina nem duplique estes tipos base.
 
 ---
 
-## Aggregate Anatomy
+## Anatomia do Aggregate
 
 ```csharp
 public sealed class UserInvite : AggregateRoot
@@ -85,18 +85,18 @@ public sealed class UserInvite : AggregateRoot
 }
 ```
 
-**Absolute aggregate rules:**
-- No exceptions
-- State changes ONLY via `RaiseEvent<T>()` — never direct assignment outside of `When()`
-- Properties with `private set` or `init` — never `public set`
-- One `When()` per event — no event without a handler
-- `When()` receives `@event as dynamic` via `ApplyEvent()` — do not replace with switch/if
+**Regras absolutas de aggregate:**
+- Sem exceptions
+- Mudanças de estado SOMENTE via `RaiseEvent<T>()` — nunca atribuição direta fora de `When()`
+- Propriedades com `private set` ou `init` — nunca `public set`
+- Um `When()` por evento — nenhum evento sem handler
+- `When()` recebe `@event as dynamic` via `ApplyEvent()` — não substitua por switch/if
 
 ---
 
 ## Domain Events
 
-All events live in a single file: `{Module}.Domain/Events/DomainEvents.cs`
+Todos os eventos vivem em um único arquivo: `{Module}.Domain/Events/DomainEvents.cs`
 
 ```csharp
 namespace Identity.Domain.Events;
@@ -125,18 +125,18 @@ public static class DomainEvents
 }
 ```
 
-**Domain Event rules:**
-- `sealed record` — immutable, no inheritance
-- Inherits `Message, IDomainEvent` — in this order
-- Allowed types: `Guid`, `string`, `int`, `bool`, `decimal`, `DateTimeOffset`, `DateTimeOffset?`, collections of primitives
-- Forbidden types: SmartEnum, entities, value objects, any Domain type
-- SmartEnum → `string` (via `.Name`) in the event; `FromName()` conversion happens in the aggregate's `When()`
-- `Version` required in every event
-- All module events in a single `DomainEvents.cs` file
+**Regras de Domain Event:**
+- `sealed record` — imutável, sem herança
+- Herda de `Message, IDomainEvent` — nesta ordem
+- Tipos permitidos: `Guid`, `string`, `int`, `bool`, `decimal`, `DateTimeOffset`, `DateTimeOffset?`, coleções de primitivos
+- Tipos proibidos: SmartEnum, entities, value objects, qualquer tipo de Domain
+- SmartEnum → `string` (via `.Name`) no evento; a conversão `FromName()` acontece no `When()` do aggregate
+- `Version` obrigatória em todo evento
+- Todos os eventos do módulo em um único arquivo `DomainEvents.cs`
 
 ---
 
-## How RaiseEvent Works
+## Como RaiseEvent Funciona
 
 ```csharp
 // Inside the aggregate — mandatory pattern:
@@ -149,17 +149,17 @@ RaiseEvent<DomainEvents.UserInviteRevoked>(version => new(
 ));
 ```
 
-`RaiseEvent<T>` does two things:
-1. Calls `ApplyEvent()` → `When(event)` → mutates aggregate state
-2. Enqueues the event to be persisted by `AppendEventsAsync`
+`RaiseEvent<T>` faz duas coisas:
+1. Chama `ApplyEvent()` → `When(event)` → muta o estado do aggregate
+2. Enfileira o evento para ser persistido por `AppendEventsAsync`
 
-**Never** call `When()` directly. **Never** pass `Version` as a fixed value.
+**Nunca** chame `When()` diretamente. **Nunca** passe `Version` como valor fixo.
 
 ---
 
-## Enumerations (SmartEnum)
+## Enumerações (SmartEnum)
 
-All modules use `Ardalis.SmartEnum`. Mandatory pattern:
+Todos os módulos usam `Ardalis.SmartEnum`. Pattern obrigatório:
 
 ```csharp
 // File: {Module}.Domain/Enumerations/{EnumName}.cs
@@ -186,18 +186,18 @@ public abstract class InviteStatus : SmartEnum<InviteStatus>
 }
 ```
 
-**Enumeration rules:**
-- `abstract` class inheriting `SmartEnum<T>`
-- Implicit `string` and `int` conversions are mandatory
-- `private sealed` subclasses for each value
-- Stable explicit `int` values — never reorder existing values
-- Aggregate conversion: `SmartEnum.FromName(@event.FieldName)` inside `When()`
+**Regras de enumeração:**
+- Classe `abstract` herdando de `SmartEnum<T>`
+- Conversões implícitas para `string` e `int` são obrigatórias
+- Subclasses `private sealed` para cada valor
+- Valores `int` explícitos e estáveis — nunca reordene valores existentes
+- Conversão no aggregate: `SmartEnum.FromName(@event.FieldName)` dentro de `When()`
 
 ---
 
 ## Projection Models
 
-Read models for MongoDB. Defined inside the Domain layer at `{Module}.Domain/Projections/ProjectionModel.cs`.
+Modelos de leitura para MongoDB. Definidos dentro da camada Domain em `{Module}.Domain/Projections/ProjectionModel.cs`.
 
 ```csharp
 namespace Identity.Domain.Projections;
@@ -232,31 +232,31 @@ public static class ProjectionModel
 }
 ```
 
-**Projection Model rules:**
-- `static class ProjectionModel` wrapping all records of the module — one file per module
-- Each read model is a `record` implementing `IProjectionModel`
-- All fields are primitives — never SmartEnum, entities, or value objects
-- `Role` and `Status` stored as `string` — same rule as Domain Events
-- `IsDeleted` always present with default `false`
-- Updated exclusively by Projection Handlers in the Application layer — never written directly
+**Regras de Projection Model:**
+- `static class ProjectionModel` envolvendo todos os records do módulo — um arquivo por módulo
+- Cada modelo de leitura é um `record` que implementa `IProjectionModel`
+- Todos os campos são primitivos — nunca SmartEnum, entities ou value objects
+- `Role` e `Status` armazenados como `string` — mesma regra dos Domain Events
+- `IsDeleted` sempre presente com padrão `false`
+- Atualizado exclusivamente por Projection Handlers na camada Application — nunca escrito diretamente
 
 ---
 
-## What to NEVER do in the Domain
+## O que NUNCA fazer no Domain
 
-**State mutation**
-- Never assign state directly (`invite.Status = ...`). Always mutate state through a behavior method that calls `RaiseEvent<T>()`.
-- Never call `When()` directly. It is only invoked internally by `ApplyEvent()`.
-- Never hardcode `Version` in an event (`Version: 1`). Always use the delegate parameter provided by `RaiseEvent<T>()`.
+**Mutação de estado**
+- Nunca atribua estado diretamente (`invite.Status = ...`). Sempre mute estado por meio de um método de comportamento que chama `RaiseEvent<T>()`.
+- Nunca chame `When()` diretamente. Ele é invocado apenas internamente por `ApplyEvent()`.
+- Nunca hardcode `Version` em um evento (`Version: 1`). Sempre use o parâmetro do delegate fornecido por `RaiseEvent<T>()`.
 
 **Domain Events**
-- Never use SmartEnum types as Domain Event fields. Always convert to `string` via `.Name` before raising the event.
-- Never spread events across multiple files. All events for a module live in a single `DomainEvents.cs`.
+- Nunca use tipos SmartEnum como campos de Domain Event. Sempre converta para `string` via `.Name` antes de levantar o evento.
+- Nunca espalhe eventos em múltiplos arquivos. Todos os eventos de um módulo vivem em um único `DomainEvents.cs`.
 
-**Aggregate structure**
-- Never declare a public constructor on an Aggregate. Always use a `private` constructor and a `Create()` factory method.
-- Never use `switch` or `if` inside `ApplyEvent()`. Always dispatch via `When(@event as dynamic)` with one `When()` method per event type.
+**Estrutura do aggregate**
+- Nunca declare construtor público em um Aggregate. Sempre use construtor `private` e método factory `Create()`.
+- Nunca use `switch` ou `if` dentro de `ApplyEvent()`. Sempre faça dispatch via `When(@event as dynamic)` com um método `When()` por tipo de evento.
 
-**Layer boundaries**
-- Never place business logic in the Application layer. Business rules belong inside Aggregate methods.
-- Never write to a Projection Model directly from a Domain method. Projections are updated exclusively by Projection Handlers in the Application layer.
+**Fronteiras de camada**
+- Nunca coloque lógica de negócio na camada Application. Regras de negócio pertencem aos métodos do Aggregate.
+- Nunca escreva em um Projection Model diretamente a partir de um método de Domain. Projections são atualizadas exclusivamente por Projection Handlers na camada Application.

@@ -1,23 +1,23 @@
-# Layer: Infrastructure
+# Camada: Infrastructure
 
-> Orchestrates all module services and connects all layers together.
-> Contains service implementations, ServiceInstallers, and the ModuleInstaller entry point.
-> The only layer that knows all other layers within the module.
-
----
-
-## Responsibility Boundary
-
-- **Infrastructure** owns: `IModuleInstaller`, `IServiceInstaller` implementations, `IdentityApplicationService`, `JwtTokenService`, `PasswordService`
-- **Infrastructure** does NOT own: business logic, EF configurations, MongoDB contexts, MassTransit consumers (those live in `src/Web/`)
+> Orquestra todos os serviços do módulo e conecta todas as camadas.
+> Contém implementações de serviços, ServiceInstallers e o ponto de entrada ModuleInstaller.
+> A única camada que conhece todas as outras camadas dentro do módulo.
 
 ---
 
-## Module Entry Point — IModuleInstaller
+## Fronteira de Responsabilidade
 
-Every module has a single entry point that orchestrates all service registration.
+- **Infrastructure** é dona de: `IModuleInstaller`, implementações de `IServiceInstaller`, `IdentityApplicationService`, `JwtTokenService`, `PasswordService`
+- **Infrastructure** NÃO é dona de: lógica de negócio, configurações EF, contexts MongoDB, consumers MassTransit (eles vivem em `src/Web/`)
 
-Defined in `src/Modules/Identity/Identity.Infrastructure/IdentityModuleInstaller.cs`:
+---
+
+## Ponto de Entrada do Módulo — IModuleInstaller
+
+Todo módulo tem um único ponto de entrada que orquestra todo o registro de serviços.
+
+Definido em `src/Modules/Identity/Identity.Infrastructure/IdentityModuleInstaller.cs`:
 
 ```csharp
 public sealed class IdentityModuleInstaller : IModuleInstaller
@@ -40,17 +40,17 @@ public sealed class IdentityModuleInstaller : IModuleInstaller
 }
 ```
 
-`InstallServicesFromAssemblies` uses reflection to find all `IServiceInstaller` implementations and calls `Install()` on each. The Scrutor scan (`AddTransientAsMatchingInterfaces`) automatically registers any class implementing `ITransient` or `IScoped` — this is why `JwtTokenService` and `PasswordService` require no explicit registration.
+`InstallServicesFromAssemblies` usa reflection para encontrar todas as implementações de `IServiceInstaller` e chama `Install()` em cada uma. O scan do Scrutor (`AddTransientAsMatchingInterfaces`) registra automaticamente qualquer classe que implemente `ITransient` ou `IScoped` — por isso `JwtTokenService` e `PasswordService` não exigem registro explícito.
 
 ---
 
-## The Three ServiceInstallers
+## Os Três ServiceInstallers
 
-Each installer has a single, well-defined responsibility. Never merge them.
+Cada installer tem uma responsabilidade única e bem definida. Nunca os una.
 
 ### 1. ApplicationServiceInstaller
 
-Defined in `src/Modules/Identity/Identity.Infrastructure/ServiceInstallers/ApplicationServiceInstaller.cs`:
+Definido em `src/Modules/Identity/Identity.Infrastructure/ServiceInstallers/ApplicationServiceInstaller.cs`:
 
 ```csharp
 internal sealed class ApplicationServiceInstaller : IServiceInstaller
@@ -73,11 +73,11 @@ internal sealed class ApplicationServiceInstaller : IServiceInstaller
 }
 ```
 
-Registers: MediatR with both pipeline behaviors (`RequestLogging` and `Validation`), FluentValidation scan, AutoMapper, and `IIdentityApplicationService`. `TryAddTransient` prevents duplicate registration if another module already registered the service.
+Registra: MediatR com ambos os pipeline behaviors (`RequestLogging` e `Validation`), scan do FluentValidation, AutoMapper e `IIdentityApplicationService`. `TryAddTransient` evita registro duplicado se outro módulo já registrou o serviço.
 
 ### 2. InfrastructureServiceInstaller
 
-Defined in `src/Modules/Identity/Identity.Infrastructure/ServiceInstallers/InfrastructureServiceInstaller.cs`:
+Definido em `src/Modules/Identity/Identity.Infrastructure/ServiceInstallers/InfrastructureServiceInstaller.cs`:
 
 ```csharp
 internal sealed class InfrastructureServiceInstaller : IServiceInstaller
@@ -90,11 +90,11 @@ internal sealed class InfrastructureServiceInstaller : IServiceInstaller
 }
 ```
 
-Registers: `JwtOptions` via `IConfigureOptions<T>` (ASP.NET Core options pattern), and `IEventBus` which wraps MassTransit's `IPublishEndpoint`.
+Registra: `JwtOptions` via `IConfigureOptions<T>` (pattern de options do ASP.NET Core), e `IEventBus`, que encapsula o `IPublishEndpoint` do MassTransit.
 
 ### 3. PersistenceServiceInstaller
 
-Defined in `src/Modules/Identity/Identity.Infrastructure/ServiceInstallers/PersistenceServiceInstaller.cs`:
+Definido em `src/Modules/Identity/Identity.Infrastructure/ServiceInstallers/PersistenceServiceInstaller.cs`:
 
 ```csharp
 internal sealed class PersistenceServiceInstaller : IServiceInstaller
@@ -130,20 +130,20 @@ internal sealed class PersistenceServiceInstaller : IServiceInstaller
 }
 ```
 
-Open generic types (`IIdentityProjection<>`, `IEventStore<>`, `IUnitOfWork<>`) must always be registered explicitly — the Scrutor scan does not handle open generics.
+Tipos genéricos abertos (`IIdentityProjection<>`, `IEventStore<>`, `IUnitOfWork<>`) devem sempre ser registrados explicitamente — o scan do Scrutor não lida com genéricos abertos.
 
 ---
 
-## Scrutor Scan — Auto-registration Rules
+## Scan do Scrutor — Regras de Registro Automático
 
-Classes are auto-registered if they implement `ITransient` or `IScoped`. No manual registration needed.
+Classes são registradas automaticamente se implementarem `ITransient` ou `IScoped`. Nenhum registro manual é necessário.
 
 ```csharp
 // Auto-registered via ITransient — no explicit registration required
 public class PasswordService : IPasswordService, ITransient { ... }
 ```
 
-The Scrutor extension in Core handles the registration:
+A extension do Scrutor em Core cuida do registro:
 
 ```csharp
 // src/Core/Core.Infrastructure/Extensions/ServiceCollectionExtensions.cs
@@ -157,13 +157,13 @@ public static IServiceCollection AddTransientAsMatchingInterfaces(
             .WithTransientLifetime());
 ```
 
-`RegistrationStrategy.Throw` means duplicate registrations will throw — always use `TryAddTransient` when there is risk of duplicate registration across modules.
+`RegistrationStrategy.Throw` significa que registros duplicados lançarão erro — sempre use `TryAddTransient` quando houver risco de registro duplicado entre módulos.
 
 ---
 
 ## IdentityApplicationService
 
-Defined in `src/Modules/Identity/Identity.Infrastructure/Services/IdentityApplicationService.cs`:
+Definido em `src/Modules/Identity/Identity.Infrastructure/Services/IdentityApplicationService.cs`:
 
 ```csharp
 public class IdentityApplicationService(
@@ -176,9 +176,9 @@ public class IdentityApplicationService(
 }
 ```
 
-This is an empty wrapper — all real logic lives in `ApplicationService<TContext>` in Core. Its only purpose is to bind the correct `DbContext` type to the module, enabling typed injection without cross-module DbContext access.
+Este é um wrapper vazio — toda lógica real vive em `ApplicationService<TContext>` em Core. Seu único propósito é vincular o tipo correto de `DbContext` ao módulo, permitindo injeção tipada sem acesso cross-module a DbContext.
 
-The interface `IIdentityApplicationService` is a marker that specializes `IApplicationService<IdentityDbContext>`:
+A interface `IIdentityApplicationService` é um marker que especializa `IApplicationService<IdentityDbContext>`:
 
 ```csharp
 // src/Modules/Identity/Identity.Application/Services/IIdentityApplicationService.cs
@@ -187,7 +187,7 @@ public interface IIdentityApplicationService : IApplicationService<IdentityDbCon
 
 ---
 
-## Module File Map
+## Mapa de Arquivos do Módulo
 
 ```
 Identity.Infrastructure/
@@ -204,17 +204,17 @@ Identity.Infrastructure/
 
 ---
 
-## What to NEVER do in Infrastructure
+## O que NUNCA fazer em Infrastructure
 
-**Service registration**
-- Never register open generic types via Scrutor scan — always register them explicitly in `PersistenceServiceInstaller`.
-- Never add a new `IServiceInstaller` for unrelated concerns — keep the three installers focused on their single responsibility.
-- Never register `IIdentityApplicationService` with `AddTransient` — always use `TryAddTransient` to prevent duplicate registration errors.
+**Registro de serviços**
+- Nunca registre tipos genéricos abertos via scan do Scrutor — sempre registre explicitamente em `PersistenceServiceInstaller`.
+- Nunca adicione um novo `IServiceInstaller` para preocupações não relacionadas — mantenha os três installers focados em sua responsabilidade única.
+- Nunca registre `IIdentityApplicationService` com `AddTransient` — sempre use `TryAddTransient` para evitar erros de registro duplicado.
 
-**Scrutor scan**
-- Never implement `ITransient` or `IScoped` on a class that needs constructor arguments resolved from configuration — use explicit registration instead.
-- Never rely on Scrutor to register open generics — it does not support them.
+**Scan do Scrutor**
+- Nunca implemente `ITransient` ou `IScoped` em uma classe que precisa de argumentos de construtor resolvidos a partir de configuração — use registro explícito.
+- Nunca dependa do Scrutor para registrar genéricos abertos — ele não oferece suporte a eles.
 
-**Layer boundaries**
-- Never place business logic in Infrastructure services.
-- Never reference `Identity.Persistence` directly from a Handler — always go through `IIdentityApplicationService` or `IIdentityProjection<T>`.
+**Fronteiras de camada**
+- Nunca coloque lógica de negócio em serviços de Infrastructure.
+- Nunca referencie `Identity.Persistence` diretamente a partir de um Handler — sempre passe por `IIdentityApplicationService` ou `IIdentityProjection<T>`.

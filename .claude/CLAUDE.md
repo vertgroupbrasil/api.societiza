@@ -1,20 +1,19 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Este arquivo fornece orientação ao Claude Code (claude.ai/code) ao trabalhar com código neste repositório.
 
 ## Skills
 
-Project skills are located in `.claude/skills/`. Read the relevant skill before starting any task:
+As skills do projeto ficam em `.claude/skills/`. Leia a skill relevante antes de iniciar qualquer tarefa:
 
-- @.claude/skills/architecture/SKILL.md — required before touching any `.cs` or `.csproj`.
-- @.claude/skills/infrastructure/SKILL.md — required before running migrations or Docker commands.
-- @.claude/skills/api-design/SKILL.md — required before creating or editing any endpoint class under `src/Web/Endpoints/Modules/`.
+- @.claude/skills/architecture/SKILL.md — obrigatória antes de tocar em qualquer `.cs` ou `.csproj`.
+- @.claude/skills/infrastructure/SKILL.md — obrigatória antes de rodar migrations ou comandos Docker.
 
 ---
 
-## Build & Run Commands
+## Comandos de Build e Execução
 
-### Local Development (Docker)
+### Desenvolvimento Local (Docker)
 
 ```bash
 # Start infrastructure (PostgreSQL, MongoDB, RabbitMQ)
@@ -63,15 +62,15 @@ dotnet ef database update \
 #   WorkflowTemplate → WorkflowTemplateDbContext
 ```
 
-### Environment Setup
+### Configuração de Ambiente
 
-Copy `.env.example` to `.env.local` and configure connection strings before running.
+Copie `.env.example` para `.env.local` e configure as strings de conexão antes de executar.
 
-## Architecture
+## Arquitetura
 
-This project is built as an **Event-Driven Modular Monolith** using **DDD**, **CQRS** and **Clean Architecture** principles.
+Este projeto é construído como um **Monólito Modular Orientado a Eventos**, usando os princípios de **DDD**, **CQRS** e **Clean Architecture**.
 
-### Solution Structure
+### Estrutura da Solução
 
 ```
 src/
@@ -81,9 +80,9 @@ src/
 tests/             # All test projects
 ```
 
-Each module and Core has 5 layers: `Domain → Application → Infrastructure → Persistence → Shared`.
+Cada módulo e o Core têm 5 camadas: `Domain → Application → Infrastructure → Persistence → Shared`.
 
-### Data Flow
+### Fluxo de Dados
 
 ```
 HTTP Request
@@ -96,32 +95,32 @@ HTTP Request
   → Event Handlers → MongoDB projections (reads)
 ```
 
-For detailed architecture patterns, layer conventions, and the feature implementation checklist, see `.claude/skills/architecture/SKILL.md`.
+Para patterns detalhados de arquitetura, convenções de camada e a checklist de implementação de funcionalidade, consulte `.claude/skills/architecture/SKILL.md`.
 
-### Databases
+### Bancos de Dados
 
-- **PostgreSQL** — transactional data + Hangfire jobs (`societiza-postgres-dev:5432`)
-- **MongoDB** — read projections per module (`societiza-mongodb-dev:27017`)
-- **RabbitMQ** — event bus transport (`societiza-rabbitmq-dev:5672`)
+- **PostgreSQL** — dados transacionais + jobs Hangfire (`societiza-postgres-dev:5432`)
+- **MongoDB** — projections de leitura por módulo (`societiza-mongodb-dev:27017`)
+- **RabbitMQ** — transporte do barramento de eventos (`societiza-rabbitmq-dev:5672`)
 
 ## Email
 
-- **Provider**: Brevo via SMTP relay — no SDK or external package. Chosen for its generous free tier (300 emails/day) and no verified domain requirement initially.
-- **Integration**: native `System.Net.Mail.SmtpClient` only; do not add external email packages.
-- **Development**: use Brevo SMTP with a personal email as both sender and recipient for testing.
-- **Production**: Brevo SMTP relay at `smtp-relay.brevo.com`, port `587`, SSL enabled.
-- **Future**: when `societiza.com.br` is available, update `FromEmail` to `noreply@societiza.com.br`.
-- **Security**: the Brevo SMTP Key must **never** be committed. Store it in `.env.local` (already in `.gitignore`).
+- **Provider**: Brevo via relay SMTP — sem SDK ou pacote externo. Escolhido pelo free tier generoso (300 emails/dia) e por não exigir domínio verificado inicialmente.
+- **Integração**: apenas `System.Net.Mail.SmtpClient` nativo; não adicione pacotes externos de email.
+- **Desenvolvimento**: use SMTP da Brevo com um email pessoal como remetente e destinatário para testes.
+- **Produção**: relay SMTP da Brevo em `smtp-relay.brevo.com`, porta `587`, SSL habilitado.
+- **Futuro**: quando `societiza.com.br` estiver disponível, atualize `FromEmail` para `noreply@societiza.com.br`.
+- **Segurança**: a chave SMTP da Brevo **nunca** deve ser commitada. Armazene em `.env.local` (já está no `.gitignore`).
 
-### Usage pattern
+### Padrão de Uso
 
-`IEmailService` is a generic delivery abstraction with a single method `SendAsync(toEmail, toName, subject, body, ct)`. It **has no knowledge of domain concepts** like "invite" or "welcome" — that is each module's responsibility.
+`IEmailService` é uma abstração genérica de entrega com um único método `SendAsync(toEmail, toName, subject, body, ct)`. Ele **não conhece conceitos de domínio** como "convite" ou "boas-vindas" — isso é responsabilidade de cada módulo.
 
-**Never inject `IEmailService` directly into business handlers.** Sending must always be asynchronous via Hangfire:
+**Nunca injete `IEmailService` diretamente em handlers de negócio.** O envio deve ser sempre assíncrono via Hangfire:
 
-1. Each module creates its own email commands in `{Module}.Shared/Emails/` (command record) and `{Module}.Application/UseCases/Emails/` (handler)
-2. Email command handlers inject `IEmailService`, build the subject and HTML body, and call `SendAsync`
-3. Business handlers inject `IJobSchedulerService` and enqueue: `_jobScheduler.Enqueue(new SendXxxEmailCommand(...))`
+1. Cada módulo cria seus próprios comandos de email em `{Module}.Shared/Emails/` (record de comando) e `{Module}.Application/UseCases/Emails/` (handler)
+2. Handlers de comando de email injetam `IEmailService`, montam o assunto e o corpo HTML, e chamam `SendAsync`
+3. Handlers de negócio injetam `IJobSchedulerService` e enfileiram: `_jobScheduler.Enqueue(new SendXxxEmailCommand(...))`
 
 ```
 // Per-module structure
@@ -134,4 +133,4 @@ For detailed architecture patterns, layer conventions, and the feature implement
     └── Send{Action}EmailCommandHandler.cs // injects IEmailService, builds subject/body
 ```
 
-The command lives in `Shared` so it can be referenced without coupling to the Application layer. Email commands must contain **only primitive types** in their parameters to ensure Hangfire serialization.
+O comando vive em `Shared` para que possa ser referenciado sem acoplamento à camada Application. Comandos de email devem conter **apenas tipos primitivos** em seus parâmetros para garantir a serialização do Hangfire.

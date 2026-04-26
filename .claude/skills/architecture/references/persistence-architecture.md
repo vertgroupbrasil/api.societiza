@@ -1,23 +1,23 @@
-# Layer: Persistence
+# Camada: Persistence
 
-> Responsible for pure data infrastructure — no business logic.
-> Contains EF Core DbContext, MongoDB context, EF configurations, migrations, and the projection repository implementation.
-> Never references the Application layer.
+> Responsável por infraestrutura pura de dados — sem lógica de negócio.
+> Contém DbContext EF Core, context MongoDB, configurações EF, migrations e a implementação do repositório de projection.
+> Nunca referencia a camada Application.
 
 ---
 
-## Responsibility Boundary
+## Fronteira de Responsabilidade
 
-- **Persistence** owns: DbContext, MongoDbContext, EF configurations, migrations, `IIdentityProjection<T>`, `IdentityProjection<T>`
-- **Persistence** does NOT own: business logic, service orchestration, MassTransit consumers, JWT/password services
+- **Persistence** é dona de: DbContext, MongoDbContext, configurações EF, migrations, `IIdentityProjection<T>`, `IdentityProjection<T>`
+- **Persistence** NÃO é dona de: lógica de negócio, orquestração de serviços, consumers MassTransit, serviços JWT/password
 
 ---
 
 ## Event Store — PostgreSQL
 
-### How AppendEventsAsync Works
+### Como AppendEventsAsync Funciona
 
-Defined in `src/Core/Core.Application/Services/ApplicationService.cs`:
+Definido em `src/Core/Core.Application/Services/ApplicationService.cs`:
 
 ```csharp
 public async Task AppendEventsAsync<TAggregate>(
@@ -49,13 +49,13 @@ public async Task AppendEventsAsync<TAggregate>(
 }
 ```
 
-Two distinct phases:
-1. **Inside the transaction** (`UnitOfWork.ExecuteAsync`): drains the aggregate event queue, persists each `StoreEvent` to PostgreSQL, generates a snapshot every 10 events
-2. **Outside the transaction**: publishes events to RabbitMQ via `IEventBus` — only after commit
+Duas fases distintas:
+1. **Dentro da transação** (`UnitOfWork.ExecuteAsync`): drena a fila de eventos do aggregate, persiste cada `StoreEvent` no PostgreSQL, gera snapshot a cada 10 eventos
+2. **Fora da transação**: publica eventos no RabbitMQ via `IEventBus` — somente após o commit
 
-### How LoadAggregateAsync Works
+### Como LoadAggregateAsync Funciona
 
-Defined in `src/Core/Core.Application/Services/ApplicationService.cs`:
+Definido em `src/Core/Core.Application/Services/ApplicationService.cs`:
 
 ```csharp
 public async Task<Result<TAggregate>> LoadAggregateAsync<TAggregate>(
@@ -79,11 +79,11 @@ public async Task<Result<TAggregate>> LoadAggregateAsync<TAggregate>(
 }
 ```
 
-Flow: fetches the latest snapshot → loads only events **after** the snapshot (`version > snapshot.Version`) → reconstitutes the aggregate by replaying events via `LoadFromStream` → returns `Result<TAggregate>`.
+Fluxo: busca o snapshot mais recente → carrega apenas eventos **após** o snapshot (`version > snapshot.Version`) → reconstitui o aggregate reproduzindo eventos via `LoadFromStream` → retorna `Result<TAggregate>`.
 
-### EventStore SQL Layer
+### Camada SQL do EventStore
 
-Defined in `src/Core/Core.Persistence/EventStore/EventStore.cs`:
+Definido em `src/Core/Core.Persistence/EventStore/EventStore.cs`:
 
 ```csharp
 public async Task AppendAsync<TAggregate>(StoreEvent<TAggregate> storeEvent, CancellationToken ct)
@@ -103,11 +103,11 @@ public Task<List<IDomainEvent>> GetStreamAsync<TAggregate>(Guid id, ulong versio
         .ToListAsync(ct);
 ```
 
-`IDomainEvent` is serialized/deserialized as JSON with `TypeNameHandling.Auto` — required to preserve the concrete type when deserializing the interface.
+`IDomainEvent` é serializado/desserializado como JSON com `TypeNameHandling.Auto` — obrigatório para preservar o tipo concreto ao desserializar a interface.
 
-### Generated Tables (per aggregate)
+### Tabelas Geradas (por aggregate)
 
-Convention: one `StoreEvents` table and one `Snapshots` table per aggregate.
+Convenção: uma tabela `StoreEvents` e uma tabela `Snapshots` por aggregate.
 
 ```sql
 -- src/Modules/Identity/Identity.Persistence/Migrations/
@@ -129,9 +129,9 @@ CREATE TABLE identity."UserInviteSnapshots" (
 );
 ```
 
-### EF Configurations
+### Configurações EF
 
-Defined in `src/Modules/Identity/Identity.Persistence/Configurations/`:
+Definidas em `src/Modules/Identity/Identity.Persistence/Configurations/`:
 
 ```csharp
 // StoreEventConfiguration.cs — empty class, inherits all config from Core
@@ -141,15 +141,15 @@ public class UserInviteStoreEventConfiguration : StoreEventConfiguration<UserInv
 public class UserInviteSnapshotConfiguration : SnapshotConfiguration<UserInvite>;
 ```
 
-Both are empty classes — all EF configuration lives in the generic base classes in Core. Table name convention: `{AggregateName}StoreEvents` and `{AggregateName}Snapshots`.
+Ambas são classes vazias — toda configuração EF vive nas classes base genéricas em Core. Convenção de nome de tabela: `{AggregateName}StoreEvents` e `{AggregateName}Snapshots`.
 
-**Every new aggregate requires two configuration classes — one for StoreEvents, one for Snapshots.**
+**Todo novo aggregate exige duas classes de configuração — uma para StoreEvents, uma para Snapshots.**
 
 ---
 
 ## MongoDB Projections
 
-### Hierarchy
+### Hierarquia
 
 ```
 IProjection<T>                          (Core.Domain)
@@ -165,7 +165,7 @@ IMongoDbContext                         (Core.Persistence)
 
 ### IdentityProjection
 
-Defined in `src/Modules/Identity/Identity.Persistence/Projection/`:
+Definido em `src/Modules/Identity/Identity.Persistence/Projection/`:
 
 ```csharp
 // IIdentityProjection<T>.cs — marker interface, enables typed injection per module
@@ -178,9 +178,9 @@ public class IdentityProjection<T>(IIdentityProjectionDbContext context)
     where T : IProjectionModel;
 ```
 
-### Core Projection Implementation
+### Implementação de Projection em Core
 
-Defined in `src/Core/Core.Persistence/Projection/Projection.cs`:
+Definida em `src/Core/Core.Persistence/Projection/Projection.cs`:
 
 ```csharp
 public class Projection<TProjection>(IMongoDbContext context) : IProjection<TProjection>
@@ -204,18 +204,18 @@ public class Projection<TProjection>(IMongoDbContext context) : IProjection<TPro
 }
 ```
 
-`ReplaceInsertAsync` is the method used in all Projection Handlers. It is a full document upsert — this is why handlers use `existing with { Field = newValue }` to produce a new record with all fields populated before passing it to the upsert.
+`ReplaceInsertAsync` é o método usado em todos os Projection Handlers. É um upsert de documento completo — por isso handlers usam `existing with { Field = newValue }` para produzir um novo record com todos os campos preenchidos antes de passá-lo ao upsert.
 
-### MongoDB Collection Name Convention
+### Convenção de Nome de Collection MongoDB
 
-The collection name is always `typeof(TProjection).Name` — no explicit registration needed.
+O nome da collection é sempre `typeof(TProjection).Name` — nenhum registro explícito é necessário.
 
 - `ProjectionModel.User` → collection `User`
 - `ProjectionModel.UserInvite` → collection `UserInvite`
 
-### MongoDbContext Base
+### Base MongoDbContext
 
-Defined in `src/Core/Core.Persistence/Projection/Abstractions/MongoDbContext.cs`:
+Definida em `src/Core/Core.Persistence/Projection/Abstractions/MongoDbContext.cs`:
 
 ```csharp
 public abstract class MongoDbContext : IMongoDbContext
@@ -240,34 +240,34 @@ public abstract class MongoDbContext : IMongoDbContext
 
 ### IdentityDbContext
 
-Defined in `src/Modules/Identity/Identity.Persistence/Context/IdentityDbContext.cs`:
+Definido em `src/Modules/Identity/Identity.Persistence/Context/IdentityDbContext.cs`:
 
-- Applies all EF configurations from the Persistence assembly automatically
-- Uses schema `identity` (defined in `Constants/Schemas.cs`)
-- Registered in `PersistenceServiceInstaller` with Npgsql and migration history table in the `identity` schema
+- Aplica automaticamente todas as configurações EF do assembly Persistence
+- Usa o schema `identity` (definido em `Constants/Schemas.cs`)
+- Registrado em `PersistenceServiceInstaller` com Npgsql e tabela de histórico de migrations no schema `identity`
 
 ### IdentityProjectionDbContext
 
-Defined in `src/Modules/Identity/Identity.Persistence/Context/IdentityProjectionDbContext.cs`:
+Definido em `src/Modules/Identity/Identity.Persistence/Context/IdentityProjectionDbContext.cs`:
 
-- Inherits `MongoDbContext` from Core
-- Implements `IIdentityProjectionDbContext` (marker interface for typed DI)
-- Connection string read from configuration section `Projections:Identity`
+- Herda `MongoDbContext` de Core
+- Implementa `IIdentityProjectionDbContext` (interface marker para DI tipada)
+- Connection string lida da seção de configuração `Projections:Identity`
 
 ---
 
-## What to NEVER do in Persistence
+## O que NUNCA fazer em Persistence
 
 **Event Store**
-- Never call `AppendEventsAsync` inside a manually opened transaction — it manages its own `UnitOfWork`.
-- Never load an aggregate via SQL query or projection — always use `LoadAggregateAsync`.
-- Never skip the EF configuration classes for a new aggregate. Every aggregate needs `StoreEventConfiguration<T>` and `SnapshotConfiguration<T>`.
+- Nunca chame `AppendEventsAsync` dentro de uma transação aberta manualmente — ele gerencia seu próprio `UnitOfWork`.
+- Nunca carregue um aggregate via query SQL ou projection — sempre use `LoadAggregateAsync`.
+- Nunca pule as classes de configuração EF para um novo aggregate. Todo aggregate precisa de `StoreEventConfiguration<T>` e `SnapshotConfiguration<T>`.
 
 **Projections**
-- Never write to a MongoDB collection directly — always go through `IIdentityProjection<T>`.
-- Never use `InsertOneAsync` for projections — always use `ReplaceInsertAsync` (upsert).
-- Never register a new projection collection explicitly — the collection name is inferred from `typeof(T).Name`.
+- Nunca escreva diretamente em uma collection MongoDB — sempre passe por `IIdentityProjection<T>`.
+- Nunca use `InsertOneAsync` para projections — sempre use `ReplaceInsertAsync` (upsert).
+- Nunca registre explicitamente uma nova collection de projection — o nome da collection é inferido de `typeof(T).Name`.
 
-**Layer boundaries**
-- Never reference the Application layer from Persistence.
-- Never place business logic or service orchestration in Persistence classes.
+**Fronteiras de camada**
+- Nunca referencie a camada Application a partir de Persistence.
+- Nunca coloque lógica de negócio ou orquestração de serviços em classes de Persistence.

@@ -8,7 +8,7 @@ namespace Web.Tests.Endpoints;
 
 /// <summary>
 /// Testes de convenção que validam o guia de estilo de API do Societiza
-/// (veja <c>.claude/skills/api-design/SKILL.md</c>) via reflection.
+/// (veja <c>.claude/skills/architecture/references/web-swagger.md</c>) via reflection.
 ///
 /// Todo endpoint público Ardalis em <c>Web.Endpoints.Modules.*</c> deve:
 /// - declarar <see cref="ApiVersionAttribute"/> no método <c>HandleAsync</c>;

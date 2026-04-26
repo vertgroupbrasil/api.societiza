@@ -1,12 +1,12 @@
-# Layer: Application
+# Camada: Application
 
-> Orchestrates business operations: loads aggregates, invokes domain behavior, persists events, schedules side effects.
-> Never contains business logic — that belongs in the Domain.
-> References Domain, Shared, and Core. Never references Infrastructure or Persistence directly.
+> Orquestra operações de negócio: carrega aggregates, invoca comportamento de domínio, persiste eventos, agenda efeitos colaterais.
+> Nunca contém lógica de negócio — isso pertence ao Domain.
+> Referencia Domain, Shared e Core. Nunca referencia Infrastructure ou Persistence diretamente.
 
 ---
 
-## Layer Structure
+## Estrutura da Camada
 
 ```
 Identity.Application/
@@ -27,7 +27,7 @@ Identity.Application/
 
 ## ICommandHandler
 
-Defined in `src/Core/Core.Application/Messaging/Commands/ICommandHandler.cs`:
+Definido em `src/Core/Core.Application/Messaging/Commands/ICommandHandler.cs`:
 
 ```csharp
 public interface ICommandHandler<in TCommand> : IRequestHandler<TCommand, Result>
@@ -41,25 +41,25 @@ public interface ICommandHandler<in TCommand, TResponse> : IRequestHandler<TComm
 
 ## IIdentityApplicationService
 
-Defined in `src/Modules/Identity/Identity.Application/Services/IIdentityApplicationService.cs`:
+Definido em `src/Modules/Identity/Identity.Application/Services/IIdentityApplicationService.cs`:
 
 ```csharp
 public interface IIdentityApplicationService : IApplicationService<IdentityDbContext> { }
 ```
 
-Marker interface that binds the generic `IApplicationService<TContext>` to the module's DbContext. Always inject `IIdentityApplicationService` — never `IApplicationService<IdentityDbContext>` directly.
+Interface marker que vincula o `IApplicationService<TContext>` genérico ao DbContext do módulo. Sempre injete `IIdentityApplicationService` — nunca `IApplicationService<IdentityDbContext>` diretamente.
 
-Exposes:
-- `AppendEventsAsync<TAggregate>(aggregate, ct)` — persists events to PostgreSQL, then publishes to RabbitMQ
-- `LoadAggregateAsync<TAggregate>(id, ct)` — rehydrates aggregate from event store
-- `PublishEventAsync(event, ct)` — publishes an event directly to the event bus
-- `SchedulePublishAsync(event, scheduledTime, ct)` — schedules a delayed event
+Expõe:
+- `AppendEventsAsync<TAggregate>(aggregate, ct)` — persiste eventos no PostgreSQL, depois publica no RabbitMQ
+- `LoadAggregateAsync<TAggregate>(id, ct)` — reidrata o aggregate a partir do event store
+- `PublishEventAsync(event, ct)` — publica um evento diretamente no barramento de eventos
+- `SchedulePublishAsync(event, scheduledTime, ct)` — agenda um evento atrasado
 
 ---
 
-## Handler Anatomy
+## Anatomia do Handler
 
-### Command Handler — no response
+### Handler de comando — sem resposta
 
 ```csharp
 // src/Modules/Identity/Identity.Application/UseCases/Commands/RevokeInviteHandler.cs
@@ -94,7 +94,7 @@ public sealed class RevokeInviteHandler(
 }
 ```
 
-### Command Handler — with response
+### Handler de comando — com resposta
 
 ```csharp
 // src/Modules/Identity/Identity.Application/UseCases/Commands/InviteUserHandler.cs
@@ -151,16 +151,16 @@ public class InviteUserHandler(
 }
 ```
 
-### When to use projection vs event store
+### Quando usar projection vs event store
 
-- **Projection (MongoDB)** → duplicate checks, lookups by non-Id fields (e.g. token, email), listing
-- **Event store (LoadAggregateAsync)** → any operation that mutates aggregate state
+- **Projection (MongoDB)** → verificações de duplicidade, buscas por campos que não sejam Id (ex.: token, email), listagem
+- **Event store (LoadAggregateAsync)** → qualquer operação que muta o estado do aggregate
 
 ---
 
-## Validator Anatomy
+## Anatomia do Validator
 
-Validators are discovered automatically by FluentValidation scan in `ApplicationServiceInstaller` — no manual registration needed.
+Validators são descobertos automaticamente pelo scan do FluentValidation em `ApplicationServiceInstaller` — nenhum registro manual é necessário.
 
 ```csharp
 // src/Modules/Identity/Identity.Application/UseCases/Validators/InviteUserValidator.cs
@@ -187,15 +187,15 @@ public sealed class InviteUserValidator : AbstractValidator<InviteUserCommand>
 }
 ```
 
-**Validator rules:**
-- `sealed class` inheriting `AbstractValidator<TCommand>`
-- Validates only the command shape — never loads aggregates or projections
-- State validation (e.g. `invite.Status == Pending`) belongs in the Handler, not the Validator
-- Validators may reference Domain enumerations (`UserRole`, `InviteStatus`) for value validation
+**Regras de Validator:**
+- `sealed class` herdando de `AbstractValidator<TCommand>`
+- Valida apenas o formato do comando — nunca carrega aggregates ou projections
+- Validação de estado (ex.: `invite.Status == Pending`) pertence ao Handler, não ao Validator
+- Validators podem referenciar enumerações de Domain (`UserRole`, `InviteStatus`) para validação de valor
 
 ---
 
-## Email Handler
+## Handler de Email
 
 ```csharp
 // src/Modules/Identity/Identity.Application/UseCases/Emails/SendInviteEmailHandler.cs
@@ -224,13 +224,13 @@ public class SendInviteEmailHandler(IEmailService emailService)
 }
 ```
 
-`IEmailService` does not know what an invite is — subject, body, and template are this handler's responsibility. This handler is only ever reached via Hangfire — never called directly from a business handler.
+`IEmailService` não sabe o que é um convite — assunto, corpo e modelo são responsabilidade deste handler. Este handler só é alcançado via Hangfire — nunca chamado diretamente por um handler de negócio.
 
 ---
 
-## Job Handler
+## Handler de Job
 
-Job command and handler live in the same file. Job commands are `internal` — they are not exposed outside Application.
+Comando e handler de job vivem no mesmo arquivo. Comandos de job são `internal` — eles não são expostos fora de Application.
 
 ```csharp
 // src/Modules/Identity/Identity.Application/UseCases/Jobs/ExpireInvitesJob.cs
@@ -272,11 +272,11 @@ internal sealed class ExpireInvitesHandler(
 
 ---
 
-## Projection Handler Anatomy
+## Anatomia do Projection Handler
 
-Projection handlers update MongoDB read models in response to Domain Events consumed via MassTransit.
+Projection handlers atualizam modelos de leitura MongoDB em resposta a Domain Events consumidos via MassTransit.
 
-### Interface pattern — composite interface per aggregate
+### Pattern de interface — interface composta por aggregate
 
 ```csharp
 // src/Modules/Identity/Identity.Application/UseCases/Events/ProjectionUserInviteEventHandler.cs
@@ -348,7 +348,7 @@ public class ProjectionUserInviteEventHandler(
 
 ### IEventHandler (Core)
 
-Defined in `src/Core/Core.Application/EventBus/IEventHandler.cs`:
+Definido em `src/Core/Core.Application/EventBus/IEventHandler.cs`:
 
 ```csharp
 public interface IEventHandler<in TEvent> where TEvent : IEvent
@@ -357,11 +357,11 @@ public interface IEventHandler<in TEvent> where TEvent : IEvent
 }
 ```
 
-### Projection handler registration
+### Registro de projection handler
 
-Projection handlers implement composite interfaces and are NOT picked up by the Scrutor scan — they must be registered manually.
+Projection handlers implementam interfaces compostas e NÃO são capturados pelo scan do Scrutor — eles devem ser registrados manualmente.
 
-Defined in `src/Modules/Identity/Identity.Application/DependencyInjection/ServiceCollectionExtensions.cs`:
+Definido em `src/Modules/Identity/Identity.Application/DependencyInjection/ServiceCollectionExtensions.cs`:
 
 ```csharp
 public static IServiceCollection AddEventInteractors(this IServiceCollection services)
@@ -370,30 +370,30 @@ public static IServiceCollection AddEventInteractors(this IServiceCollection ser
         .AddScoped<IProjectionUserInviteEventHandler, ProjectionUserInviteEventHandler>();
 ```
 
-This method is called inside `ApplicationServiceInstaller.Install()`.
+Este método é chamado dentro de `ApplicationServiceInstaller.Install()`.
 
-**Every new projection handler must be registered here — it will not be auto-discovered.**
+**Todo novo projection handler deve ser registrado aqui — ele não será descoberto automaticamente.**
 
 ---
 
-## What to NEVER do in Application
+## O que NUNCA fazer em Application
 
 **Handlers**
-- Never place business logic in a Handler — business rules belong in Aggregate methods.
-- Never mutate aggregate state directly in a Handler — always call a behavior method on the aggregate.
-- Never load an aggregate from a projection — use `LoadAggregateAsync` for any mutation.
-- Never use a projection for state validation after loading an aggregate — the aggregate is the source of truth.
-- Never send email directly from a business Handler — always enqueue via `IJobSchedulerService`.
+- Nunca coloque lógica de negócio em um Handler — regras de negócio pertencem aos métodos do Aggregate.
+- Nunca mute estado de aggregate diretamente em um Handler — sempre chame um método de comportamento no aggregate.
+- Nunca carregue um aggregate a partir de uma projection — use `LoadAggregateAsync` para qualquer mutação.
+- Nunca use uma projection para validação de estado depois de carregar um aggregate — o aggregate é a fonte da verdade.
+- Nunca envie email diretamente a partir de um Handler de negócio — sempre enfileire via `IJobSchedulerService`.
 
 **Validators**
-- Never load aggregates or projections inside a Validator — validate only the command shape.
-- Never put state validation in a Validator — state rules (e.g. `Status == Pending`) belong in the Handler.
+- Nunca carregue aggregates ou projections dentro de um Validator — valide apenas o formato do comando.
+- Nunca coloque validação de estado em um Validator — regras de estado (ex.: `Status == Pending`) pertencem ao Handler.
 
 **Projection Handlers**
-- Never throw directly from a projection handler catch block — always wrap in `InvalidOperationException` to trigger MassTransit retry.
-- Never fail silently when `existing is null` in an update handler — log a warning and return (idempotency).
-- Never forget to add a new projection handler to `AddEventInteractors()` — Scrutor will not find it.
+- Nunca lance diretamente a partir do bloco catch de um projection handler — sempre envolva em `InvalidOperationException` para acionar retry do MassTransit.
+- Nunca falhe silenciosamente quando `existing is null` em um handler de update — registre warning e retorne (idempotência).
+- Nunca esqueça de adicionar um novo projection handler a `AddEventInteractors()` — o Scrutor não vai encontrá-lo.
 
 **Email**
-- Never pass domain objects or complex types to email commands — primitives only (Hangfire serialization).
-- Never call `IEmailService` directly from a business Handler — only from `SendInviteEmailHandler`.
+- Nunca passe objetos de domínio ou tipos complexos para comandos de email — apenas primitivos (serialização do Hangfire).
+- Nunca chame `IEmailService` diretamente a partir de um Handler de negócio — apenas a partir de `SendInviteEmailHandler`.

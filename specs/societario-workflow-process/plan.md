@@ -510,7 +510,7 @@
 
 ### Fase 6 — Web
 
-**Referencia**: `references/web-architecture.md` + skill `/api-design`
+**Referencia**: `references/web-endpoints.md` + `references/web-swagger.md`
 
 #### 1. WorkflowTemplateDataService — implementacao cross-module
 

@@ -1,201 +1,201 @@
-# Feature Implementation Checklist
+# Checklist de Implementação de Funcionalidade
 
-> Use this checklist every time you implement a new feature end-to-end.
-> Follow the order below — never skip layers or implement out of sequence.
-> For detailed patterns in each layer, read the corresponding reference file.
-
----
-
-## Before You Start
-
-- Read `references/domain-architecture.md` if the feature requires a new Aggregate, Event, or Enumeration
-- Read `references/application-architecture.md` for Handler, Validator, and Projection Handler patterns
-- Read `references/shared-architecture.md` for Command and Response DTO structure
-- Read `references/persistence-architecture.md` if the feature adds a new Aggregate to the event store
-- Read `references/infrastructure-architecture.md` if the feature requires a new service registration
+> Use esta checklist toda vez que implementar uma nova funcionalidade de ponta a ponta.
+> Siga a ordem abaixo — nunca pule camadas nem implemente fora de sequência.
+> Para patterns detalhados em cada camada, leia o arquivo de referência correspondente.
 
 ---
 
-## Step 1 — Domain
+## Antes de Começar
 
-### New Aggregate
-- [ ] Create `{Module}.Domain/Aggregates/{AggregateName}.cs` inheriting `AggregateRoot`
-- [ ] Private constructor
-- [ ] Public properties with `private set`
-- [ ] `Create()` factory method — raises the creation event via `RaiseEvent<T>()`
-- [ ] Behavior methods — each calls `RaiseEvent<T>()`, never assigns state directly
+- Leia `references/domain-architecture.md` se a funcionalidade exigir novo Aggregate, Event ou Enumeration
+- Leia `references/application-architecture.md` para padrões de Handler, Validator e Projection Handler
+- Leia `references/shared-architecture.md` para estrutura de comando e DTO de resposta
+- Leia `references/persistence-architecture.md` se a funcionalidade adicionar um novo Aggregate ao event store
+- Leia `references/infrastructure-architecture.md` se a funcionalidade exigir novo registro de serviço
+
+---
+
+## Passo 1 — Domain
+
+### Novo Aggregate
+- [ ] Criar `{Module}.Domain/Aggregates/{AggregateName}.cs` herdando de `AggregateRoot`
+- [ ] Construtor private
+- [ ] Propriedades públicas com `private set`
+- [ ] Método factory `Create()` — levanta o evento de criação via `RaiseEvent<T>()`
+- [ ] Métodos de comportamento — cada um chama `RaiseEvent<T>()`, nunca atribui estado diretamente
 - [ ] `ApplyEvent(IDomainEvent @event) => When(@event as dynamic)`
-- [ ] One `private void When(TEvent @event)` per Domain Event
+- [ ] Um `private void When(TEvent @event)` por Domain Event
 
-### New Domain Events
-- [ ] Add `sealed record` to `{Module}.Domain/Events/DomainEvents.cs`
-- [ ] Inherits `Message, IDomainEvent` — in this order
-- [ ] All fields are primitives — no SmartEnum, no Domain types
-- [ ] `Version` field present in every event
-- [ ] SmartEnum fields converted to `string` via `.Name` when raising the event
+### Novos Domain Events
+- [ ] Adicionar `sealed record` a `{Module}.Domain/Events/DomainEvents.cs`
+- [ ] Herda de `Message, IDomainEvent` — nesta ordem
+- [ ] Todos os campos são primitivos — sem SmartEnum, sem tipos de Domain
+- [ ] Campo `Version` presente em todo evento
+- [ ] Campos SmartEnum convertidos para `string` via `.Name` ao levantar o evento
 
-### New Enumeration
-- [ ] Create `{Module}.Domain/Enumerations/{EnumName}.cs`
-- [ ] `abstract class` inheriting `SmartEnum<T>`
-- [ ] Implicit `string` and `int` conversions
-- [ ] `private sealed` subclass per value with stable explicit `int`
+### Nova Enumeration
+- [ ] Criar `{Module}.Domain/Enumerations/{EnumName}.cs`
+- [ ] `abstract class` herdando de `SmartEnum<T>`
+- [ ] Conversões implícitas para `string` e `int`
+- [ ] Subclasse `private sealed` por valor com `int` explícito e estável
 
-### New Projection Model
-- [ ] Add `record` to `{Module}.Domain/Projections/ProjectionModel.cs`
-- [ ] Implements `IProjectionModel`
-- [ ] All fields are primitives — no SmartEnum, no Domain types
-- [ ] `IsDeleted` with default `false`
-
----
-
-## Step 2 — Shared
-
-### New Command
-- [ ] Create `{Module}.Shared/Commands/{OperationName}Command.cs`
-- [ ] `sealed record` implementing `ICommand` or `ICommand<IdentifierResponse>`
-- [ ] All fields are primitives — no Domain types, no SmartEnums
-
-### New Email Command
-- [ ] Create `{Module}.Shared/Emails/{OperationName}EmailCommand.cs`
-- [ ] `sealed record` implementing `ICommand`
-- [ ] All fields are `string` — Hangfire serialization requirement
-
-### New Response DTO
-- [ ] Create `{Module}.Shared/Response/{Resource}{Intent}Response.cs`
-- [ ] `sealed record` — no inheritance, no interfaces
-- [ ] All fields are primitives, `Guid`, `DateTimeOffset`, or nullable variants
+### Novo Projection Model
+- [ ] Adicionar `record` a `{Module}.Domain/Projections/ProjectionModel.cs`
+- [ ] Implementa `IProjectionModel`
+- [ ] Todos os campos são primitivos — sem SmartEnum, sem tipos de Domain
+- [ ] `IsDeleted` com default `false`
 
 ---
 
-## Step 3 — Application
+## Passo 2 — Shared
 
-### New Validator
-- [ ] Create `{Module}.Application/UseCases/Validators/{OperationName}Validator.cs`
-- [ ] `sealed class` inheriting `AbstractValidator<TCommand>`
-- [ ] Validates command shape only — no aggregate or projection loading
-- [ ] State rules (e.g. `Status == Pending`) belong in the Handler, not here
+### Novo comando
+- [ ] Criar `{Module}.Shared/Commands/{OperationName}Command.cs`
+- [ ] `sealed record` implementando `ICommand` ou `ICommand<IdentifierResponse>`
+- [ ] Todos os campos são primitivos — sem tipos de Domain, sem SmartEnums
 
-### New Command Handler
-- [ ] Create `{Module}.Application/UseCases/Commands/{OperationName}Handler.cs`
-- [ ] Implements `ICommandHandler<TCommand>` or `ICommandHandler<TCommand, TResponse>`
-- [ ] Use projection (`IIdentityProjection<T>`) for duplicate checks and lookups
-- [ ] Use `LoadAggregateAsync` for any mutation
-- [ ] Call behavior method on the aggregate — never mutate state directly
-- [ ] Call `AppendEventsAsync` after the behavior method
-- [ ] Schedule emails via `IJobSchedulerService.Enqueue()` — never send directly
+### Novo comando de email
+- [ ] Criar `{Module}.Shared/Emails/{OperationName}EmailCommand.cs`
+- [ ] `sealed record` implementando `ICommand`
+- [ ] Todos os campos são `string` — requisito de serialização do Hangfire
 
-### New Projection Handler
-- [ ] Add `IEventHandler<TEvent>` to the composite interface in `ProjectionUserInviteEventHandler.cs`
-- [ ] Add `Handle(TEvent @event, ...)` method to the handler class
-- [ ] Creation events: call `ReplaceInsertAsync` with a new projection record
-- [ ] Update events: `FindAsync` → `existing with { ... }` → `ReplaceInsertAsync`
-- [ ] Wrap every `Handle` body in `try/catch` — log error and rethrow as `InvalidOperationException`
-- [ ] If `existing is null` in an update handler: log warning and return (idempotency)
-- [ ] Register the new handler in `ServiceCollectionExtensions.AddEventInteractors()`
-
-### New Email Handler
-- [ ] Create `{Module}.Application/UseCases/Emails/{OperationName}EmailHandler.cs`
-- [ ] Implements `ICommandHandler<TEmailCommand>`
-- [ ] Calls `IEmailService.SendAsync()` — subject and body defined here, not in `IEmailService`
-
-### New Job Handler
-- [ ] Create `{Module}.Application/UseCases/Jobs/{JobName}Job.cs`
-- [ ] `Command` and `Handler` in the same file
-- [ ] Command is `internal` — not exposed outside Application
-- [ ] Use projection to find candidates, event store to load and mutate aggregates
-- [ ] Use `continue` in loops — do not fail the entire batch for one aggregate
+### Novo DTO de resposta
+- [ ] Criar `{Module}.Shared/Response/{Resource}{Intent}Response.cs`
+- [ ] `sealed record` — sem herança, sem interfaces
+- [ ] Todos os campos são primitivos, `Guid`, `DateTimeOffset` ou variantes nullable
 
 ---
 
-## Step 4 — Persistence
+## Passo 3 — Application
 
-### New Aggregate in the Event Store
-- [ ] Add `{AggregateName}StoreEventConfiguration : StoreEventConfiguration<TAggregate>` to `Configurations/`
-- [ ] Add `{AggregateName}SnapshotConfiguration : SnapshotConfiguration<TAggregate>` to `Configurations/`
-- [ ] Run `dotnet ef migrations add {MigrationName}` to generate the tables
+### Novo Validator
+- [ ] Criar `{Module}.Application/UseCases/Validators/{OperationName}Validator.cs`
+- [ ] `sealed class` herdando de `AbstractValidator<TCommand>`
+- [ ] Valida apenas o formato do comando — sem carregamento de aggregate ou projection
+- [ ] Regras de estado (ex.: `Status == Pending`) pertencem ao Handler, não aqui
+
+### Novo handler de comando
+- [ ] Criar `{Module}.Application/UseCases/Commands/{OperationName}Handler.cs`
+- [ ] Implementa `ICommandHandler<TCommand>` ou `ICommandHandler<TCommand, TResponse>`
+- [ ] Use projection (`IIdentityProjection<T>`) para verificações de duplicidade e lookups
+- [ ] Use `LoadAggregateAsync` para qualquer mutação
+- [ ] Chame método de comportamento no aggregate — nunca mute estado diretamente
+- [ ] Chame `AppendEventsAsync` após o método de comportamento
+- [ ] Agende emails via `IJobSchedulerService.Enqueue()` — nunca envie diretamente
+
+### Novo handler de projection
+- [ ] Adicionar `IEventHandler<TEvent>` à interface composta em `ProjectionUserInviteEventHandler.cs`
+- [ ] Adicionar método `Handle(TEvent @event, ...)` à classe handler
+- [ ] Eventos de criação: chamar `ReplaceInsertAsync` com um novo record de projection
+- [ ] Eventos de update: `FindAsync` → `existing with { ... }` → `ReplaceInsertAsync`
+- [ ] Envolver todo corpo de `Handle` em `try/catch` — logar erro e relançar como `InvalidOperationException`
+- [ ] Se `existing is null` em um handler de update: registrar warning e retornar (idempotência)
+- [ ] Registrar o novo handler em `ServiceCollectionExtensions.AddEventInteractors()`
+
+### Novo handler de email
+- [ ] Criar `{Module}.Application/UseCases/Emails/{OperationName}EmailHandler.cs`
+- [ ] Implementa `ICommandHandler<TEmailCommand>`
+- [ ] Chama `IEmailService.SendAsync()` — assunto e corpo definidos aqui, não em `IEmailService`
+
+### Novo handler de job
+- [ ] Criar `{Module}.Application/UseCases/Jobs/{JobName}Job.cs`
+- [ ] `Command` e `Handler` no mesmo arquivo
+- [ ] Comando é `internal` — não exposto fora de Application
+- [ ] Use projection para encontrar candidatos, event store para carregar e mutar aggregates
+- [ ] Use `continue` em loops — não falhe o batch inteiro por um aggregate
 
 ---
 
-## Step 5 — Infrastructure
+## Passo 4 — Persistence
 
-### New Service (auto-registered)
-- [ ] Implement `ITransient` or `IScoped` on the class — Scrutor will auto-register it
-- [ ] Define the interface in `{Module}.Application/Services/`
-- [ ] Place the implementation in `{Module}.Infrastructure/Services/`
-
-### New Open Generic Registration
-- [ ] Add explicit `services.AddScoped(typeof(IFoo<>), typeof(Foo<>))` to `PersistenceServiceInstaller`
-- [ ] Never rely on Scrutor for open generics
+### Novo Aggregate no Event Store
+- [ ] Adicionar `{AggregateName}StoreEventConfiguration : StoreEventConfiguration<TAggregate>` a `Configurations/`
+- [ ] Adicionar `{AggregateName}SnapshotConfiguration : SnapshotConfiguration<TAggregate>` a `Configurations/`
+- [ ] Rodar `dotnet ef migrations add {MigrationName}` para gerar as tabelas
 
 ---
 
-## Step 6 — Web (Consumers)
+## Passo 5 — Infrastructure
 
-### New MassTransit Consumer Event
+### Novo Service (registrado automaticamente)
+- [ ] Implementar `ITransient` ou `IScoped` na classe — Scrutor vai registrá-la automaticamente
+- [ ] Definir a interface em `{Module}.Application/Services/`
+- [ ] Colocar a implementação em `{Module}.Infrastructure/Services/`
 
-### New Request DTO
-- [ ] Create `src/Web/Endpoints/Modules/{Module}/Requests/{Commands|Queries}/{OperationName}Request.cs`
-- [ ] Use `[FromRoute]`, `[FromBody]`, or `[FromQuery]` attributes as needed
+### Novo Registro de Genérico Aberto
+- [ ] Adicionar `services.AddScoped(typeof(IFoo<>), typeof(Foo<>))` explícito a `PersistenceServiceInstaller`
+- [ ] Nunca depender do Scrutor para genéricos abertos
 
-### New Endpoint
-- [ ] Create `src/Web/Endpoints/Modules/{Module}/{OperationName}Endpoint.cs`
-- [ ] Inherits `EndpointBaseAsync.WithRequest<TRequest>.WithActionResult` or `.WithActionResult<TResponse>`
-- [ ] Decorated with `[ApiVersion("1.0")]`, `[Http{Method}(route)]`, `[ProducesResponseType]`, `[SwaggerOperation]`
+---
+
+## Passo 6 — Web (Consumers)
+
+### Novo MassTransit Consumer Event
+
+### Novo DTO de requisição
+- [ ] Criar `src/Web/Endpoints/Modules/{Module}/Requests/{Commands|Queries}/{OperationName}Request.cs`
+- [ ] Usar atributos `[FromRoute]`, `[FromBody]` ou `[FromQuery]` conforme necessário
+
+### Novo Endpoint
+- [ ] Criar `src/Web/Endpoints/Modules/{Module}/{OperationName}Endpoint.cs`
+- [ ] Herda de `EndpointBaseAsync.WithRequest<TRequest>.WithActionResult` ou `.WithActionResult<TResponse>`
+- [ ] Decorado com `[ApiVersion("1.0")]`, `[Http{Method}(route)]`, `[ProducesResponseType]`, `[SwaggerOperation]`
 - [ ] Pipeline: `Result.Create(request).Map(...).Bind(...).Match(onSuccess, this.HandleFailure)`
 
 ---
 
-## Step 6 — Web (Consumers)
+## Passo 6 — Web (Consumers)
 
-### New MassTransit Consumer Event
-- [ ] Add `IConsumer<TEvent>` to the existing consumer class for the aggregate (e.g. `ProjectionUserInviteConsumer`)
-- [ ] Add `Consume(ConsumeContext<TEvent> context)` method — delegate immediately to the event handler, no logic
-- [ ] Add `bus.ConfigureEventReceiveEndpoint<TConsumer, TEvent>(context, MODULE_NAME)` to `ConsumerConfiguration.cs`
+### Novo MassTransit Consumer Event
+- [ ] Adicionar `IConsumer<TEvent>` à classe consumer existente para o aggregate (ex.: `ProjectionUserInviteConsumer`)
+- [ ] Adicionar método `Consume(ConsumeContext<TEvent> context)` — delegar imediatamente para o event handler, sem lógica
+- [ ] Adicionar `bus.ConfigureEventReceiveEndpoint<TConsumer, TEvent>(context, MODULE_NAME)` a `ConsumerConfiguration.cs`
 
 ---
 
-## Step 7 — Web (Endpoint)
+## Passo 7 — Web (Endpoint)
 
-### New Route
-- [ ] Add route constant to `src/Web/Endpoints/Routes/{Module}Routes.cs`
-- [ ] Add parameter name constant if the route has a `{param:guid}` segment — shared with `[FromRoute(Name = ...)]`
+### Nova Route
+- [ ] Adicionar constante de rota a `src/Web/Endpoints/Routes/{Module}Routes.cs`
+- [ ] Adicionar constante de nome de parâmetro se a rota tiver segmento `{param:guid}` — compartilhada com `[FromRoute(Name = ...)]`
 
-### New Recurring Job
-- [ ] Add `jobScheduler.ScheduleRecurring(jobId, cronExpression, new {JobName}Command())` to `RegisterRecurringJobsStartupTask.cs`
+### Novo Recurring Job
+- [ ] Adicionar `jobScheduler.ScheduleRecurring(jobId, cronExpression, new {JobName}Command())` a `RegisterRecurringJobsStartupTask.cs`
 
-### New Module DbContext
-- [ ] Add `await MigrateDatabaseAsync<{Module}DbContext>(scope, stoppingToken)` to `MigrateDatabaseStartupTask.cs`
+### Novo Module DbContext
+- [ ] Adicionar `await MigrateDatabaseAsync<{Module}DbContext>(scope, stoppingToken)` a `MigrateDatabaseStartupTask.cs`
 
-### New Request DTO
-- [ ] Create `src/Web/Endpoints/Modules/{Module}/Requests/Commands/{Operation}Request.cs`
-- [ ] `sealed class` with public properties and default values
-- [ ] Use `[FromRoute(Name = Routes.ConstantName)]` for URL segments — never hardcode the string
-- [ ] Use `[FromBody]` implicitly for POST/PUT body fields — no attribute needed
-- [ ] Use `[FromQuery]` for query string parameters
+### Novo DTO de requisição
+- [ ] Criar `src/Web/Endpoints/Modules/{Module}/Requests/Commands/{Operation}Request.cs`
+- [ ] `sealed class` com propriedades públicas e valores default
+- [ ] Usar `[FromRoute(Name = Routes.ConstantName)]` para segmentos de URL — nunca hardcode a string
+- [ ] Usar `[FromBody]` implicitamente para campos de corpo POST/PUT — nenhum atributo necessário
+- [ ] Usar `[FromQuery]` para parâmetros de query string
 
-### New Endpoint
-- [ ] Create `src/Web/Endpoints/Modules/{Module}/{Operation}Endpoint.cs`
-- [ ] Inherits `EndpointBaseAsync.WithRequest<TRequest>.WithActionResult` or `.WithActionResult<TResponse>`
-- [ ] `[ApiVersion("1.0")]` — mandatory
-- [ ] `[Http{Verb}(Routes.Constant)]` — use route constant, never hardcode
-- [ ] `[ProducesResponseType]` — one per possible HTTP status code
-- [ ] `[SwaggerOperation(Summary, Description, Tags)]` — mandatory
+### Novo Endpoint
+- [ ] Criar `src/Web/Endpoints/Modules/{Module}/{Operation}Endpoint.cs`
+- [ ] Herda de `EndpointBaseAsync.WithRequest<TRequest>.WithActionResult` ou `.WithActionResult<TResponse>`
+- [ ] `[ApiVersion("1.0")]` — obrigatório
+- [ ] `[Http{Verb}(Routes.Constant)]` — use constante de rota, nunca hardcode
+- [ ] `[ProducesResponseType]` — um por possível status code HTTP
+- [ ] `[SwaggerOperation(Summary, Description, Tags)]` — obrigatório
 - [ ] Pipeline: `Result.Create(request).Map(...).Bind(...).Match(onSuccess, this.HandleFailure)`
-- [ ] Without response body: `.Match(() => Ok(), this.HandleFailure)`
-- [ ] With response body: `.Match(Ok, this.HandleFailure)`
+- [ ] Sem corpo de resposta: `.Match(() => Ok(), this.HandleFailure)`
+- [ ] Com corpo de resposta: `.Match(Ok, this.HandleFailure)`
 
 ---
 
-## What Requires Manual Registration
+## O Que Exige Registro Manual
 
 - Projection handlers → `ServiceCollectionExtensions.AddEventInteractors()`
-- MassTransit consumer endpoints → `ConsumerConfiguration.cs`
-- Open generic services → `PersistenceServiceInstaller`
+- Endpoints consumer MassTransit → `ConsumerConfiguration.cs`
+- Serviços genéricos abertos → `PersistenceServiceInstaller`
 - `IIdentityApplicationService` → `ApplicationServiceInstaller` via `TryAddTransient`
 
-## What is Auto-Discovered (no registration needed)
+## O Que É Descoberto Automaticamente (sem registro necessário)
 
-- MediatR handlers → scanned from `Application.AssemblyReference.Assembly`
-- FluentValidation validators → scanned from `Application.AssemblyReference.Assembly`
-- `ITransient` / `IScoped` services → Scrutor scan in `IdentityModuleInstaller`
-- MassTransit consumers → `AddConsumers(AssemblyReference.Assembly)` in `EventBusServiceInstaller`
+- Handlers MediatR → escaneados a partir de `Application.AssemblyReference.Assembly`
+- Validators FluentValidation → escaneados a partir de `Application.AssemblyReference.Assembly`
+- Services `ITransient` / `IScoped` → scan do Scrutor em `IdentityModuleInstaller`
+- Consumers MassTransit → `AddConsumers(AssemblyReference.Assembly)` em `EventBusServiceInstaller`

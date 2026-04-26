@@ -1,36 +1,37 @@
 ---
 name: infrastructure
 description: >
-  Use this skill when running EF Core migrations (dotnet ef migrations add, dotnet ef database
-  update), managing the local Docker Compose environment (PostgreSQL, MongoDB, RabbitMQ),
-  building or running the production Docker image, reasoning about environment variables,
-  connection strings, or the CI/CD pipeline. Contains exact commands for every DbContext
-  (IdentityDbContext, AccountancyDbContext, WorkflowTemplateDbContext), the environment
-  variable loading pitfall that breaks dotnet ef, Docker Compose service names and ports,
-  Dockerfile multi-stage build decisions, and the GitHub Actions pipeline structure. Read
-  this skill before touching any migration, .env file, docker-compose file, or Dockerfile.
+  Use esta skill ao rodar migrations EF Core (dotnet ef migrations add, dotnet ef database
+  update), gerenciar o ambiente local Docker Compose (PostgreSQL, MongoDB, RabbitMQ),
+  buildar ou executar a imagem Docker de produção, raciocinar sobre variáveis de ambiente,
+  connection strings ou pipeline de CI/CD. Contém comandos exatos para todo DbContext
+  (IdentityDbContext, AccountancyDbContext, WorkflowTemplateDbContext), a armadilha de
+  carregamento de variável de ambiente que quebra dotnet ef, nomes e portas dos serviços
+  Docker Compose, decisões do build em múltiplos estágios do Dockerfile e a estrutura da pipeline
+  GitHub Actions. Leia esta skill antes de tocar em qualquer migration, arquivo .env,
+  docker-compose ou Dockerfile.
 ---
 
-# Infrastructure
+# Infraestrutura
 
-## How to Use This Skill
+## Como Usar Esta Skill
 
-Read the section that matches your task. Never guess commands or connection strings — this file
-has the exact values.
+Leia a seção que corresponde à sua tarefa. Nunca adivinhe comandos ou connection strings — este
+arquivo tem os valores exatos.
 
-- **EF Core / Migrations** — adding or applying migrations for any module
-- **Docker Compose** — managing the local infrastructure (PostgreSQL, MongoDB, RabbitMQ)
-- **Dockerfile** — understanding the production image or preparing for deploy
-- **CI/CD** — understanding the GitHub Actions pipeline
+- **EF Core / Migrations** — adicionar ou aplicar migrations para qualquer módulo
+- **Docker Compose** — gerenciar a infraestrutura local (PostgreSQL, MongoDB, RabbitMQ)
+- **Dockerfile** — entender a imagem de produção ou preparar deploy
+- **CI/CD** — entender a pipeline GitHub Actions
 
 ---
 
 ## EF Core / Migrations
 
-### DbContext per Module
+### DbContext por Módulo
 
-Each module has its own isolated EF Core `DbContext` in `{Module}.Persistence`. There is no
-shared context.
+Cada módulo tem seu próprio `DbContext` EF Core isolado em `{Module}.Persistence`. Não há
+context compartilhado.
 
 ```
 Identity         → IdentityDbContext         → src/Modules/Identity/Identity.Persistence
@@ -38,20 +39,20 @@ Accountancy      → AccountancyDbContext      → src/Modules/Accountancy/Accou
 WorkflowTemplate → WorkflowTemplateDbContext → src/Modules/WorkflowTemplate/WorkflowTemplate.Persistence
 ```
 
-Each module also has a `{Module}ProjectionDbContext` inheriting `MongoDbContext` — this one does
-**not use EF Migrations** and is managed by MongoDB directly.
+Cada módulo também tem um `{Module}ProjectionDbContext` herdando de `MongoDbContext` — este
+**não usa EF Migrations** e é gerenciado diretamente pelo MongoDB.
 
-### Command Pattern
+### Pattern de Comando
 
-Every `dotnet ef` command requires three flags:
+Todo comando `dotnet ef` exige três flags:
 
-- `--project` → the module's `.Persistence` project (contains the DbContext and Migrations)
-- `--startup-project` → always `src/Web` (where connection options are configured)
-- `--context` → explicit DbContext name (required because `Web` references multiple contexts)
+- `--project` → projeto `.Persistence` do módulo (contém o DbContext e as Migrations)
+- `--startup-project` → sempre `src/Web` (onde as opções de conexão são configuradas)
+- `--context` → nome explícito do DbContext (obrigatório porque `Web` referencia múltiplos contexts)
 
-### Environment Variable Pitfall
+### Armadilha de Variável de Ambiente
 
-`Program.cs` loads `.env` (not `.env.local`) via `DotNetEnv`:
+`Program.cs` carrega `.env` (não `.env.local`) via `DotNetEnv`:
 
 ```csharp
 if (File.Exists(".env"))
@@ -60,13 +61,13 @@ if (File.Exists(".env"))
 }
 ```
 
-`dotnet ef` invokes the startup project through the design-time host, so it runs this code.
-However:
+`dotnet ef` invoca o startup project pelo design-time host, então ele executa esse código.
+Porém:
 
-- `.env.local` is **not loaded automatically** — only `.env`
-- If you only have `.env.local`, EF will not find the connection strings and will fail
+- `.env.local` **não é carregado automaticamente** — apenas `.env`
+- Se você só tiver `.env.local`, o EF não encontrará as connection strings e falhará
 
-**Solution** — export the required variable before running `dotnet ef`:
+**Solução** — exporte a variável obrigatória antes de rodar `dotnet ef`:
 
 ```bash
 # PowerShell
@@ -76,7 +77,7 @@ $env:ConnectionStrings__Default = "Server=localhost;Port=5432;Username=societiza
 # Do not commit .env — it is already in .gitignore
 ```
 
-### Migration Commands
+### Comandos de Migration
 
 #### Identity
 
@@ -126,7 +127,7 @@ dotnet ef database update \
   --context WorkflowTemplateDbContext
 ```
 
-### Migrations Location
+### Localização das Migrations
 
 ```
 src/Modules/Identity/Identity.Persistence/Migrations/
@@ -134,28 +135,28 @@ src/Modules/Accountancy/Accountancy.Persistence/Migrations/
 src/Modules/WorkflowTemplate/WorkflowTemplate.Persistence/Migrations/
 ```
 
-### What to NEVER do — EF Core
+### O que NUNCA fazer — EF Core
 
-- Never omit `--context` — `Web` references multiple DbContexts and EF will be unable to resolve the right one.
-- Never run `dotnet ef` without first ensuring the connection string is available in the environment — it will fail silently or with a misleading error.
-- Never run `dotnet ef` using `{Module}.Persistence` as the startup project — configuration and DI are only wired in `src/Web`.
-- Never create or apply migrations for `{Module}ProjectionDbContext` — MongoDB contexts are schema-free and do not use EF Migrations.
-- Never add a new module DbContext without registering it in `MigrateDatabaseStartupTask` — migrations will not run on startup.
+- Nunca omita `--context` — `Web` referencia múltiplos DbContexts e o EF não conseguirá resolver o correto.
+- Nunca rode `dotnet ef` sem antes garantir que a connection string está disponível no ambiente — ele falhará silenciosamente ou com erro enganoso.
+- Nunca rode `dotnet ef` usando `{Module}.Persistence` como startup project — configuração e DI são conectados apenas em `src/Web`.
+- Nunca crie ou aplique migrations para `{Module}ProjectionDbContext` — contexts MongoDB são schema-free e não usam EF Migrations.
+- Nunca adicione um novo DbContext de módulo sem registrá-lo em `MigrateDatabaseStartupTask` — migrations não rodarão no startup.
 
 ---
 
 ## Docker Compose
 
-### File
+### Arquivo
 
 ```
 Docker/docker-compose.Infrastructure.Development.yaml
 ```
 
-Starts only infrastructure dependencies — no API. The API runs locally via `dotnet run` or as a
-separate container.
+Inicia apenas dependências de infraestrutura — sem API. A API roda localmente via `dotnet run` ou como
+container separado.
 
-### Services
+### Serviços
 
 ```
 PostgreSQL → societiza-postgres-dev → localhost:5432
@@ -168,12 +169,12 @@ RabbitMQ   → societiza-rabbitmq-dev → localhost:5672 (AMQP) + localhost:1567
            → user: guest / pass: guest
 ```
 
-- **Docker network**: `societiza-dev` — all containers share this network
-- **Volumes**: `pg_data`, `mongodb_data`, `rabbitmq_data` (locally persistent)
-- **Memory limit**: 512MB per service
-- **RabbitMQ hostname**: `societiza-rmq` (used internally by the broker)
+- **Docker network**: `societiza-dev` — todos os containers compartilham essa network
+- **Volumes**: `pg_data`, `mongodb_data`, `rabbitmq_data` (persistentes localmente)
+- **Memory limit**: 512MB por serviço
+- **RabbitMQ hostname**: `societiza-rmq` (usado internamente pelo broker)
 
-### Commands
+### Comandos
 
 ```bash
 # Start all infrastructure (detached)
@@ -198,10 +199,10 @@ docker-compose -f Docker/docker-compose.Infrastructure.Development.yaml logs -f 
 docker-compose -f Docker/docker-compose.Infrastructure.Development.yaml restart rabbitmq
 ```
 
-### Connection Strings When Running the API via `dotnet run`
+### Strings de Conexão ao Rodar a API via `dotnet run`
 
-`.env.local` uses container names as hosts — those resolve only inside the `societiza-dev` Docker
-network. When running the API with `dotnet run` outside Docker, use `localhost`:
+`.env.local` usa nomes de container como hosts — eles resolvem apenas dentro da Docker network
+`societiza-dev`. Ao rodar a API com `dotnet run` fora do Docker, use `localhost`:
 
 ```
 ConnectionStrings__Default=Server=localhost;Port=5432;Username=societiza;Password=societiza;Database=societiza;
@@ -209,66 +210,66 @@ Projections__Identity=mongodb://societiza:societiza@localhost:27017/societiza?au
 EventBusOptions__ConnectionString=amqp://guest:guest@localhost:5672/
 ```
 
-### What to NEVER do — Docker Compose
+### O que NUNCA fazer — Docker Compose
 
-- Never use container hostnames (`societiza-postgres-dev`, `societiza-mongodb-dev`, `societiza-rabbitmq-dev`) in connection strings when running the API with `dotnet run` — they only resolve inside the Docker network.
-- Never run `down -v` unless you intend to wipe all local data — volumes are persistent by design.
+- Nunca use nomes de host de container (`societiza-postgres-dev`, `societiza-mongodb-dev`, `societiza-rabbitmq-dev`) em strings de conexão ao rodar a API com `dotnet run` — eles resolvem apenas dentro da rede Docker.
+- Nunca rode `down -v` a menos que pretenda apagar todos os dados locais — volumes são persistentes por design.
 
 ---
 
 ## Dockerfile
 
-**File**: `Dockerfile` at the repository root.
+**Arquivo**: `Dockerfile` na raiz do repositório.
 
-Uses a **multi-stage build** with two stages. Base images are `mcr.microsoft.com/dotnet/sdk:8.0-alpine`
-for the build stage and `mcr.microsoft.com/dotnet/aspnet:8.0-alpine` for the runtime stage.
-Alpine was chosen to minimize image size.
+Usa um **build em múltiplos estágios** com dois estágios. As imagens base são `mcr.microsoft.com/dotnet/sdk:8.0-alpine`
+para o estágio de build e `mcr.microsoft.com/dotnet/aspnet:8.0-alpine` para o estágio de runtime.
+Alpine foi escolhido para minimizar o tamanho da imagem.
 
-### Stage 1: `build`
+### Estágio 1: `build`
 
-**Image**: `mcr.microsoft.com/dotnet/sdk:8.0-alpine`
+**Imagem**: `mcr.microsoft.com/dotnet/sdk:8.0-alpine`
 
-**`.csproj` and `.sln` are copied first** — deliberate Docker layer cache decision. As long as
-project files do not change, `dotnet restore` is skipped on rebuild.
+**`.csproj` e `.sln` são copiados primeiro** — decisão deliberada de cache de camadas Docker. Enquanto
+os arquivos de projeto não mudarem, `dotnet restore` é pulado no rebuild.
 
-**Source copy includes** Core + all modules (Accountancy, Identity, WorkflowTemplate) + Web.
-The `tests/` directory is intentionally excluded — test projects must not be present in the
-production image.
+**A cópia de código-fonte inclui** Core + todos os módulos (Accountancy, Identity, WorkflowTemplate) + Web.
+O diretório `tests/` é excluído intencionalmente — projetos de teste não devem estar presentes na
+imagem de produção.
 
-**`dotnet restore src/Web/Web.csproj`** restores from the entry point only. EF Core Design is
-declared in `Web.csproj` with `PrivateAssets=all` so it does not leak into the runtime image.
+**`dotnet restore src/Web/Web.csproj`** faz restore apenas a partir do ponto de entrada. EF Core Design é
+declarado em `Web.csproj` com `PrivateAssets=all` para não vazar para a imagem de runtime.
 
-**`dotnet publish src/Web/Web.csproj -c Release -o /app`** compiles in Release mode and publishes
-all artifacts, including transitive module dependencies, to `/app`.
+**`dotnet publish src/Web/Web.csproj -c Release -o /app`** compila em modo Release e publica
+todos os artefatos, incluindo dependências transitivas dos módulos, em `/app`.
 
-Output: `/app` with all published binaries.
+Saída: `/app` com todos os binários publicados.
 
-### Stage 2: `runtime`
+### Estágio 2: `runtime`
 
-**Image**: `mcr.microsoft.com/dotnet/aspnet:8.0-alpine` — ASP.NET Core runtime only, no SDK.
+**Imagem**: `mcr.microsoft.com/dotnet/aspnet:8.0-alpine` — apenas runtime ASP.NET Core, sem SDK.
 
-**A non-root user is created** (`appuser` in group `appgroup`) — the process does not run as root
-inside the container.
+**Um usuário non-root é criado** (`appuser` no grupo `appgroup`) — o processo não roda como root
+dentro do container.
 
-**`ASPNETCORE_URLS=http://+:8080`** — the app listens on port 8080. Ports 80 and 443 require root
-and cannot be used with a non-root user. External port mapping (`-p 5258:8080`) is done at
+**`ASPNETCORE_URLS=http://+:8080`** — a aplicação escuta na porta 8080. As portas 80 e 443 exigem root
+e não podem ser usadas com usuário non-root. O mapeamento de porta externa (`-p 5258:8080`) é feito no
 `docker run`.
 
-**`EXPOSE 8080`** documents the exposed port — metadata only, does not bind.
+**`EXPOSE 8080`** documenta a porta exposta — apenas metadado, não faz bind.
 
-**Only `/app` is copied from the `build` stage** — no SDK, no source code, no `.csproj` files
-reach the final image.
+**Apenas `/app` é copiado do estágio `build`** — nenhum SDK, nenhum código-fonte, nenhum arquivo `.csproj`
+chega à imagem final.
 
-**`USER appuser`** switches to the non-root user before the entrypoint.
+**`USER appuser`** troca para o usuário non-root antes do entrypoint.
 
-**`ENTRYPOINT ["dotnet", "Web.dll"]`** invokes the published assembly directly.
+**`ENTRYPOINT ["dotnet", "Web.dll"]`** invoca o assembly publicado diretamente.
 
-Output: lean production image with no SDK and no source.
+Saída: imagem de produção enxuta, sem SDK e sem código-fonte.
 
-### Runtime Environment Variables
+### Variáveis de Ambiente de Runtime
 
-The image embeds no secrets. All sensitive configuration must be injected via `--env-file` or
-the orchestrator's secret management:
+A imagem não embute segredos. Toda configuração sensível deve ser injetada via `--env-file` ou pelo
+gerenciamento de segredos do orquestrador:
 
 ```
 ASPNETCORE_ENVIRONMENT            → Development / Production
@@ -285,7 +286,7 @@ JwtOptions__*                     → JWT secret, issuer, audience
 Cors__AllowedOrigins__0           → Allowed CORS origins
 ```
 
-### Docker Commands
+### Comandos Docker
 
 ```bash
 # Build image
@@ -316,18 +317,18 @@ docker logs -f societiza-api
 docker stop societiza-api && docker rm societiza-api
 ```
 
-After `docker run`:
+Após `docker run`:
 - API: `http://localhost:5258/api`
-- Swagger: `http://localhost:5258/api/swagger` (only in `Development`)
+- Swagger: `http://localhost:5258/api/swagger` (somente em `Development`)
 
-### What to NEVER do — Dockerfile
+### O que NUNCA fazer — Dockerfile
 
-- Never hardcode secrets or connection strings in the Dockerfile — inject via `--env-file` or orchestrator.
-- Never copy `tests/` into the build stage — test projects must not be present in the production image.
-- Never change `ASPNETCORE_URLS` to port 80 or 443 — those require root and would break the non-root user setup.
-- Never promote the runtime stage from `aspnet` to `sdk` — the SDK must not be present in the production image.
-- Never remove the `USER appuser` instruction — running as root is a security regression.
-- Never remove `PrivateAssets=all` from EF Core Design in `Web.csproj` — without it, EF Design tooling leaks into the runtime image.
+- Nunca fixe segredos ou strings de conexão no Dockerfile — injete via `--env-file` ou orquestrador.
+- Nunca copie `tests/` para o estágio de build — projetos de teste não devem estar presentes na imagem de produção.
+- Nunca altere `ASPNETCORE_URLS` para porta 80 ou 443 — elas exigem root e quebrariam a configuração de usuário non-root.
+- Nunca promova o estágio de runtime de `aspnet` para `sdk` — o SDK não deve estar presente na imagem de produção.
+- Nunca remova a instrução `USER appuser` — rodar como root é regressão de segurança.
+- Nunca remova `PrivateAssets=all` do EF Core Design em `Web.csproj` — sem isso, ferramentas EF Design vazam para a imagem de runtime.
 
 ---
 
@@ -342,6 +343,6 @@ push on any branch
             └── docker  (docker build --no-cache -t societiza-api .)
 ```
 
-- **Build and test** run on `ubuntu-latest` with .NET 8.x
-- **Docker step** validates that the image builds successfully — does not push to any registry
-- Registry push for production is not yet implemented in CI
+- **Build e test** rodam em `ubuntu-latest` com .NET 8.x
+- **Step Docker** valida que a imagem builda com sucesso — não faz push para nenhum registry
+- Push para registry de produção ainda não está implementado no CI

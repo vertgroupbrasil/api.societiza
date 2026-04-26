@@ -1,6 +1,6 @@
-# Reference — Plan Template
+# Referência — Modelo de Plano
 
-Template do plano técnico produzido pela skill `spec-engineer`. O plano é
+Modelo do plano técnico produzido pela skill `spec-engineer`. O plano é
 **persistido** em `specs/{feature}/plan.md` na raiz deste repositório, revisado
 pelo humano e commitado junto com a implementação — fica como rastro histórico
 ligando spec de produto → plano técnico → código. Este arquivo define a
@@ -14,13 +14,13 @@ O plano tem cinco blocos, sempre nesta ordem:
 
 1. **Header** — identificação e resumo
 2. **Pré-condições** — o que precisa existir antes das fases rodarem
-3. **Fases de implementação** — grupos de itens por camada, cada um com build gate
+3. **Fases de implementação** — grupos de itens por camada, cada um com gate de build
 4. **Checklist de registro** — pontos de bootstrap a atualizar
-5. **Riscos e pontos de atenção** — red flags e decisões pendentes
+5. **Riscos e pontos de atenção** — sinais de alerta e decisões pendentes
 
 ---
 
-## 1. Header
+## 1. Cabeçalho
 
 ```
 # Plano — {nome da feature}
@@ -47,11 +47,11 @@ Se não houver pré-condições, escreva explicitamente `Nenhuma`.
 ## 3. Fases de implementação
 
 O plano é dividido em **fases por camada**. Cada fase deve terminar com
-`dotnet build Societiza.sln` zero errors antes da próxima começar (regra
+`dotnet build Societiza.sln` com zero erros antes da próxima começar (regra
 `build-gate`). Cada item dentro de uma fase usa numeração local (`#1`, `#2`...).
 Referências cross-fase usam o formato `Fase X · #N`.
 
-Fases disponíveis (inclua apenas as que a feature toca):
+Fases disponíveis (inclua apenas as que a funcionalidade toca):
 
 ---
 
@@ -63,7 +63,7 @@ Cria os 5 projetos `.csproj` e adiciona ao `Societiza.sln`. Sem lógica de negó
 
 **Itens** _(formato abaixo)_
 
-**Build gate**: `dotnet build Societiza.sln` — solução carrega sem erros de referência.
+**Gate de build**: `dotnet build Societiza.sln` — solução carrega sem erros de referência.
 
 ---
 
@@ -75,43 +75,43 @@ SmartEnums, Entities, Domain Events, Aggregate, Projection Models.
 
 **Itens** _(máx ~10)_
 
-**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+**Gate de build**: `dotnet build Societiza.sln` — zero erros antes de avançar.
 
 ---
 
 ### Fase 2 — Shared
 
-Commands, Email Commands, Queries, Response DTOs, Snapshot DTOs.
+Comandos, comandos de email, queries, DTOs de resposta, DTOs de snapshot.
 
 **Referência**: `references/shared-architecture.md`
 
 **Itens** _(máx ~10)_
 
-**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+**Gate de build**: `dotnet build Societiza.sln` — zero erros antes de avançar.
 
 ---
 
 ### Fase 3 — Application
 
-Validators, Handlers (Command e Query), Projection Handlers, DI registration (`AddEventInteractors`).
+Validators, handlers (comando e query), projection handlers, registro DI (`AddEventInteractors`).
 
 **Referência**: `references/application-architecture.md`
 
 **Itens** _(máx ~12)_
 
-**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+**Gate de build**: `dotnet build Societiza.sln` — zero erros antes de avançar.
 
 ---
 
 ### Fase 4 — Persistence
 
-DbContext, Projection context, EF Configurations, Migration.
+DbContext, context de Projection, EF Configurations, Migration.
 
 **Referência**: `references/persistence-architecture.md`
 
 **Itens** _(máx ~6)_
 
-**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+**Gate de build**: `dotnet build Societiza.sln` — zero erros antes de avançar.
 
 ---
 
@@ -123,20 +123,20 @@ ModuleInstaller, ServiceInstallers, ApplicationService.
 
 **Itens** _(máx ~5)_
 
-**Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
+**Gate de build**: `dotnet build Societiza.sln` — zero erros antes de avançar.
 
 ---
 
 ### Fase 6 — Web
 
-Routes, Endpoints, Request DTOs, MassTransit Consumers, ConsumerConfiguration,
-CrossModule services, Registration updates (`MigrateDatabaseStartupTask`, `Web.csproj`).
+Routes, Endpoints, DTOs de requisição, Consumers MassTransit, ConsumerConfiguration,
+serviços CrossModule, atualizações de registro (`MigrateDatabaseStartupTask`, `Web.csproj`).
 
-**Referência**: `references/web-architecture.md` + skill `/api-design`
+**Referência**: `references/web-endpoints.md` + `references/web-swagger.md`
 
 **Itens** _(máx ~12)_
 
-**Build gate**: `dotnet build Societiza.sln` — zero errors. Depois: `dotnet test Societiza.sln` — todos passando.
+**Gate de build**: `dotnet build Societiza.sln` — zero erros. Depois: `dotnet test Societiza.sln` — todos passando.
 
 ---
 
@@ -162,12 +162,12 @@ Dentro de cada fase, os itens seguem este formato:
 
 ### Regras de ordenação dentro de cada fase
 
-- Domain: SmartEnums → Value Objects → leaf Entities → parent Entities → Domain Events → Aggregate → Projection Models
-- Shared: Snapshot DTOs → Email Commands → Commands → Queries → Response DTOs
-- Application: Service interfaces → Validators → Command Handlers → Query Handlers → Projection Handlers → DI registration
-- Persistence: Schemas/Constants → DbContext → Projection context → EF Configurations → Migration
+- Domain: SmartEnums → Value Objects → Entities folha → Entities parent → Domain Events → Aggregate → Projection Models
+- Shared: DTOs de snapshot → comandos de email → comandos → queries → DTOs de resposta
+- Application: interfaces de Service → Validators → handlers de comando → handlers de query → projection handlers → registro DI
+- Persistence: Schemas/Constants → DbContext → context de Projection → EF Configurations → Migration
 - Infrastructure: ApplicationService → ModuleInstaller → ServiceInstallers
-- Web: Routes → CrossModule services → Endpoints → Consumers → ConsumerConfiguration → Registration updates
+- Web: Routes → serviços CrossModule → Endpoints → Consumers → ConsumerConfiguration → atualizações de registro
 
 ---
 
@@ -175,10 +175,10 @@ Dentro de cada fase, os itens seguem este formato:
 
 Bloco fixo — o plano **sempre** lista cada ponto abaixo, marcando quais
 serão tocados e quais permanecem inalterados. Esquecer um destes é o erro
-mais comum ao adicionar feature nova.
+mais comum ao adicionar funcionalidade nova.
 
 - [ ] `ConsumerConfiguration.cs` — `ConfigureEventReceiveEndpoint` por evento novo
-- [ ] `AddEventInteractors()` — registro dos projection handlers novos
+- [ ] `AddEventInteractors()` — registro dos novos projection handlers
 - [ ] `MigrateDatabaseStartupTask` — registro de `DbContext` novo (se houver)
 - [ ] `RegisterRecurringJobsStartupTask` — registro de jobs recorrentes (se houver)
 - [ ] `PersistenceServiceInstaller` — registro explícito de open generics (se aplicável)
@@ -194,9 +194,9 @@ adicionado.
 
 Qualquer coisa que o humano precisa decidir ou validar antes de aprovar:
 
-- **Red flags encontrados na spec** — acoplamento direto entre módulos,
+- **Sinais de alerta encontrados na spec** — acoplamento direto entre módulos,
   leitura via PostgreSQL, validação no Domain, tipos não-primitivos em email
-  command, SmartEnum sem `.Name` explícito no evento
+  comando, SmartEnum sem `.Name` explícito no evento
 - **Ambiguidades** — regras de negócio que a spec deixa em aberto
 - **Backfill de projection** — se um projection model existente muda de
   schema, descrever a estratégia (rebuild, migração incremental, ignorar

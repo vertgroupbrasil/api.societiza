@@ -4,7 +4,7 @@ description: >
   Traduz spec.md + logic.md (produzidos por `read-spec`) em um plano técnico
   de implementação. Cruza com as convenções de arquitetura do projeto e gera
   um plano sequencial em `specs/{feature}/plan.md` — cada artefato com camada,
-  caminho, dependências e spec-ref. Nenhum código é escrito; o humano aprova
+  caminho, dependências e referência à spec. Nenhum código é escrito; o humano aprova
   antes da implementação.
 ---
 
@@ -15,7 +15,7 @@ description: >
 `spec.md` responde **o quê** e **o porquê** — escrita na linguagem do usuário,
 focada em intenção e valor entregue. `logic.md` detalha **como o sistema se
 comporta** — regras de negócio numeradas, máquinas de estado, fluxos por perfil
-de usuário e edge cases. Nenhum dos dois diz onde o código mora, quais arquivos
+de usuário e casos de borda. Nenhum dos dois diz onde o código mora, quais arquivos
 nascem, ou em que ordem as camadas são tocadas.
 
 Esta skill cobre exatamente essa lacuna: transforma os dois artefatos aprovados
@@ -24,14 +24,14 @@ para o *onde* e *quando*, na linguagem de quem vai escrever o código.
 
 Concretamente, a skill:
 
-1. **Lê os dois artefatos de entrada** produzidos pelo command `read-spec`:
+1. **Lê os dois artefatos de entrada** produzidos pelo comando `read-spec`:
    - `spec.md` — escopo, decisões funcionais, fora de escopo
    - `logic.md` — regras de negócio numeradas, estados e transições, fluxos por
-     perfil, pontos de integração, edge cases
+     perfil, pontos de integração, casos de borda
 2. **Cruza com as convenções do projeto** definidas na skill `/architecture`.
 3. **Produz um plano enumerado e sequencial**, onde cada item descreve:
-   - o artefato concreto (aggregate, domain event, command, handler, endpoint,
-     projection, migration, consumer config, etc.)
+   - o artefato concreto (aggregate, domain event, comando, handler, endpoint,
+     projection, migration, configuração de consumer, etc.)
    - a camada e o caminho de arquivo onde ele deve nascer ou ser alterado
    - as dependências que precisam estar prontas antes dele
    - o motivo pelo qual ele existe no plano (amarrado a um item da spec)
@@ -50,7 +50,7 @@ código.
 
 ## Dependência: skill `/architecture`
 
-As convenções, patterns e restrições de cada camada estão documentadas na
+As convenções, padrões e restrições de cada camada estão documentadas na
 skill `/architecture` (`.claude/skills/architecture/SKILL.md`). Essa skill
 é a **fonte de verdade** para classificar artefatos, resolver dependências
 e validar o plano. **Não duplique o conteúdo dela aqui.**
@@ -58,11 +58,11 @@ e validar o plano. **Não duplique o conteúdo dela aqui.**
 Antes de gerar qualquer plano, leia `/architecture` por completo. De lá
 você obterá:
 
-- **Write-side chain** completa (Command → ... → Endpoint)
-- **Read-side chain** completa (Projection Model → ... → Endpoint GET)
-- **Email pattern** (Email Command → Email Handler → Enqueue)
+- **Cadeia de escrita** completa (Comando → ... → Endpoint)
+- **Cadeia de leitura** completa (Projection Model → ... → Endpoint GET)
+- **Padrão de email** (Comando de email → Handler de email → Enqueue)
 - **Registros obrigatórios** por artefato novo
-- **Restrições absolutas** de cada camada ("What to NEVER do")
+- **Restrições absolutas** de cada camada ("O que NUNCA fazer")
 
 ---
 
@@ -71,7 +71,7 @@ você obterá:
 Leia `spec.md` e extraia explicitamente, na linguagem do projeto (DDD + CQRS +
 Event Sourcing + leitura via projections):
 
-**Modelo de domínio** — classifique cada conceito da spec conforme os patterns
+**Modelo de domínio** — classifique cada conceito da spec conforme os padrões
 definidos na skill `/architecture`:
 - **Aggregate** — raiz de consistência, expõe métodos que levantam eventos
 - **Entity** — tem identidade, vive dentro de um aggregate
@@ -79,17 +79,17 @@ definidos na skill `/architecture`:
 - **Domain Event** — fato no passado, mudança de estado do aggregate
 - **Projection Model** — representação de leitura em MongoDB
 
-**Comportamentos (write side)** — cada ação que muda estado do sistema vira
-a cadeia completa de write-side (definida em `/architecture`). Identifique
+**Comportamentos (lado de escrita)** — cada ação que muda estado do sistema vira
+a cadeia completa de escrita (definida em `/architecture`). Identifique
 cada elo da cadeia para cada comportamento da spec.
 
-**Leituras (read side)** — cada dado exibido na spec vira a cadeia completa
-de read-side. Se a spec descreve uma tela ou dado novo, identifique quais
+**Leituras (lado de leitura)** — cada dado exibido na spec vira a cadeia completa
+de leitura. Se a spec descreve uma tela ou dado novo, identifique quais
 eventos precisam ser projetados para alimentá-la — e, se o projection model
 não existe, ele entra no plano antes da query.
 
-**Emails e notificações** — cada menção vira os três artefatos do email
-pattern (definido em `/architecture`).
+**Emails e notificações** — cada menção vira os três artefatos do padrão de email
+(definido em `/architecture`).
 
 **Infraestrutura e registros obrigatórios** — se a spec introduz artefatos
 novos, consulte a checklist de `/architecture` para garantir que todos os
@@ -103,7 +103,7 @@ via projection/handler".
 
 ---
 
-## Como ler o logic doc (logic.md)
+## Como ler o documento de lógica (logic.md)
 
 O `logic.md` é a fonte primária para todas as decisões de comportamento do
 sistema. Leia-o **depois** do `spec.md` e extraia:
@@ -124,22 +124,22 @@ um item está faltando.
 - `When()` no aggregate que aplica o evento e muda o estado
 
 Se o `logic.md` descreve uma transição que a spec não menciona explicitamente,
-ela entra no plano assim mesmo — o logic doc tem precedência sobre o fluxo feliz
+ela entra no plano assim mesmo — o documento de lógica tem precedência sobre o fluxo feliz
 da spec para modelagem de estado.
 
 **Fluxos por perfil de usuário** — cada perfil (SystemAdmin, AccountancyAdmin,
 AccountancyEmployee, etc.) tem ações distintas. Para cada ação por perfil:
 - Confirme se há um endpoint correspondente
-- Confirme que a autorização está modelada no Handler (verificação de role/permissão)
+- Confirme que a autorização está modelada no Handler (verificação de papel/permissão)
 - Se o perfil não pode realizar a ação, o Handler deve rejeitar com erro adequado
 
 **Pontos de integração** — a seção de integração do `logic.md` define o contrato
 entre o que BE expõe e o que FE precisa receber. Use-a para:
-- Confirmar que os Response DTOs cobrem todos os dados necessários
+- Confirmar que os DTOs de resposta cobrem todos os dados necessários
 - Confirmar que os endpoints mapeiam todos os fluxos descritos
 - Identificar dados calculados que precisam ser projetados no MongoDB
 
-**Edge cases** — cada edge case do `logic.md` deve virar um artefato concreto
+**Casos de borda** — cada caso de borda do `logic.md` deve virar um artefato concreto
 no plano: uma validação no `Validator`, uma guarda no `Handler`, ou uma nota
 em "Riscos e pontos de atenção" se a decisão ainda não está clara.
 
@@ -160,14 +160,14 @@ código.
   no plano (EF configs, migration, projection model inicial).
 - **Eventos cross-module** — há eventos que saem de um módulo e precisam ser
   consumidos por outro? Cada consumo vira um `ConfigureEventReceiveEndpoint`
-  e um projection/event handler no módulo consumidor.
+  e um handler de projection/evento no módulo consumidor.
 
 **Do código (verificado no Passo 2), confirme:**
 
 - **Projections afetadas** — quais projections existentes precisam ser
   estendidas? Alterações de schema em projection exigem estratégia de
   rebuild/backfill, que deve aparecer como item do plano.
-- **Migrations quebrando** — alguma mudança de schema no write side exige
+- **Migrations quebrando** — alguma mudança de schema no lado de escrita exige
   migration? Ela entra no plano **antes** do endpoint que depende dela.
 - **Pontos de registro a atualizar** — `ConsumerConfiguration`,
   `AddEventInteractors`, `MigrateDatabaseStartupTask`,
@@ -175,41 +175,41 @@ código.
 
 ---
 
-## How to Use This Skill
+## Como Usar Esta Skill
 
 Antes de gerar qualquer plano, leia os artefatos de entrada e as referências
 de arquitetura. Nunca gere o plano com base em convenções genéricas de .NET —
 sempre siga os padrões documentados neste projeto.
 
-1. Leia os artefatos produzidos pelo command `read-spec`:
+1. Leia os artefatos produzidos pelo comando `read-spec`:
    - `spec.md` — escopo, decisões funcionais, fora de escopo
    - `logic.md` — regras de negócio numeradas, estados e transições, fluxos por
-     perfil, pontos de integração, edge cases
+     perfil, pontos de integração, casos de borda
 2. Leia a skill `/architecture` por completo (`.claude/skills/architecture/SKILL.md`).
-3. Leia o template do plano em `references/plan-template.md` (desta skill).
+3. Leia o modelo do plano em `references/plan-template.md` (desta skill).
 4. Execute o procedimento descrito na seção "Procedimento de execução" abaixo.
 
 ---
 
 ## Procedimento de execução
 
-### Passo 1 — Extração dos artefatos da spec e do logic doc
+### Passo 1 — Extração dos artefatos da spec e do documento de lógica
 
-Aplique as seções "Como ler a spec de produto", "Como ler o logic doc" e
+Aplique as seções "Como ler a spec de produto", "Como ler o documento de lógica" e
 "Como derivar impacto em módulos e aggregates" para produzir uma lista
 intermediária (não publicada) com:
 
 - Todos os aggregates (novos e existentes) tocados
 - Todos os domain events novos
 - Todos os SmartEnums novos — com os valores exatos listados no `logic.md`
-- Todos os comportamentos (write side): cadeia completa por comportamento
-- Todas as leituras (read side): cadeia completa por leitura
+- Todos os comportamentos (lado de escrita): cadeia completa por comportamento
+- Todas as leituras (lado de leitura): cadeia completa por leitura
 - Todos os emails/notificações: cadeia completa por email
-- Todos os registros de infraestrutura: migrations, EF configs, consumer registrations, etc.
+- Todos os registros de infraestrutura: migrations, configs EF, registros de consumer, etc.
 - Todos os eventos cross-module e a direção (módulo publicador → módulo consumidor)
 - Todas as regras de negócio numeradas do `logic.md`, com a camada atribuída
 - Todas as autorizações por perfil extraídas dos fluxos do `logic.md`
-- Todos os edge cases do `logic.md`, com o artefato de destino (Validator/Handler)
+- Todos os casos de borda do `logic.md`, com o artefato de destino (Validator/Handler)
 
 ### Passo 2 — Cruzamento com o estado atual do código
 
@@ -240,7 +240,7 @@ Com a lista de artefatos extraída e o estado atual verificado:
    - Fase 4: Persistence
    - Fase 5: Infrastructure
    - Fase 6: Web
-   Inclua apenas as fases que a feature efetivamente toca.
+   Inclua apenas as fases que a funcionalidade efetivamente toca.
 
 2. **Dentro de cada fase**, ordene os itens respeitando as dependências
    internas (ex.: SmartEnums antes de Domain Events, Domain Events antes de
@@ -282,29 +282,29 @@ abaixo. Se qualquer regra for violada, corrija o plano antes de apresentar.
 - O plano usa obrigatoriamente a estrutura de fases definida em `references/plan-template.md`
 - Nenhum item de uma camada aparece em fase de camada diferente
   (ex.: um Handler não pode estar na Fase 1 — Domain)
-- Cada fase termina com build gate explícito
+- Cada fase termina com gate de build explícito
 - Nenhuma fase tem mais de ~12 itens — se ultrapassar, revisar a decomposição
 
 ### Completude
 
 - Todo comportamento (write) da spec tem a cadeia completa de write-side
-- Toda leitura (read) da spec tem a cadeia completa de read-side
+- Toda leitura da spec tem a cadeia completa de leitura
 - Todo email mencionado na spec tem os três artefatos do email pattern
 - Todo aggregate novo tem os artefatos de bootstrap:
   EF StoreEventConfiguration + SnapshotConfiguration + Migration
 - Todo domain event novo tem um `ConfigureEventReceiveEndpoint` correspondente
-- Todo projection handler novo está listado para registro em `AddEventInteractors()`
+- Todo novo projection handler está listado para registro em `AddEventInteractors()`
 
 ### Consistência com as convenções
 
-Valide contra as regras "What to NEVER do" de cada camada em `/architecture`.
+Valide contra as regras "O que NUNCA fazer" de cada camada em `/architecture`.
 Em particular:
 
-- Nenhum artefato do plano lê do PostgreSQL no read side
+- Nenhum artefato do plano lê do PostgreSQL no lado de leitura
 - Nenhum domain event transporta SmartEnum como tipo — sempre `string`
-- Nenhum email command contém tipos não-primitivos
-- Nenhum endpoint retorna entidade de domínio — sempre Response DTO
-- Nenhum módulo referencia outro módulo diretamente — integração sempre via events
+- Nenhum comando de email contém tipos não-primitivos
+- Nenhum endpoint retorna entidade de domínio — sempre DTO de resposta
+- Nenhum módulo referencia outro módulo diretamente — integração sempre via eventos
 - Nenhuma validação de regra de negócio está atribuída ao Domain — sempre no Handler
 - Toda rota segue o padrão `v{version:apiVersion}/{module}/...` sem `/api`
 
@@ -315,7 +315,7 @@ Em particular:
 - Toda Migration aparece antes do endpoint que depende da coluna/tabela nova
 - Todo Domain Event aparece antes do Projection Handler que o consome
 - Todo Projection Model aparece antes da Query que o lê
-- Todo Email Command aparece antes do Handler de negócio que o enfileira
+- Todo comando de email aparece antes do Handler de negócio que o enfileira
 - Todo Consumer Registration aparece depois do Domain Event que configura
 
 ---
@@ -333,7 +333,7 @@ Em particular:
 - Duplicar conteúdo da skill `/architecture` — referenciar
 - Gerar o plano com base apenas no `spec.md` ignorando o `logic.md`
 - Deixar qualquer regra de negócio numerada do `logic.md` sem artefato correspondente no plano
-- Deixar qualquer edge case do `logic.md` sem destino no plano (Validator, Handler ou ponto de atenção)
+- Deixar qualquer caso de borda do `logic.md` sem destino no plano (Validator, Handler ou ponto de atenção)
 
 ## Sempre fazer
 
