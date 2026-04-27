@@ -15,12 +15,12 @@ using Web.Endpoints.Routes;
 namespace Web.Endpoints.Modules.Identity.User;
 
 [Authorize(Policy = IdentityPolicies.CanPromoteUser)]
-public sealed class PromoteAccountancyMemberEndpoint(ISender sender) : EndpointBaseAsync
-    .WithRequest<PromoteAccountancyMemberRequest>
+public sealed class PromoteUserEndpoint(ISender sender) : EndpointBaseAsync
+    .WithRequest<PromoteUserRequest>
     .WithActionResult<UserDetailResponse>
 {
     [ApiVersion("1.0")]
-    [HttpPost(IdentityRoutes.PromoteAccountancyMember)]
+    [HttpPost(IdentityRoutes.PromoteUser)]
     [ProducesResponseType(typeof(UserDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -28,25 +28,33 @@ public sealed class PromoteAccountancyMemberEndpoint(ISender sender) : EndpointB
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [SwaggerOperation(
-        OperationId = "PromoteAccountancyMember",
-        Summary     = "Promover membro a administrador da contabilidade",
+        OperationId = "PromoteUser",
+        Summary     = "Promover usuario",
         Description = """
             Promove um AccountancyEmployee a AccountancyAdmin dentro da contabilidade indicada.
 
             **Regras:**
-            - Apenas AccountancyAdmin pode promover membros — SystemAdmin não tem acesso a esta ação.
-            - O membro promovido deve pertencer à mesma contabilidade do solicitante.
-            - Somente AccountancyEmployee pode ser promovido — usuários já administradores retornam 409.
+            - Apenas AccountancyAdmin pode promover usuarios; SystemAdmin nao tem acesso a esta acao.
+            - O usuario promovido deve pertencer a mesma contabilidade do solicitante.
+            - Somente AccountancyEmployee pode ser promovido; usuarios ja administradores retornam 409.
 
-            **Efeitos:** O perfil do usuário é atualizado para AccountancyAdmin imediatamente.
+            **Respostas:**
+            - `200` - usuario promovido; retorna os dados atualizados.
+            - `400` - dados invalidos ou ausentes.
+            - `401` - access token ausente ou invalido.
+            - `403` - usuario sem permissao.
+            - `404` - contabilidade ou usuario nao encontrado.
+            - `409` - usuario ja e AccountancyAdmin.
 
-            **Autorização:** AccountancyAdmin.
+            **Efeitos:** Perfil do usuario e atualizado para AccountancyAdmin imediatamente.
+
+            **Autorizacao:** AccountancyAdmin.
             """,
         Tags = [Tags.Identity.Users])]
     public override async Task<ActionResult<UserDetailResponse>> HandleAsync(
-        PromoteAccountancyMemberRequest request, CancellationToken cancellationToken = default)
+        PromoteUserRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
-            .Map(r => new PromoteUserToAccountancyAdminCommand(r.AccountancyId, r.UserId))
+            .Map(r => new PromoteUserCommand(r.AccountancyId, r.UserId))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

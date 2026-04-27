@@ -9,8 +9,8 @@ namespace Identity.Application.UseCases.Events;
 public interface IProjectionUserEventHandler :
     IEventHandler<DomainEvents.UserRegistrationCompleted>,
     IEventHandler<DomainEvents.UserPasswordUpdated>,
-    IEventHandler<DomainEvents.UserNameUpdated>,
-    IEventHandler<DomainEvents.UserPromotedToAccountancyAdmin>,
+    IEventHandler<DomainEvents.UserUpdated>,
+    IEventHandler<DomainEvents.UserPromoted>,
     IEventHandler<DomainEvents.UserDeleted>;
 
 public class ProjectionUserEventHandler(
@@ -56,7 +56,7 @@ public class ProjectionUserEventHandler(
         }
     }
 
-    public async Task Handle(DomainEvents.UserNameUpdated @event, CancellationToken cancellationToken = default)
+    public async Task Handle(DomainEvents.UserUpdated @event, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -64,7 +64,7 @@ public class ProjectionUserEventHandler(
 
             if (existing is null)
             {
-                logger.LogWarning("User projection not found for name update: {Id}.", @event.UserId);
+                logger.LogWarning("User projection not found for update: {Id}.", @event.UserId);
                 return;
             }
 
@@ -77,12 +77,12 @@ public class ProjectionUserEventHandler(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to project name update for user: {Id}.", @event.UserId);
-            throw new InvalidOperationException($"Failed to project name update for user: {@event.UserId}.", ex);
+            logger.LogError(ex, "Failed to project update for user: {Id}.", @event.UserId);
+            throw new InvalidOperationException($"Failed to project update for user: {@event.UserId}.", ex);
         }
     }
 
-    public async Task Handle(DomainEvents.UserPromotedToAccountancyAdmin @event, CancellationToken cancellationToken = default)
+    public async Task Handle(DomainEvents.UserPromoted @event, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -7,8 +7,8 @@ namespace Web.ServiceInstallers.EventBus.Consumers.IdentityModule;
 public class ProjectionUserConsumer(IProjectionUserEventHandler eventHandler) :
     IConsumer<DomainEvents.UserRegistrationCompleted>,
     IConsumer<DomainEvents.UserPasswordUpdated>,
-    IConsumer<DomainEvents.UserNameUpdated>,
-    IConsumer<DomainEvents.UserPromotedToAccountancyAdmin>,
+    IConsumer<DomainEvents.UserUpdated>,
+    IConsumer<DomainEvents.UserPromoted>,
     IConsumer<DomainEvents.UserDeleted>
 {
     public Task Consume(ConsumeContext<DomainEvents.UserRegistrationCompleted> context)
@@ -17,10 +17,10 @@ public class ProjectionUserConsumer(IProjectionUserEventHandler eventHandler) :
     public Task Consume(ConsumeContext<DomainEvents.UserPasswordUpdated> context)
         => eventHandler.Handle(context.Message, context.CancellationToken);
 
-    public Task Consume(ConsumeContext<DomainEvents.UserNameUpdated> context)
+    public Task Consume(ConsumeContext<DomainEvents.UserUpdated> context)
         => eventHandler.Handle(context.Message, context.CancellationToken);
 
-    public Task Consume(ConsumeContext<DomainEvents.UserPromotedToAccountancyAdmin> context)
+    public Task Consume(ConsumeContext<DomainEvents.UserPromoted> context)
         => eventHandler.Handle(context.Message, context.CancellationToken);
 
     public Task Consume(ConsumeContext<DomainEvents.UserDeleted> context)

@@ -12,7 +12,7 @@ namespace Identity.Application.UseCases.Commands.User;
 
 using UserAggregate = Identity.Domain.Aggregates.User;
 
-public sealed class DeleteUserCommandHandler(
+public sealed class DeleteUserHandler(
     IIdentityApplicationService applicationService,
     ICurrentUserService currentUser,
     IIdentityProjection<ProjectionModel.User> userProjection

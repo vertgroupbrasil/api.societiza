@@ -3,7 +3,7 @@ using Web.Endpoints.Routes;
 
 namespace Web.Endpoints.Modules.Identity.User.Requests.Commands;
 
-public sealed class PromoteAccountancyMemberRequest
+public sealed class PromoteUserRequest
 {
     [FromRoute(Name = IdentityRoutes.AccountancyIdParam)]
     public Guid AccountancyId { get; set; }

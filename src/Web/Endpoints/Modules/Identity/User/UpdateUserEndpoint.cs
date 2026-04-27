@@ -13,36 +13,43 @@ using Web.Endpoints.Routes;
 namespace Web.Endpoints.Modules.Identity.User;
 
 [Authorize]
-public sealed class UpdateMyNameEndpoint(ISender sender) : EndpointBaseAsync
-    .WithRequest<UpdateMyNameRequest>
+public sealed class UpdateUserEndpoint(ISender sender) : EndpointBaseAsync
+    .WithRequest<UpdateUserRequest>
     .WithActionResult
 {
     [ApiVersion("1.0")]
-    [HttpPut(IdentityRoutes.UpdateMyName)]
+    [HttpPut(IdentityRoutes.UpdateUser)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
-        OperationId = "UpdateMyName",
-        Summary     = "Atualizar nome do próprio usuário",
+        OperationId = "UpdateUser",
+        Summary     = "Atualizar usuario",
         Description = """
-            Atualiza o nome e sobrenome do usuário autenticado.
+            Atualiza o nome e sobrenome do usuario autenticado.
 
             **Regras:**
-            - Cada campo aceita no máximo 80 caracteres.
-            - Apenas o próprio usuário pode editar seu nome — não há como editar o nome de outro usuário por este endpoint.
+            - Cada campo aceita no maximo 80 caracteres.
+            - Apenas o proprio usuario pode editar seus dados por este endpoint.
 
-            **Efeitos:** Nenhum.
+            **Respostas:**
+            - `200` - usuario atualizado com sucesso.
+            - `400` - dados invalidos ou ausentes.
+            - `401` - access token ausente ou invalido.
+            - `403` - usuario sem permissao.
+            - `404` - usuario nao encontrado.
 
-            **Autorização:** Qualquer usuário autenticado.
+            **Efeitos:** Dados do usuario autenticado atualizados.
+
+            **Autorizacao:** Qualquer usuario autenticado.
             """,
         Tags = [Tags.Identity.Users])]
     public override async Task<ActionResult> HandleAsync(
-        UpdateMyNameRequest request, CancellationToken cancellationToken = default)
+        UpdateUserRequest request, CancellationToken cancellationToken = default)
         => await Result.Create(request)
-            .Map(r => new UpdateUserNameCommand(r.FirstName, r.LastName))
+            .Map(r => new UpdateUserCommand(r.FirstName, r.LastName))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(() => Ok(), this.HandleFailure);
 }

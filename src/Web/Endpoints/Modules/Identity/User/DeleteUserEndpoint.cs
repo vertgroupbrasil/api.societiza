@@ -33,14 +33,21 @@ public sealed class DeleteUserEndpoint(ISender sender) : EndpointBaseAsync
             Realiza o soft-delete de um usuário e invalida imediatamente sua sessão.
 
             **Regras:**
-            - SystemAdmin e AccountancyAdmin podem excluir usuários.
             - AccountancyAdmin só pode excluir membros da própria contabilidade.
             - Não é possível excluir a si mesmo.
             - Não é possível excluir o último AccountancyAdmin de uma contabilidade.
             - Não é possível excluir o último SystemAdmin do sistema.
             - SystemAdmin pode informar `accountancyId` via query param para identificar o tenant.
 
-            **Efeitos:** Tokens de refresh revogados e security stamp regenerado, invalidando a sessão do usuário removido.
+            **Respostas:**
+            - `200` - usuário excluído com sucesso.
+            - `400` - dados inválidos ou ausentes.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - usuário não encontrado.
+            - `409` - operação viola regra de negócio (ex.: último admin, auto-exclusão).
+
+            **Efeitos:** Soft-delete do usuário; tokens de refresh revogados e security stamp regenerado, invalidando a sessão do usuário removido.
 
             **Autorização:** SystemAdmin ou AccountancyAdmin.
             """,

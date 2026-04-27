@@ -3,9 +3,9 @@ using Identity.Shared.Commands.User;
 
 namespace Identity.Application.UseCases.Validators.User;
 
-public sealed class PromoteUserToAccountancyAdminValidator : AbstractValidator<PromoteUserToAccountancyAdminCommand>
+public sealed class PromoteUserValidator : AbstractValidator<PromoteUserCommand>
 {
-    public PromoteUserToAccountancyAdminValidator()
+    public PromoteUserValidator()
     {
         RuleFor(x => x.AccountancyId)
             .NotEmpty().WithMessage("AccountancyId is required");

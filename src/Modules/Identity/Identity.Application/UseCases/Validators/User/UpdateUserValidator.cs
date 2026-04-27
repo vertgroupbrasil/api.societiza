@@ -3,9 +3,9 @@ using Identity.Shared.Commands.User;
 
 namespace Identity.Application.UseCases.Validators.User;
 
-public sealed class UpdateUserNameValidator : AbstractValidator<UpdateUserNameCommand>
+public sealed class UpdateUserValidator : AbstractValidator<UpdateUserCommand>
 {
-    public UpdateUserNameValidator()
+    public UpdateUserValidator()
     {
         RuleFor(x => x.FirstName)
             .NotEmpty().WithMessage("FirstName is required")

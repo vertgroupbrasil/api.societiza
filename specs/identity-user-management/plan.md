@@ -7,7 +7,20 @@
 **Resumo**: Estende o aggregate `User` existente com (i) edição do próprio nome,
 (ii) promoção `AccountancyEmployee → AccountancyAdmin`, e (iii) soft-delete (deletion)
 com invalidação imediata de sessão. Adiciona endpoints de leitura (perfil próprio,
-SystemAdmins, membros de uma contabilidade). Sem novos aggregates, sem novos módulos.
+get user por id, SystemAdmins, membros de uma contabilidade). Sem novos aggregates,
+sem novos módulos.
+
+**Convenção de nomes**: este plano usa os nomes reais já presentes no código —
+`UpdateUserCommand`/`UpdateUserHandler`/`UpdateUserEndpoint`/`UpdateUserRequest`
+para edição do próprio nome, e `PromoteUserCommand`/`PromoteUserHandler`/
+`PromoteUserEndpoint`/`PromoteUserRequest` para a promoção.
+
+**Distinção dos GETs em `/identity/users`**:
+- `GET v{version}/identity/users` → perfil do próprio usuário autenticado
+  (`GetMyProfileEndpoint` + `GetMyProfileQuery`). Não recebe id.
+- `GET v{version}/identity/users/{userId}` → get user por id, com matriz de
+  acesso por perfil (`GetUserByIdEndpoint` + `GetUserByIdQuery`). Endpoint comum
+  de leitura, não exclusivo de admin.
 
 ---
 
@@ -95,23 +108,23 @@ SystemAdmins, membros de uma contabilidade). Sem novos aggregates, sem novos mó
 
 **Referência**: `.claude/skills/architecture/references/shared-architecture.md`
 
-#### 1. Command `UpdateUserNameCommand`
+#### 1. Command `UpdateUserCommand`
 - **Camada**: Shared
 - **Tipo**: Command
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/User/UpdateUserNameCommand.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/User/UpdateUserCommand.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: spec §8 "Edição do próprio perfil"; logic §3 "Todo usuário pode editar apenas o próprio nome"
-- **Detalhes**: `sealed record UpdateUserNameCommand(string FirstName, string LastName) : ICommand`. **Sem `UserId`** — handler usa `ICurrentUserService.UserId` (regra: cross-user é rejeitado, então o command nem expõe o alvo).
+- **Detalhes**: `sealed record UpdateUserCommand(string FirstName, string LastName) : ICommand`. **Sem `UserId`** — handler usa `ICurrentUserService.UserId` (regra: cross-user é rejeitado, então o command nem expõe o alvo).
 
-#### 2. Command `PromoteUserToAccountancyAdminCommand`
+#### 2. Command `PromoteUserCommand`
 - **Camada**: Shared
 - **Tipo**: Command
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/User/PromoteUserToAccountancyAdminCommand.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Commands/User/PromoteUserCommand.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: spec §8 "Promoção AE → AA"; logic §1 (fluxo AccountancyAdmin → Promover)
-- **Detalhes**: `sealed record PromoteUserToAccountancyAdminCommand(Guid AccountancyId, Guid UserId) : ICommand<UserDetailResponse>`. Retorna o perfil atualizado (logic §4: "resposta de sucesso deve incluir o novo perfil"). `AccountancyId` vem da rota.
+- **Detalhes**: `sealed record PromoteUserCommand(Guid AccountancyId, Guid UserId) : ICommand<UserDetailResponse>`. Retorna o perfil atualizado (logic §4: "resposta de sucesso deve incluir o novo perfil"). `AccountancyId` vem da rota.
 
 #### 3. Command `DeleteUserCommand`
 - **Camada**: Shared
@@ -156,7 +169,16 @@ SystemAdmins, membros de uma contabilidade). Sem novos aggregates, sem novos mó
 - **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/User/GetMyProfileQuery.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: spec §1 "Qualquer usuário encontra seu próprio perfil"
-- **Detalhes**: `sealed record GetMyProfileQuery() : IQuery<UserProfileResponse>`. Sem campos — handler usa `ICurrentUserService.UserId`.
+- **Detalhes**: `sealed record GetMyProfileQuery() : IQuery<UserProfileResponse>`. Sem campos — handler usa `ICurrentUserService.UserId`. Usado pelo `GET /identity/users` (perfil próprio).
+
+#### 7b. Query `GetUserByIdQuery`
+- **Camada**: Shared
+- **Tipo**: Query
+- **Ação**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Shared/Queries/User/GetUserByIdQuery.cs`
+- **Depende de**: Fase 2 · #4 (`UserProfileResponse`)
+- **Spec-ref**: spec §1 "Visualização de usuários por id" / leitura por administradores e auto-leitura
+- **Detalhes**: `sealed record GetUserByIdQuery(Guid UserId) : IQuery<UserProfileResponse>`. Reutiliza `UserProfileResponse` por já cobrir os campos de leitura (Id, FirstName, LastName, Email, Role, AccountancyId, CreatedAt, UpdatedAt). Usado pelo `GET /identity/users/{userId}` (get user por id, não-admin).
 
 #### 8. Query `ListSystemAdminsQuery`
 - **Camada**: Shared
@@ -193,20 +215,20 @@ SystemAdmins, membros de uma contabilidade). Sem novos aggregates, sem novos mó
 
 **Referência**: `.claude/skills/architecture/references/application-architecture.md`
 
-#### 1. Validator `UpdateUserNameValidator`
+#### 1. Validator `UpdateUserValidator`
 - **Camada**: Application
 - **Tipo**: Validator
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/User/UpdateUserNameValidator.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/User/UpdateUserValidator.cs`
 - **Depende de**: Fase 2 · #1
 - **Spec-ref**: logic §3 (sem regras estruturais novas — só formato)
 - **Detalhes**: `RuleFor(FirstName).NotEmpty().MaximumLength(80)`; `RuleFor(LastName).NotEmpty().MaximumLength(80)`. Mensagens em inglês.
 
-#### 2. Validator `PromoteUserToAccountancyAdminValidator`
+#### 2. Validator `PromoteUserValidator`
 - **Camada**: Application
 - **Tipo**: Validator
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/User/PromoteUserToAccountancyAdminValidator.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/User/PromoteUserValidator.cs`
 - **Depende de**: Fase 2 · #2
 - **Spec-ref**: logic §2 (transição de perfil — guarda de input)
 - **Detalhes**: `RuleFor(AccountancyId).NotEmpty()`; `RuleFor(UserId).NotEmpty()`. Mensagens em inglês.
@@ -229,11 +251,20 @@ SystemAdmins, membros de uma contabilidade). Sem novos aggregates, sem novos mó
 - **Spec-ref**: logic §3 "AccountancyAdmin age apenas dentro da própria contabilidade"
 - **Detalhes**: `RuleFor(AccountancyId).NotEmpty()`. Cross-tenant é validado no Handler.
 
-#### 5. Handler `UpdateUserNameHandler`
+#### 4b. Validator `GetUserByIdValidator`
+- **Camada**: Application
+- **Tipo**: Validator
+- **Ação**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Validators/User/GetUserByIdValidator.cs`
+- **Depende de**: Fase 2 · #7b
+- **Spec-ref**: get user por id (guarda de input)
+- **Detalhes**: `RuleFor(UserId).NotEmpty().WithMessage("UserId is required")`. Mensagem em inglês.
+
+#### 5. Handler `UpdateUserHandler`
 - **Camada**: Application
 - **Tipo**: Handler (Command)
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/User/UpdateUserNameHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/User/UpdateUserHandler.cs`
 - **Depende de**: Fase 1 · #4, Fase 2 · #1
 - **Spec-ref**: logic §3 "Todo usuário pode editar apenas o próprio nome"
 - **Detalhes**: Injeta `IIdentityApplicationService` e `ICurrentUserService`.
@@ -244,11 +275,11 @@ SystemAdmins, membros de uma contabilidade). Sem novos aggregates, sem novos mó
   5. Retorna `Result.Success()`.
   - Não há checagem cross-user porque o command não expõe `UserId` alvo — autorização é estrutural (só pode editar quem está logado).
 
-#### 6. Handler `PromoteUserToAccountancyAdminHandler`
+#### 6. Handler `PromoteUserHandler`
 - **Camada**: Application
 - **Tipo**: Handler (Command)
 - **Ação**: criar
-- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/User/PromoteUserToAccountancyAdminHandler.cs`
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Commands/User/PromoteUserHandler.cs`
 - **Depende de**: Fase 1 · #4, Fase 2 · #2, Fase 2 · #5
 - **Spec-ref**: spec §8 "Promoção por SystemAdmin: Não"; logic §1 fluxo AA promover; logic §3 regras de promoção; logic §4 "resposta inclui o novo perfil"
 - **Detalhes**: Injeta `IIdentityApplicationService`, `ICurrentUserService`, `IIdentityProjection<ProjectionModel.User>`.
@@ -297,6 +328,25 @@ SystemAdmins, membros de uma contabilidade). Sem novos aggregates, sem novos mó
   1. `userView = userProjection.FindAsync(x => x.Id == currentUser.UserId && !x.IsDeleted)`.
   2. Se `null` → `NotFoundError("User.NotFound", "User not found.")`.
   3. Mapear para `UserProfileResponse` e `Result.Success`.
+
+#### 8b. Handler `GetUserByIdHandler`
+- **Camada**: Application
+- **Tipo**: Handler (Query)
+- **Ação**: criar
+- **Caminho**: `src/Modules/Identity/Identity.Application/UseCases/Queries/User/GetUserByIdHandler.cs`
+- **Depende de**: Fase 2 · #4, Fase 2 · #7b
+- **Spec-ref**: get user por id; matriz de acesso por perfil
+- **Detalhes**: Injeta `IIdentityProjection<ProjectionModel.User>` e `ICurrentUserService`.
+  1. Resolver `callerRole = UserRole.TryFromName(currentUser.Role, out var role)`. Se a role do caller for inválida → `ForbiddenError("User.Forbidden", "You do not have permission to view this user.")`.
+  2. **Fast path AccountancyEmployee**: se caller é `AccountancyEmployee` e `request.UserId != currentUser.UserId` → `ForbiddenError`. Não revela existência do alvo.
+  3. **Carregar alvo** na projection: `target = userProjection.FindAsync(x => x.Id == request.UserId && !x.IsDeleted)`. Se `null` → `NotFoundError("User.NotFound", "User not found.")`.
+  4. **Matriz de acesso** (sobre `target.Role` e `target.AccountancyId`):
+     - `SystemAdmin` → vê `SystemAdmin`, `AccountancyAdmin`, `AccountancyEmployee` (qualquer tenant).
+     - `AccountancyAdmin` → vê apenas `AccountancyAdmin` e `AccountancyEmployee` da própria contabilidade (`target.AccountancyId == currentUser.AccountancyId`).
+     - `AccountancyEmployee` → só vê o próprio usuário.
+     - Demais combinações → `ForbiddenError("User.Forbidden", "You do not have permission to view this user.")`.
+  5. Mapear para `UserProfileResponse(Id, FirstName, LastName, Email, Role, AccountancyId, CreatedAt, UpdatedAt)` e `Result.Success`.
+  - **Sem mudanças em Domain, Persistence, Infrastructure ou projections** — endpoint é leitura pura sobre a projection já existente.
 
 #### 9. Handler `ListSystemAdminsHandler`
 - **Camada**: Application
@@ -375,6 +425,11 @@ inteiramente Identity.
 
 **Itens**: nenhum.
 
+**Nota — Get By Id**: o endpoint `GET /identity/users/{userId}` é leitura pura
+sobre a projection já existente. **Não há mudanças em Domain, Persistence,
+Infrastructure ou projections** para essa rota — apenas Shared (query),
+Application (validator + handler) e Web (rota + request + endpoint).
+
 **Build gate**: `dotnet build Societiza.sln` — zero errors antes de avançar.
 
 ---
@@ -394,17 +449,18 @@ inteiramente Identity.
   - `internal const string UserId = "userId";`
   - `internal const string AccountancyIdParam = "accountancyId";`
   - `internal const string GetMyProfile           = $"{BaseUri}/users";`
-  - `internal const string UpdateMyName           = $"{BaseUri}/users";`
+  - `internal const string UpdateUser             = $"{BaseUri}/users";`
   - `internal const string ListSystemAdmins       = $"{BaseUri}/system-admins";`
+  - `internal const string GetUserById            = $"{BaseUri}/users/{{{UserId}:guid}}";`
   - `internal const string DeleteUser             = $"{BaseUri}/users/{{{UserId}:guid}}";`
   - `internal const string ListAccountancyMembers = $"{BaseUri}/accountancies/{{{AccountancyIdParam}:guid}}/members";`
-  - `internal const string PromoteAccountancyMember = $"{BaseUri}/accountancies/{{{AccountancyIdParam}:guid}}/members/{{{UserId}:guid}}/promote";`
+  - `internal const string PromoteUser            = $"{BaseUri}/accountancies/{{{AccountancyIdParam}:guid}}/members/{{{UserId}:guid}}/promote";`
 
-#### 2. Request DTO `UpdateMyNameRequest`
+#### 2. Request DTO `UpdateUserRequest`
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/Requests/Commands/UpdateMyNameRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/Requests/Commands/UpdateUserRequest.cs`
 - **Depende de**: nenhum
 - **Spec-ref**: spec §8 "Edição do próprio perfil"
 - **Detalhes**: `sealed class` com `string FirstName { get; set; } = string.Empty; string LastName { get; set; } = string.Empty;` (FromBody implícito).
@@ -418,14 +474,23 @@ inteiramente Identity.
 - **Spec-ref**: contrato `DELETE /users/{userId}?accountancyId=...`
 - **Detalhes**: `[FromRoute(Name = IdentityRoutes.UserId)] Guid UserId`; `[FromQuery] Guid? AccountancyId`.
 
-#### 4. Request DTO `PromoteAccountancyMemberRequest`
+#### 4. Request DTO `PromoteUserRequest`
 - **Camada**: Web
 - **Tipo**: RequestDTO
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/Requests/Commands/PromoteAccountancyMemberRequest.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/Requests/Commands/PromoteUserRequest.cs`
 - **Depende de**: Fase 6 · #1
 - **Spec-ref**: contrato `POST /accountancies/{accountancyId}/members/{userId}/promote`
 - **Detalhes**: `[FromRoute(Name = IdentityRoutes.AccountancyIdParam)] Guid AccountancyId`; `[FromRoute(Name = IdentityRoutes.UserId)] Guid UserId`.
+
+#### 4b. Request DTO `GetUserByIdRequest`
+- **Camada**: Web
+- **Tipo**: RequestDTO
+- **Ação**: criar
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/Requests/Queries/GetUserByIdRequest.cs`
+- **Depende de**: Fase 6 · #1
+- **Spec-ref**: contrato `GET /identity/users/{userId}`
+- **Detalhes**: `sealed class GetUserByIdRequest` com `[FromRoute(Name = IdentityRoutes.UserId)] public Guid UserId { get; set; }`.
 
 #### 5. Request DTO `ListAccountancyMembersRequest`
 - **Camada**: Web
@@ -449,21 +514,36 @@ inteiramente Identity.
   - `[ProducesResponseType(typeof(UserProfileResponse), 200)]`, 400, 401, 403, 404.
   - `OperationId = "GetMyProfile"`, `Summary = "Obter perfil do próprio usuário"`, `Tags = [Tags.Identity.Users]`.
   - Pipeline: `Result.Create(request).Map(_ => new GetMyProfileQuery()).Bind(...).Match(Ok, this.HandleFailure)`.
-  - Request DTO vazio (sem fields) — usar `EmptyRequest` ou criar `GetMyProfileRequest` vazio para compatibilidade com Ardalis.
+  - Request DTO vazio (sem fields) — `GetMyProfileRequest` vazio para compatibilidade com Ardalis.
+  - **Mantém-se inalterado pelo Get By Id** — esta rota continua sendo o "meu perfil"; o get user por id é uma rota separada (`/users/{userId}`, ver #6b).
 
-#### 7. Endpoint `UpdateMyNameEndpoint`
+#### 6b. Endpoint `GetUserByIdEndpoint`
 - **Camada**: Web
 - **Tipo**: Endpoint
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/UpdateMyNameEndpoint.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/GetUserByIdEndpoint.cs`
+- **Depende de**: Fase 2 · #4, #7b; Fase 3 · #4b, #8b; Fase 6 · #1, #4b
+- **Spec-ref**: get user por id; matriz de acesso por perfil
+- **Detalhes**:
+  - `[Authorize]` — qualquer usuário autenticado. **Sem nomenclatura de "admin"** no nome da classe, na rota ou no `OperationId`. Autorização fina é responsabilidade do handler (matriz de acesso por perfil).
+  - `[HttpGet(IdentityRoutes.GetUserById)]`, `[ApiVersion("1.0")]`.
+  - `[ProducesResponseType(typeof(UserProfileResponse), 200)]`, 400, 401, 403, 404.
+  - `OperationId = "GetUserById"`, `Summary = "Obter usuário por id"`, `Tags = [Tags.Identity.Users]`.
+  - Pipeline: `Result.Create(request).Map(r => new GetUserByIdQuery(r.UserId)).Bind(query => sender.Send(query, cancellationToken)).Match(Ok, this.HandleFailure)`.
+
+#### 7. Endpoint `UpdateUserEndpoint`
+- **Camada**: Web
+- **Tipo**: Endpoint
+- **Ação**: criar
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/UpdateUserEndpoint.cs`
 - **Depende de**: Fase 2 · #1; Fase 3 · #5; Fase 6 · #1, #2
 - **Spec-ref**: spec §8 "Edição do próprio perfil"
 - **Detalhes**:
   - `[Authorize]`.
-  - `[HttpPut(IdentityRoutes.UpdateMyName)]`, `[ApiVersion("1.0")]`.
+  - `[HttpPut(IdentityRoutes.UpdateUser)]`, `[ApiVersion("1.0")]`.
   - `[ProducesResponseType(200)]`, 400, 401, 403, 404.
-  - `OperationId = "UpdateMyName"`, `Summary = "Atualizar nome do próprio usuário"`, `Tags = [Tags.Identity.Users]`.
-  - Pipeline: `Result.Create(request).Map(r => new UpdateUserNameCommand(r.FirstName, r.LastName)).Bind(...).Match(() => Ok(), this.HandleFailure)`.
+  - `OperationId = "UpdateUser"`, `Summary = "Atualizar nome do próprio usuário"`, `Tags = [Tags.Identity.Users]`.
+  - Pipeline: `Result.Create(request).Map(r => new UpdateUserCommand(r.FirstName, r.LastName)).Bind(...).Match(() => Ok(), this.HandleFailure)`.
 
 #### 8. Endpoint `ListSystemAdminsEndpoint`
 - **Camada**: Web
@@ -493,19 +573,19 @@ inteiramente Identity.
   - `OperationId = "ListAccountancyMembers"`, `Summary = "Listar membros da contabilidade"`, `Tags = [Tags.Identity.Users]`.
   - Pipeline: `Map(r => new ListAccountancyMembersQuery(r.AccountancyId))`.
 
-#### 10. Endpoint `PromoteAccountancyMemberEndpoint`
+#### 10. Endpoint `PromoteUserEndpoint`
 - **Camada**: Web
 - **Tipo**: Endpoint
 - **Ação**: criar
-- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/PromoteAccountancyMemberEndpoint.cs`
+- **Caminho**: `src/Web/Endpoints/Modules/Identity/User/PromoteUserEndpoint.cs`
 - **Depende de**: Fase 2 · #2, #5; Fase 3 · #6; Fase 6 · #1, #4
 - **Spec-ref**: spec §8 "Promoção AE → AA"; logic §1 fluxo AA promover
 - **Detalhes**:
   - `[Authorize(Policy = IdentityPolicies.CanPromoteUser)]` — policy já existente, restrita a `AccountancyAdmin`. Bloqueio de SystemAdmin é estrutural (a policy não inclui SA), e o handler também rejeita defensivamente.
-  - `[HttpPost(IdentityRoutes.PromoteAccountancyMember)]`, `[ApiVersion("1.0")]`.
+  - `[HttpPost(IdentityRoutes.PromoteUser)]`, `[ApiVersion("1.0")]`.
   - `[ProducesResponseType(typeof(UserDetailResponse), 200)]`, 400, 401, 403, 404, 409.
-  - `OperationId = "PromoteAccountancyMember"`, `Summary = "Promover membro a administrador"`, `Tags = [Tags.Identity.Users]`.
-  - Pipeline: `Map(r => new PromoteUserToAccountancyAdminCommand(r.AccountancyId, r.UserId))`.
+  - `OperationId = "PromoteUser"`, `Summary = "Promover membro a administrador"`, `Tags = [Tags.Identity.Users]`.
+  - Pipeline: `Map(r => new PromoteUserCommand(r.AccountancyId, r.UserId))`.
 
 #### 11. Endpoint `DeleteUserEndpoint`
 - **Camada**: Web

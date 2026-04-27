@@ -22,10 +22,10 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
             IdentityDomainEvent.UserPasswordUpdated>(registrationContext, MODULE_NAME);
 
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserConsumer,
-            IdentityDomainEvent.UserNameUpdated>(registrationContext, MODULE_NAME);
+            IdentityDomainEvent.UserUpdated>(registrationContext, MODULE_NAME);
 
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserConsumer,
-            IdentityDomainEvent.UserPromotedToAccountancyAdmin>(registrationContext, MODULE_NAME);
+            IdentityDomainEvent.UserPromoted>(registrationContext, MODULE_NAME);
 
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionUserConsumer,
             IdentityDomainEvent.UserDeleted>(registrationContext, MODULE_NAME);

@@ -9,12 +9,12 @@ namespace Identity.Application.UseCases.Commands.User;
 
 using UserAggregate = Identity.Domain.Aggregates.User;
 
-public sealed class UpdateUserNameHandler(
+public sealed class UpdateUserHandler(
     IIdentityApplicationService applicationService,
     ICurrentUserService currentUser
-) : ICommandHandler<UpdateUserNameCommand>
+) : ICommandHandler<UpdateUserCommand>
 {
-    public async Task<Result> Handle(UpdateUserNameCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var userResult = await applicationService.LoadAggregateAsync<UserAggregate>(
             currentUser.UserId, cancellationToken);
@@ -22,10 +22,9 @@ public sealed class UpdateUserNameHandler(
         if (!userResult.IsSuccess)
             return Result.Failure(new NotFoundError(new("User.NotFound", "User not found.")));
 
-        userResult.Value.UpdateName(request.FirstName, request.LastName);
+        userResult.Value.Update(request.FirstName, request.LastName);
 
         await applicationService.AppendEventsAsync(userResult.Value, cancellationToken);
-
         return Result.Success();
     }
 }

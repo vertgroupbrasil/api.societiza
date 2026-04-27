@@ -105,7 +105,7 @@ public static class DomainEvents
         ulong Version
     ) : Message, IDomainEvent;
 
-    public sealed record UserNameUpdated(
+    public sealed record UserUpdated(
         Guid UserId,
         string FirstName,
         string LastName,
@@ -113,7 +113,7 @@ public static class DomainEvents
         ulong Version
     ) : Message, IDomainEvent;
 
-    public sealed record UserPromotedToAccountancyAdmin(
+    public sealed record UserPromoted(
         Guid UserId,
         Guid AccountancyId,
         string Role,

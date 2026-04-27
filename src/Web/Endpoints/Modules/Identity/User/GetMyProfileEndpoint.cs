@@ -8,14 +8,13 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Web.Endpoints.Modules.Identity.User.Requests.Queries;
 using Web.Endpoints.Routes;
 
 namespace Web.Endpoints.Modules.Identity.User;
 
 [Authorize]
 public sealed class GetMyProfileEndpoint(ISender sender) : EndpointBaseAsync
-    .WithRequest<GetMyProfileRequest>
+    .WithoutRequest
     .WithActionResult<UserProfileResponse>
 {
     [ApiVersion("1.0")]
@@ -34,15 +33,21 @@ public sealed class GetMyProfileEndpoint(ISender sender) : EndpointBaseAsync
             **Regras:**
             - Retorna os dados do próprio usuário — não é possível consultar outros usuários por este endpoint.
 
+            **Respostas:**
+            - `200` - perfil do usuário autenticado.
+            - `400` - requisição inválida.
+            - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
+            - `404` - usuário não encontrado.
+
             **Efeitos:** Nenhum.
 
             **Autorização:** Qualquer usuário autenticado.
             """,
         Tags = [Tags.Identity.Users])]
     public override async Task<ActionResult<UserProfileResponse>> HandleAsync(
-        GetMyProfileRequest request, CancellationToken cancellationToken = default)
-        => await Result.Create(request)
-            .Map(_ => new GetMyProfileQuery())
+        CancellationToken cancellationToken = default)
+        => await Result.Create(new GetMyProfileQuery())
             .Bind(query => sender.Send(query, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

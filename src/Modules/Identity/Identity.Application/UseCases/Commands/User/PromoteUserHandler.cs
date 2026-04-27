@@ -13,14 +13,13 @@ namespace Identity.Application.UseCases.Commands.User;
 
 using UserAggregate = Identity.Domain.Aggregates.User;
 
-public sealed class PromoteUserToAccountancyAdminHandler(
+public sealed class PromoteUserHandler(
     IIdentityApplicationService applicationService,
     ICurrentUserService currentUser,
     IIdentityProjection<ProjectionModel.User> userProjection
-) : ICommandHandler<PromoteUserToAccountancyAdminCommand, UserDetailResponse>
+) : ICommandHandler<PromoteUserCommand, UserDetailResponse>
 {
-    public async Task<Result<UserDetailResponse>> Handle(
-        PromoteUserToAccountancyAdminCommand request, CancellationToken cancellationToken)
+    public async Task<Result<UserDetailResponse>> Handle(PromoteUserCommand request, CancellationToken cancellationToken)
     {
         var callerRole = UserRole.FromName(currentUser.Role);
 
@@ -36,8 +35,7 @@ public sealed class PromoteUserToAccountancyAdminHandler(
             return Result.Failure<UserDetailResponse>(new ForbiddenError(new(
                 "User.ForbiddenTenant", "You can only manage members of your own accountancy.")));
 
-        var userResult = await applicationService.LoadAggregateAsync<UserAggregate>(
-            request.UserId, cancellationToken);
+        var userResult = await applicationService.LoadAggregateAsync<UserAggregate>(request.UserId, cancellationToken);
 
         if (!userResult.IsSuccess)
             return Result.Failure<UserDetailResponse>(new NotFoundError(new("User.NotFound", "User not found.")));
@@ -54,8 +52,7 @@ public sealed class PromoteUserToAccountancyAdminHandler(
 
         var snapshot = await userProjection.FindAsync(x => x.Id == user.Id, cancellationToken);
 
-        user.PromoteToAccountancyAdmin(currentUser.UserId);
-
+        user.Promote(currentUser.UserId);
         await applicationService.AppendEventsAsync(user, cancellationToken);
 
         return Result.Success(new UserDetailResponse(

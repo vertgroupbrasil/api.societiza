@@ -7,4 +7,8 @@ public sealed class ListAccountancyMembersRequest
 {
     [FromRoute(Name = IdentityRoutes.AccountancyIdParam)]
     public Guid AccountancyId { get; set; }
+
+    [FromQuery] public bool OnlyActive { get; set; } = true;
+    [FromQuery] public int  PageNumber { get; set; } = 1;
+    [FromQuery] public int  PageSize   { get; set; } = 10;
 }

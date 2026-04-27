@@ -117,9 +117,9 @@ public class User : AggregateRoot
         ));
     }
 
-    public void UpdateName(string firstName, string lastName)
+    public void Update(string firstName, string lastName)
     {
-        RaiseEvent<DomainEvents.UserNameUpdated>(version => new(
+        RaiseEvent<DomainEvents.UserUpdated>(version => new(
             UserId: Id,
             FirstName: firstName,
             LastName: lastName,
@@ -128,9 +128,9 @@ public class User : AggregateRoot
         ));
     }
 
-    public void PromoteToAccountancyAdmin(Guid promotedBy)
+    public void Promote(Guid promotedBy)
     {
-        RaiseEvent<DomainEvents.UserPromotedToAccountancyAdmin>(version => new(
+        RaiseEvent<DomainEvents.UserPromoted>(version => new(
             UserId: Id,
             AccountancyId: AccountancyId!.Value,
             Role: UserRole.AccountancyAdmin.Name,
@@ -199,14 +199,14 @@ public class User : AggregateRoot
         UpdatedAt = @event.UpdatedAt;
     }
 
-    private void When(DomainEvents.UserNameUpdated @event)
+    private void When(DomainEvents.UserUpdated @event)
     {
         FirstName = @event.FirstName;
         LastName = @event.LastName;
         UpdatedAt = @event.UpdatedAt;
     }
 
-    private void When(DomainEvents.UserPromotedToAccountancyAdmin @event)
+    private void When(DomainEvents.UserPromoted @event)
     {
         Role = UserRole.FromName(@event.Role);
         UpdatedAt = @event.PromotedAt;
