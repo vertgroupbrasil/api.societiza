@@ -33,6 +33,9 @@ public sealed class GetMyProfileEndpoint(ISender sender) : EndpointBaseAsync
             **Regras:**
             - Retorna os dados do próprio usuário — não é possível consultar outros usuários por este endpoint.
 
+            **Valores de enumeração na resposta:**
+            - `role`: `SystemAdmin` | `AccountancyAdmin` | `AccountancyEmployee`
+
             **Respostas:**
             - `200` - perfil do usuário autenticado.
             - `400` - requisição inválida.

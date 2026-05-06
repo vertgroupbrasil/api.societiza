@@ -33,8 +33,10 @@ public sealed class AddTemplateStepTaskFieldEndpoint(ISender sender) : EndpointB
             Adiciona um novo campo a uma tarefa de uma etapa do template e retorna o identificador criado.
 
             **Regras:**
-            - Valores aceitos para `fieldType`: `Text` (entrada de texto em linha única), `Boolean` (alternância verdadeiro/falso), `Integer` (entrada numérica), `Select` (lista suspensa com opções predefinidas), `Date` (seletor de data).
             - `options` é obrigatório quando `fieldType` é `Select` e deve ser nulo para os demais tipos.
+
+            **Valores de enumeração na requisição:**
+            - `fieldType`: `Text` | `Boolean` | `Integer` | `Select` | `Date`
 
             **Respostas:**
             - `200` - campo criado; retorna o identificador gerado.

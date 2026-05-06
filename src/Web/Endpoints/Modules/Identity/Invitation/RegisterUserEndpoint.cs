@@ -29,14 +29,14 @@ public sealed class RegisterUserEndpoint(ISender sender) : EndpointBaseAsync
             Cria uma nova conta a partir de um link de convite válido e retorna o identificador do usuário criado.
 
             **Regras:**
-            - O token deve corresponder a um link ativo, não expirado e não esgotado — retorna 404 se o link não existir ou 400 com motivo específico se estiver inválido (Expired, Exhausted, Revoked).
+            - O token deve corresponder a um link ativo, não expirado e não esgotado — retorna 404 se o link não existir ou 400 com motivo específico se estiver inválido (Expired, Exhausted).
             - Retorna 409 se já existir uma conta com o mesmo e-mail.
             - Senha deve ter no mínimo 8 caracteres.
             - `ConfirmPassword` deve ser igual a `Password`.
 
             **Respostas:**
             - `200` - usuário criado; retorna o identificador gerado.
-            - `400` - dados inválidos ou link em estado inválido (Expired, Exhausted, Revoked).
+            - `400` - dados inválidos ou link em estado inválido (Expired, Exhausted).
             - `404` - link de convite não encontrado.
             - `409` - já existe uma conta com o mesmo e-mail.
 

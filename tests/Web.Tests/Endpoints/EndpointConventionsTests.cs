@@ -29,6 +29,7 @@ public sealed class EndpointConventionsTests
         "Accountancy",
         "Identity / ",
         "Workflow Templates / ",
+        "Workflow Process / ",
     };
 
     private static readonly int[] SuccessStatusCodes = { 200, 201, 204 };

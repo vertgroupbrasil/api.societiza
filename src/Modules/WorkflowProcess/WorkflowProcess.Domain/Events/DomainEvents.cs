@@ -23,6 +23,12 @@ public static class DomainEvents
         DateTimeOffset CompletedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record WorkflowProcessReverted(
+        Guid ProcessId,
+        DateTimeOffset RevertedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
     #endregion
 
     #region Process Step Instance Events
@@ -48,6 +54,14 @@ public static class DomainEvents
         Guid ProcessId,
         Guid StepInstanceId,
         DateTimeOffset CompletedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
+
+    public sealed record ProcessStepInstanceReverted(
+        Guid ProcessId,
+        Guid StepInstanceId,
+        string NewStatus,
+        DateTimeOffset RevertedAt,
         ulong Version
     ) : Message, IDomainEvent;
     #endregion
@@ -81,6 +95,14 @@ public static class DomainEvents
         DateTimeOffset SkippedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record ProcessStepTaskInstanceReverted(
+        Guid ProcessId,
+        Guid StepInstanceId,
+        Guid TaskInstanceId,
+        DateTimeOffset RevertedAt,
+        ulong Version
+    ) : Message, IDomainEvent;
     #endregion
 
     #region Process Step Field Instance Events
@@ -92,7 +114,6 @@ public static class DomainEvents
         string Label,
         string FieldType,
         string? Options,
-        bool IsRequired,
         int Order,
         DateTimeOffset CreatedAt,
         ulong Version
@@ -118,7 +139,6 @@ public static class DomainEvents
         string Label,
         string FieldType,
         string? Options,
-        bool IsRequired,
         int Order,
         DateTimeOffset CreatedAt,
         ulong Version

@@ -5,7 +5,6 @@ public sealed record ProcessStepTaskFieldInstanceResponse(
     string Label,
     string FieldType,
     string? Options,
-    bool IsRequired,
     int Order,
     string? Value,
     DateTimeOffset? FilledAt

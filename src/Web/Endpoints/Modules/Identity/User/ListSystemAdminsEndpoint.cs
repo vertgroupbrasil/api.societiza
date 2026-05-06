@@ -38,6 +38,9 @@ public sealed class ListSystemAdminsEndpoint(ISender sender) : EndpointBaseAsync
             - `pageSize` deve estar entre 1 e 100.
             - `items` contem ate `pageSize` registros e `page` traz metadados de paginacao (`hasNextPage`, `hasPreviousPage`).
 
+            **Valores de enumeração na resposta:**
+            - `role`: `SystemAdmin`
+
             **Respostas:**
             - `200` - pagina de resultados.
             - `400` - parametros de filtro ou paginacao invalidos.

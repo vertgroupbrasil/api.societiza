@@ -15,13 +15,7 @@ public class ProcessStepTaskInstance : Entity
     public DateTimeOffset? CompletedAt { get; private set; }
     public DateTimeOffset? SkippedAt { get; private set; }
 
-    public ProcessStepTaskInstance(
-        Guid id,
-        Guid stepInstanceId,
-        Guid templateTaskId,
-        string title,
-        int order,
-        bool isOptional)
+    public ProcessStepTaskInstance(Guid id, Guid stepInstanceId, Guid templateTaskId, string title, int order, bool isOptional)
     {
         Id = id;
         StepInstanceId = stepInstanceId;
@@ -31,13 +25,7 @@ public class ProcessStepTaskInstance : Entity
         IsOptional = isOptional;
     }
 
-    public static ProcessStepTaskInstance Create(
-        Guid id,
-        Guid stepInstanceId,
-        Guid templateTaskId,
-        string title,
-        int order,
-        bool isOptional)
+    public static ProcessStepTaskInstance Create(Guid id, Guid stepInstanceId, Guid templateTaskId, string title, int order, bool isOptional)
         => new(id, stepInstanceId, templateTaskId, title, order, isOptional);
 
     internal void MarkCompleted(DateTimeOffset completedAt)
@@ -52,6 +40,14 @@ public class ProcessStepTaskInstance : Entity
         Status = TaskInstanceStatus.Skipped;
         SkippedAt = skippedAt;
         UpdatedAt = skippedAt;
+    }
+
+    internal void MarkReverted(DateTimeOffset revertedAt)
+    {
+        Status = TaskInstanceStatus.Pending;
+        CompletedAt = null;
+        SkippedAt = null;
+        UpdatedAt = revertedAt;
     }
 
     public void AddField(ProcessStepTaskFieldInstance field)

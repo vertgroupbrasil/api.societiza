@@ -36,6 +36,10 @@ public sealed class GetInvitationLinkByIdEndpoint(ISender sender) : EndpointBase
             - AccountancyAdmin só pode consultar links do próprio tenant.
             - SystemAdmin tem acesso a qualquer link.
 
+            **Valores de enumeração na resposta:**
+            - `targetRole`: `SystemAdmin` | `AccountancyAdmin` | `AccountancyEmployee`
+            - `status`: `Active` | `Expired` | `Exhausted`
+
             **Respostas:**
             - `200` - link encontrado; retorna os dados completos e os usuários registrados pelo link.
             - `400` - identificador inválido ou ausente.

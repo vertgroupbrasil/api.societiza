@@ -1,5 +1,3 @@
-using WorkflowProcess.Shared.Response.ProcessStep;
-
 namespace WorkflowProcess.Shared.Response.ProcessStepTask;
 
 public sealed record ProcessStepTaskInstanceResponse(

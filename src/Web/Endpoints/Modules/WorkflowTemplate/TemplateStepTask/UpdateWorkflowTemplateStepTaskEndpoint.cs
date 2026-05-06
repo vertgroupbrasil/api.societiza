@@ -32,8 +32,10 @@ public sealed class UpdateWorkflowTemplateStepTaskEndpoint(ISender sender) : End
             Atualiza os dados de uma tarefa em uma etapa do template.
 
             **Regras:**
-            - Valores aceitos para `type`: `Manual` (tarefa concluída manualmente por um usuário), `Automatic` (tarefa executada automaticamente pelo sistema), `Approval` (tarefa que requer aprovação explícita).
             - Se a `order` solicitada já estiver ocupada, as tarefas existentes são deslocadas para frente automaticamente.
+
+            **Valores de enumeração na requisição:**
+            - `type`: `Manual` | `Automatic` | `Approval`
 
             **Respostas:**
             - `200` - tarefa atualizada com sucesso.

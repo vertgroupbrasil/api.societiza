@@ -39,6 +39,9 @@ public sealed class CreateInvitationLinkEndpoint(ISender sender) : EndpointBaseA
             - `MaxUses` é obrigatório apenas para links com TargetRole AccountancyEmployee; para os demais é fixado em 1.
             - `AccountancyId` deve ser nulo quando o convite for SA→SA; obrigatório quando for SA→AA; ignorado quando o criador for AccountancyAdmin (o sistema utiliza a contabilidade do usuário autenticado).
 
+            **Valores de enumeração na requisição:**
+            - `targetRole`: `SystemAdmin` | `AccountancyAdmin` | `AccountancyEmployee`
+
             **Respostas:**
             - `200` - link criado; retorna o identificador e o token gerado.
             - `400` - dados inválidos ou ausentes.

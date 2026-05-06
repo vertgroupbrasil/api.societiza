@@ -23,6 +23,7 @@ public sealed class GetAllWorkflowTemplatesEndpoint(ISender sender) : EndpointBa
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [SwaggerOperation(
         OperationId = "GetAllWorkflowTemplates",
         Summary     = "Listar templates de workflow",
@@ -35,10 +36,14 @@ public sealed class GetAllWorkflowTemplatesEndpoint(ISender sender) : EndpointBa
             - `pageNumber` deve ser maior ou igual a 1.
             - `pageSize` deve estar entre 1 e 100.
 
+            **Valores de enumeração na resposta:**
+            - `status`: `Draft` | `Active` | `Archived`
+
             **Respostas:**
             - `200` - página de resultados paginados.
             - `400` - parâmetros de paginação inválidos.
             - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
 
             **Efeitos:** Nenhum.
 

@@ -77,7 +77,7 @@ public class WorkflowProcess : AggregateRoot
         return taskInstanceId;
     }
 
-    public Guid MaterializeStepField(Guid stepInstanceId, Guid templateFieldId, string label, string fieldType, string? options, bool isRequired, int order)
+    public Guid MaterializeStepField(Guid stepInstanceId, Guid templateFieldId, string label, string fieldType, string? options, int order)
     {
         var fieldInstanceId = Guid.NewGuid();
 
@@ -89,7 +89,6 @@ public class WorkflowProcess : AggregateRoot
             Label: label,
             FieldType: fieldType,
             Options: options,
-            IsRequired: isRequired,
             Order: order,
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
@@ -98,7 +97,7 @@ public class WorkflowProcess : AggregateRoot
         return fieldInstanceId;
     }
 
-    public Guid MaterializeTaskField(Guid stepInstanceId, Guid taskInstanceId, Guid templateFieldId, string label, string fieldType, string? options, bool isRequired, int order)
+    public Guid MaterializeTaskField(Guid stepInstanceId, Guid taskInstanceId, Guid templateFieldId, string label, string fieldType, string? options, int order)
     {
         var fieldInstanceId = Guid.NewGuid();
 
@@ -111,7 +110,6 @@ public class WorkflowProcess : AggregateRoot
             Label: label,
             FieldType: fieldType,
             Options: options,
-            IsRequired: isRequired,
             Order: order,
             CreatedAt: DateTimeOffset.UtcNow,
             Version: version
@@ -208,6 +206,53 @@ public class WorkflowProcess : AggregateRoot
         }
     }
 
+    public void RevertTask(Guid stepInstanceId, Guid taskInstanceId)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var step = Steps.First(s => s.Id == stepInstanceId);
+        var previousStepStatus = step.Status;
+        var processWasCompleted = Status == ProcessStatus.Completed;
+
+        RaiseEvent<DomainEvents.ProcessStepTaskInstanceReverted>(version => new(
+            ProcessId: Id,
+            StepInstanceId: stepInstanceId,
+            TaskInstanceId: taskInstanceId,
+            RevertedAt: now,
+            Version: version
+        ));
+
+        var newStepStatus = CalculateStepStatus(step);
+
+        if (newStepStatus != previousStepStatus)
+        {
+            RaiseEvent<DomainEvents.ProcessStepInstanceReverted>(version => new(
+                ProcessId: Id,
+                StepInstanceId: stepInstanceId,
+                NewStatus: newStepStatus.Name,
+                RevertedAt: now,
+                Version: version
+            ));
+        }
+
+        if (processWasCompleted && newStepStatus != StepInstanceStatus.Completed)
+        {
+            RaiseEvent<DomainEvents.WorkflowProcessReverted>(version => new(
+                ProcessId: Id,
+                RevertedAt: now,
+                Version: version
+            ));
+        }
+    }
+
+    private StepInstanceStatus CalculateStepStatus(ProcessStepInstance step)
+    {
+        if (step.Tasks.All(t => t.Status == TaskInstanceStatus.Pending))
+            return StepInstanceStatus.NotStarted;
+        if (step.AreAllRequiredTasksResolved())
+            return StepInstanceStatus.Completed;
+        return StepInstanceStatus.InProgress;
+    }
+
     public void FillStepField(Guid stepInstanceId, Guid fieldInstanceId, string value)
     {
         RaiseEvent<DomainEvents.ProcessStepFieldInstanceFilled>(version => new(
@@ -254,6 +299,12 @@ public class WorkflowProcess : AggregateRoot
         Status = ProcessStatus.Completed;
         CompletedAt = @event.CompletedAt;
     }
+
+    private void When(DomainEvents.WorkflowProcessReverted @event)
+    {
+        Status = ProcessStatus.InProgress;
+        CompletedAt = null;
+    }
     #endregion
 
     #region Process Step Instance Event Handlers
@@ -276,12 +327,19 @@ public class WorkflowProcess : AggregateRoot
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
         step.Complete(@event.CompletedAt);
     }
+
+    private void When(DomainEvents.ProcessStepInstanceReverted @event)
+    {
+        var step = Steps.First(s => s.Id == @event.StepInstanceId);
+        step.Revert(StepInstanceStatus.FromName(@event.NewStatus), @event.RevertedAt);
+    }
     #endregion
 
     #region Process Step Task Instance Event Handlers
     private void When(DomainEvents.ProcessStepTaskInstanceMaterialized @event)
     {
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
+
         step.AddTask(ProcessStepTaskInstance.Create(
             @event.TaskInstanceId,
             @event.StepInstanceId,
@@ -295,6 +353,7 @@ public class WorkflowProcess : AggregateRoot
     {
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
         var task = step.Tasks.First(t => t.Id == @event.TaskInstanceId);
+
         task.MarkCompleted(@event.CompletedAt);
     }
 
@@ -302,7 +361,16 @@ public class WorkflowProcess : AggregateRoot
     {
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
         var task = step.Tasks.First(t => t.Id == @event.TaskInstanceId);
+
         task.MarkSkipped(@event.SkippedAt);
+    }
+
+    private void When(DomainEvents.ProcessStepTaskInstanceReverted @event)
+    {
+        var step = Steps.First(s => s.Id == @event.StepInstanceId);
+        var task = step.Tasks.First(t => t.Id == @event.TaskInstanceId);
+
+        task.MarkReverted(@event.RevertedAt);
     }
     #endregion
 
@@ -310,6 +378,7 @@ public class WorkflowProcess : AggregateRoot
     private void When(DomainEvents.ProcessStepFieldInstanceMaterialized @event)
     {
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
+
         step.AddField(ProcessStepFieldInstance.Create(
             @event.FieldInstanceId,
             @event.StepInstanceId,
@@ -317,7 +386,6 @@ public class WorkflowProcess : AggregateRoot
             @event.Label,
             @event.FieldType,
             @event.Options,
-            @event.IsRequired,
             @event.Order));
     }
 
@@ -325,6 +393,7 @@ public class WorkflowProcess : AggregateRoot
     {
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
         var field = step.Fields.First(f => f.Id == @event.FieldInstanceId);
+
         field.Fill(@event.Value, @event.FilledAt);
     }
     #endregion
@@ -334,6 +403,7 @@ public class WorkflowProcess : AggregateRoot
     {
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
         var task = step.Tasks.First(t => t.Id == @event.TaskInstanceId);
+
         task.AddField(ProcessStepTaskFieldInstance.Create(
             @event.FieldInstanceId,
             @event.TaskInstanceId,
@@ -341,7 +411,6 @@ public class WorkflowProcess : AggregateRoot
             @event.Label,
             @event.FieldType,
             @event.Options,
-            @event.IsRequired,
             @event.Order));
     }
 
@@ -350,6 +419,7 @@ public class WorkflowProcess : AggregateRoot
         var step = Steps.First(s => s.Id == @event.StepInstanceId);
         var task = step.Tasks.First(t => t.Id == @event.TaskInstanceId);
         var field = task.Fields.First(f => f.Id == @event.FieldInstanceId);
+
         field.Fill(@event.Value, @event.FilledAt);
     }
     #endregion

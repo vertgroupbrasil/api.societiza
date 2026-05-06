@@ -14,12 +14,7 @@ public class ProcessStepInstance : Entity
     public List<ProcessStepFieldInstance> Fields { get; private set; } = [];
     public DateTimeOffset? CompletedAt { get; private set; }
 
-    public ProcessStepInstance(
-        Guid id,
-        Guid processId,
-        Guid templateStepId,
-        string title,
-        int order)
+    public ProcessStepInstance(Guid id, Guid processId, Guid templateStepId, string title, int order)
     {
         Id = id;
         ProcessId = processId;
@@ -28,12 +23,7 @@ public class ProcessStepInstance : Entity
         Order = order;
     }
 
-    public static ProcessStepInstance Create(
-        Guid id,
-        Guid processId,
-        Guid templateStepId,
-        string title,
-        int order)
+    public static ProcessStepInstance Create(Guid id, Guid processId, Guid templateStepId, string title, int order)
         => new(id, processId, templateStepId, title, order);
 
     internal void Start(DateTimeOffset updatedAt)
@@ -47,6 +37,13 @@ public class ProcessStepInstance : Entity
         Status = StepInstanceStatus.Completed;
         CompletedAt = completedAt;
         UpdatedAt = completedAt;
+    }
+
+    internal void Revert(StepInstanceStatus newStatus, DateTimeOffset revertedAt)
+    {
+        Status = newStatus;
+        CompletedAt = null;
+        UpdatedAt = revertedAt;
     }
 
     public void AddTask(ProcessStepTaskInstance task)

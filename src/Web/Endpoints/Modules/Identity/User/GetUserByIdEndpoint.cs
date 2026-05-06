@@ -37,6 +37,9 @@ public sealed class GetUserByIdEndpoint(ISender sender) : EndpointBaseAsync
             - AccountancyEmployee só pode visualizar o próprio usuário.
             - Usuários deletados não são retornados.
 
+            **Valores de enumeração na resposta:**
+            - `role`: `SystemAdmin` | `AccountancyAdmin` | `AccountancyEmployee`
+
             **Respostas:**
             - `200` - usuário encontrado; retorna o perfil completo.
             - `400` - identificador inválido ou ausente.

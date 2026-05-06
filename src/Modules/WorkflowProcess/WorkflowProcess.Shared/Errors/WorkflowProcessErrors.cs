@@ -4,6 +4,10 @@ namespace WorkflowProcess.Shared.Errors;
 
 public static class WorkflowProcessErrors
 {
+    public static readonly Error Forbidden =
+        new ForbiddenError(new("WorkflowProcess.Forbidden",
+            "You do not have permission to access this workflow process."));
+
     public static readonly Error TemplateNotActiveOrNotFound =
         new NotFoundError(new("WorkflowProcess.TemplateNotActiveOrNotFound",
             "Template not found or not in Active status."));
@@ -35,4 +39,20 @@ public static class WorkflowProcessErrors
     public static readonly Error TaskFieldNotFound =
         new NotFoundError(new("WorkflowProcess.TaskFieldNotFound",
             "Process task field instance not found."));
+
+    public static readonly Error StepNotUnlocked =
+        new ConflictError(new("WorkflowProcess.StepNotUnlocked",
+            "This step is locked. Complete all previous steps before proceeding."));
+
+    public static readonly Error TaskNotRevokable =
+        new ConflictError(new("WorkflowProcess.TaskNotRevokable",
+            "Task is already pending and cannot be reverted."));
+
+    public static Error PreviousRequiredTaskNotResolved(string blockingTaskTitle) =>
+        new ConflictError(new("WorkflowProcess.PreviousRequiredTaskNotResolved",
+            $"Task '{blockingTaskTitle}' must be completed before proceeding to the next task."));
+
+    public static Error DownstreamStepHasProgress(string stepTitle) =>
+        new ConflictError(new("WorkflowProcess.DownstreamStepHasProgress",
+            $"Step '{stepTitle}' has progress. Revert it before reverting this step."));
 }

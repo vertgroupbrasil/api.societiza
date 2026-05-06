@@ -19,4 +19,11 @@ internal static class Tags
         internal const string StepFields     = "Workflow Templates / 04. Step Fields";
         internal const string StepTaskFields = "Workflow Templates / 05. Step Task Fields";
     }
+
+    internal static class WorkflowProcess
+    {
+        internal const string Processes = "Workflow Process / 01. Processes";
+        internal const string Tasks     = "Workflow Process / 02. Tasks";
+        internal const string Fields    = "Workflow Process / 03. Fields";
+    }
 }

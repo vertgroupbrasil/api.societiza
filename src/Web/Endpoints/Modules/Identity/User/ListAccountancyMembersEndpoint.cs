@@ -41,6 +41,9 @@ public sealed class ListAccountancyMembersEndpoint(ISender sender) : EndpointBas
             - `pageSize` deve estar entre 1 e 100.
             - `items` contem ate `pageSize` registros e `page` traz metadados de paginacao (`hasNextPage`, `hasPreviousPage`).
 
+            **Valores de enumeração na resposta:**
+            - `role`: `SystemAdmin` | `AccountancyAdmin` | `AccountancyEmployee`
+
             **Respostas:**
             - `200` - pagina de resultados, com detalhes filtrados por perfil.
             - `400` - identificador, filtro ou parametros de paginacao invalidos.

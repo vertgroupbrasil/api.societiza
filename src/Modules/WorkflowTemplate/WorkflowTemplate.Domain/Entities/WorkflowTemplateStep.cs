@@ -9,8 +9,8 @@ public class WorkflowTemplateStep : Entity
     public string Title { get; private set; } = null!;
     public string Description { get; private set; } = null!;
     public int Order { get; private set; }
-    public List<TemplateStepField> Fields { get; private set; } = [];
     public List<WorkflowTemplateStepTask> Tasks { get; private set; } = [];
+    public List<TemplateStepField> Fields { get; private set; } = [];
 
     public WorkflowTemplateStep(Guid id, Guid templateId, string title, string description, int order)
     {

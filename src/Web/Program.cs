@@ -66,7 +66,8 @@ builder.Services
         builder.Configuration,
         Accountancy.Infrastructure.AssemblyReference.Assembly,
         Identity.Infrastructure.AssemblyReference.Assembly,
-        WorkflowTemplate.Infrastructure.AssemblyReference.Assembly);
+        WorkflowTemplate.Infrastructure.AssemblyReference.Assembly,
+        WorkflowProcess.Infrastructure.AssemblyReference.Assembly);
 
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>

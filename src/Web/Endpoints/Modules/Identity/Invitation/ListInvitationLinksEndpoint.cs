@@ -39,6 +39,10 @@ public sealed class ListInvitationLinksEndpoint(ISender sender) : EndpointBaseAs
             - `pageNumber` deve ser maior ou igual a 1 e `pageSize` deve estar entre 1 e 100.
             - `items` contém até `pageSize` registros e `page` traz metadados de paginação (`hasNextPage`, `hasPreviousPage`).
 
+            **Valores de enumeração na resposta:**
+            - `targetRole`: `SystemAdmin` | `AccountancyAdmin` | `AccountancyEmployee`
+            - `status`: `Active` | `Expired` | `Exhausted`
+
             **Respostas:**
             - `200` - página de resultados.
             - `400` - parâmetros de paginação inválidos.

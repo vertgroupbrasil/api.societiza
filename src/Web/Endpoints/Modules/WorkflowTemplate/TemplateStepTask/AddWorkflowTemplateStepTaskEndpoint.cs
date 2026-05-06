@@ -33,8 +33,10 @@ public sealed class AddWorkflowTemplateStepTaskEndpoint(ISender sender) : Endpoi
             Adiciona uma nova tarefa a uma etapa do template e retorna o identificador criado.
 
             **Regras:**
-            - Valores aceitos para `type`: `Manual` (tarefa concluída manualmente por um usuário), `Automatic` (tarefa executada automaticamente pelo sistema), `Approval` (tarefa que requer aprovação explícita).
             - Se a `order` solicitada já estiver ocupada, as tarefas existentes são deslocadas para frente automaticamente.
+
+            **Valores de enumeração na requisição:**
+            - `type`: `Manual` | `Automatic` | `Approval`
 
             **Respostas:**
             - `200` - tarefa criada; retorna o identificador gerado.

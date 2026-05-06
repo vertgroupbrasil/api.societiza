@@ -23,6 +23,7 @@ public sealed class GetWorkflowTemplateByIdEndpoint(ISender sender) : EndpointBa
     [ProducesResponseType(typeof(WorkflowTemplateDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(
         OperationId = "GetWorkflowTemplateById",
@@ -32,10 +33,16 @@ public sealed class GetWorkflowTemplateByIdEndpoint(ISender sender) : EndpointBa
 
             **Regras:** Nenhuma.
 
+            **Valores de enumeração na resposta:**
+            - `status`: `Draft` | `Active` | `Archived`
+            - `fieldType` (campos de step e de task): `Text` | `Boolean` | `Integer` | `Select` | `Date`
+            - `type` (tasks): `Manual` | `Automatic` | `Approval`
+
             **Respostas:**
             - `200` - template encontrado; retorna os dados completos.
             - `400` - identificador inválido ou ausente.
             - `401` - access token ausente ou inválido.
+            - `403` - usuário sem permissão.
             - `404` - template não encontrado.
 
             **Efeitos:** Nenhum.
