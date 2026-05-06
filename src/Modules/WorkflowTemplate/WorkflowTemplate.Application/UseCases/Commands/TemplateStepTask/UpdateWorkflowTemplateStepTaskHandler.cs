@@ -20,6 +20,10 @@ public class UpdateWorkflowTemplateStepTaskHandler(
             return Result.Failure(result.Error);
 
         var template = result.Value;
+
+        if (template.Status != TemplateStatus.Draft)
+            return Result.Failure(WorkflowTemplateErrors.TemplateNotEditable);
+
         var step = template.Steps.FirstOrDefault(existingStep => existingStep.Id == request.StepId);
 
         if (step is null)
@@ -28,8 +32,12 @@ public class UpdateWorkflowTemplateStepTaskHandler(
         if (!step.Tasks.Any(task => task.Id == request.TaskId))
             return Result.Failure(WorkflowTemplateErrors.TaskNotFound(request.TaskId));
 
-        if (step.Tasks.Any(task => task.Id != request.TaskId && task.Title == request.Title))
+        var normalizedTitle = request.Title.Trim();
+
+        if (step.Tasks.Any(task => task.Id != request.TaskId && string.Equals(task.Title.Trim(), normalizedTitle, StringComparison.OrdinalIgnoreCase)))
             return Result.Failure(WorkflowTemplateErrors.TaskTitleAlreadyExists(request.Title));
+
+        var clampedOrder = Math.Clamp(request.Order, 1, step.Tasks.Count);
 
         template.UpdateTask(
             request.StepId,
@@ -38,7 +46,7 @@ public class UpdateWorkflowTemplateStepTaskHandler(
             request.Description,
             TaskType.FromName(request.Type),
             request.Configuration,
-            request.Order,
+            clampedOrder,
             request.IsOptional);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);

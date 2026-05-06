@@ -20,6 +20,10 @@ public class UpdateTemplateStepTaskFieldHandler(
             return Result.Failure(result.Error);
 
         var template = result.Value;
+
+        if (template.Status != TemplateStatus.Draft)
+            return Result.Failure(WorkflowTemplateErrors.TemplateNotEditable);
+
         var step = template.Steps.FirstOrDefault(existingStep => existingStep.Id == request.StepId);
 
         if (step is null)
@@ -33,8 +37,12 @@ public class UpdateTemplateStepTaskFieldHandler(
         if (!task.Fields.Any(field => field.Id == request.FieldId))
             return Result.Failure(WorkflowTemplateErrors.TaskFieldNotFound(request.FieldId));
 
-        if (task.Fields.Any(field => field.Id != request.FieldId && field.Label == request.Label))
+        var normalizedLabel = request.Label.Trim();
+
+        if (task.Fields.Any(field => field.Id != request.FieldId && string.Equals(field.Label.Trim(), normalizedLabel, StringComparison.OrdinalIgnoreCase)))
             return Result.Failure(WorkflowTemplateErrors.TaskFieldLabelAlreadyExists(request.Label));
+
+        var clampedOrder = Math.Clamp(request.Order, 1, task.Fields.Count);
 
         template.UpdateTaskField(
             request.StepId,
@@ -43,7 +51,7 @@ public class UpdateTemplateStepTaskFieldHandler(
             request.Label,
             FieldType.FromName(request.FieldType),
             request.Options,
-            request.Order);
+            clampedOrder);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success();

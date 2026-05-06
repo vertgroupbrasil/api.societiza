@@ -44,7 +44,6 @@ public static class DomainEvents
         string Title,
         string Description,
         int Order,
-        List<string> AppliesTo,
         DateTimeOffset CreatedAt,
         ulong Version
     ) : Message, IDomainEvent;
@@ -55,7 +54,6 @@ public static class DomainEvents
         string Title,
         string Description,
         int Order,
-        List<string> AppliesTo,
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;

@@ -7,7 +7,6 @@ public sealed record WorkflowTemplateStepDetailResponse(
     string Title,
     string Description,
     int Order,
-    List<string> AppliesTo,
     List<WorkflowTemplateStepFieldDetailResponse> Fields,
     List<WorkflowTemplateStepTaskDetailResponse> Tasks
 );

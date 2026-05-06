@@ -63,7 +63,7 @@ public class UpdateWorkflowTemplateStepHandlerTests
     private static (WorkflowTemplateAggregate template, Guid stepId) CreateTemplateWithStep()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         return (template, stepId);
     }
 
@@ -72,6 +72,5 @@ public class UpdateWorkflowTemplateStepHandlerTests
         StepId: stepId,
         Title: "Updated Step",
         Description: "Updated Description",
-        Order: 2,
-        AppliesTo: []);
+        Order: 2);
 }

@@ -2,6 +2,7 @@ using Core.Application.Messaging.Commands;
 using Core.Shared.Response;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStep;
 
@@ -21,10 +22,17 @@ public class AddWorkflowTemplateStepHandler(
 
         var template = result.Value;
 
-        if (template.Steps.Any(step => step.Title == request.Title))
+        if (template.Status != TemplateStatus.Draft)
+            return Result.Failure<IdentifierResponse>(WorkflowTemplateErrors.TemplateNotEditable);
+
+        var normalizedTitle = request.Title.Trim();
+
+        if (template.Steps.Any(step => string.Equals(step.Title.Trim(), normalizedTitle, StringComparison.OrdinalIgnoreCase)))
             return Result.Failure<IdentifierResponse>(WorkflowTemplateErrors.StepTitleAlreadyExists(request.Title));
 
-        var stepId = template.AddStep(request.Title, request.Description, request.Order, request.AppliesTo);
+        var clampedOrder = Math.Clamp(request.Order, 1, template.Steps.Count + 1);
+
+        var stepId = template.AddStep(request.Title, request.Description, clampedOrder);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success(new IdentifierResponse(stepId));

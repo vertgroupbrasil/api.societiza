@@ -131,7 +131,6 @@ public class ProjectionWorkflowTemplateStepEventHandlerTests
         Title: "Step 1",
         Description: "Description",
         Order: 1,
-        AppliesTo: [],
         CreatedAt: DateTimeOffset.UtcNow,
         Version: 2);
 
@@ -141,7 +140,6 @@ public class ProjectionWorkflowTemplateStepEventHandlerTests
         Title: "Updated Step",
         Description: "Updated Description",
         Order: 2,
-        AppliesTo: [],
         UpdatedAt: DateTimeOffset.UtcNow,
         Version: 3);
 

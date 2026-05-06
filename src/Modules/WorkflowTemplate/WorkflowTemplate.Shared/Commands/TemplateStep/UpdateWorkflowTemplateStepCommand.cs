@@ -7,6 +7,5 @@ public sealed record UpdateWorkflowTemplateStepCommand(
     Guid StepId,
     string Title,
     string Description,
-    int Order,
-    List<string> AppliesTo
+    int Order
 ) : ICommand;

@@ -14,12 +14,12 @@ using WorkflowTemplate.Shared.Commands.Template;
 
 namespace Web.Endpoints.Modules.WorkflowTemplate.Template;
 
+[Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
 public sealed class CreateWorkflowTemplateEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<CreateWorkflowTemplateRequest>
     .WithActionResult<IdentifierResponse>
 {
     [ApiVersion("1.0")]
-    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPost(WorkflowTemplateRoutes.CreateWorkflowTemplate)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

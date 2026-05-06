@@ -38,7 +38,7 @@ public class WorkflowTemplateStepTask : Entity
         UpdatedAt = updatedAt;
     }
 
-    internal void ShiftOrder(int newOrder) 
+    internal void ShiftOrder(int newOrder)
         => Order = newOrder;
 
     public void AddField(TemplateStepTaskField field)

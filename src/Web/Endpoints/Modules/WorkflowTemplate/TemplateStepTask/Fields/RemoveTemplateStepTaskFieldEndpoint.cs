@@ -13,12 +13,12 @@ using WorkflowTemplate.Shared.Commands.TemplateStepTask.Fields;
 
 namespace Web.Endpoints.Modules.WorkflowTemplate.TemplateStepTask.Fields;
 
+[Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
 public sealed class RemoveTemplateStepTaskFieldEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<RemoveTemplateStepTaskFieldRequest>
     .WithActionResult
 {
     [ApiVersion("1.0")]
-    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpDelete(WorkflowTemplateRoutes.RemoveTemplateStepTaskField)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

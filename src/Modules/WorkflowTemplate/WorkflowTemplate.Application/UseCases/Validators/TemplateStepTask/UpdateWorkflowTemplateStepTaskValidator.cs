@@ -36,6 +36,6 @@ public sealed class UpdateWorkflowTemplateStepTaskValidator : AbstractValidator<
             .NotNull().WithMessage("Configuration is required");
 
         RuleFor(x => x.Order)
-            .GreaterThanOrEqualTo(0).WithMessage("Order must be greater than or equal to 0");
+            .GreaterThan(0).WithMessage("Order must be greater than 0");
     }
 }

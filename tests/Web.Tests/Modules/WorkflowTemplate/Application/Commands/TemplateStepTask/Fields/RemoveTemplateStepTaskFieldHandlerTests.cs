@@ -79,7 +79,7 @@ public class RemoveTemplateStepTaskFieldHandlerTests
     public async Task Handle_WhenTaskNotFound_ReturnsTaskNotFound()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(template));
@@ -94,7 +94,7 @@ public class RemoveTemplateStepTaskFieldHandlerTests
     public async Task Handle_WhenFieldNotFound_ReturnsTaskFieldNotFound()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         var taskId = template.AddTask(stepId, "Task 1", "Description", TaskType.Manual, "{}", 1, false);
         _applicationService
             .Setup(x => x.LoadAggregateAsync<WorkflowTemplateAggregate>(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
@@ -109,7 +109,7 @@ public class RemoveTemplateStepTaskFieldHandlerTests
     private static (WorkflowTemplateAggregate template, Guid stepId, Guid taskId, Guid fieldId) CreateTemplateWithStepTaskAndField()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         var taskId = template.AddTask(stepId, "Task 1", "Description", TaskType.Manual, "{}", 1, false);
         var fieldId = template.AddTaskField(stepId, taskId, "Field 1", FieldType.Text, null, 1);
         return (template, stepId, taskId, fieldId);

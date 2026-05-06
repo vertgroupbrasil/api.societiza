@@ -64,7 +64,7 @@ public class AddTemplateStepFieldHandlerTests
     private static (WorkflowTemplateAggregate template, Guid stepId) CreateTemplateWithStep()
     {
         var template = WorkflowTemplateAggregate.Create("My Template", "My Description");
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         return (template, stepId);
     }
 

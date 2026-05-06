@@ -181,7 +181,7 @@ public class WorkflowTemplateAggregateTests
         var template = CreateTemplate();
         DrainEvents(template);
 
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
 
         Assert.NotEqual(Guid.Empty, stepId);
     }
@@ -192,7 +192,7 @@ public class WorkflowTemplateAggregateTests
         var template = CreateTemplate();
         DrainEvents(template);
 
-        template.AddStep("Step 1", "Description", 1, []);
+        template.AddStep("Step 1", "Description", 1);
 
         Assert.Single(template.Steps);
         Assert.Equal("Step 1", template.Steps[0].Title);
@@ -204,7 +204,7 @@ public class WorkflowTemplateAggregateTests
         var template = CreateTemplate();
         DrainEvents(template);
 
-        template.AddStep("Step 1", "Description", 1, []);
+        template.AddStep("Step 1", "Description", 1);
 
         Assert.True(template.TryDequeueEvent(out var @event));
         Assert.IsType<DomainEvents.WorkflowTemplateStepAdded>(@event);
@@ -219,10 +219,10 @@ public class WorkflowTemplateAggregateTests
     {
         var template = CreateTemplate();
         DrainEvents(template);
-        var stepId = template.AddStep("Step 1", "Old Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Old Description", 1);
         DrainEvents(template);
 
-        template.UpdateStep(stepId, "Updated Step", "New Description", 2, []);
+        template.UpdateStep(stepId, "Updated Step", "New Description", 2);
 
         var step = template.Steps.First(s => s.Id == stepId);
         Assert.Equal("Updated Step", step.Title);
@@ -235,10 +235,10 @@ public class WorkflowTemplateAggregateTests
     {
         var template = CreateTemplate();
         DrainEvents(template);
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         DrainEvents(template);
 
-        template.UpdateStep(stepId, "Updated Step", "New Description", 2, []);
+        template.UpdateStep(stepId, "Updated Step", "New Description", 2);
 
         Assert.True(template.TryDequeueEvent(out var @event));
         Assert.IsType<DomainEvents.WorkflowTemplateStepUpdated>(@event);
@@ -253,7 +253,7 @@ public class WorkflowTemplateAggregateTests
     {
         var template = CreateTemplate();
         DrainEvents(template);
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         DrainEvents(template);
 
         template.RemoveStep(stepId);
@@ -266,7 +266,7 @@ public class WorkflowTemplateAggregateTests
     {
         var template = CreateTemplate();
         DrainEvents(template);
-        var stepId = template.AddStep("Step 1", "Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Description", 1);
         DrainEvents(template);
 
         template.RemoveStep(stepId);
@@ -280,7 +280,7 @@ public class WorkflowTemplateAggregateTests
     {
         var template = CreateTemplate();
         DrainEvents(template);
-        template.AddStep("Step 1", "Description", 1, []);
+        template.AddStep("Step 1", "Description", 1);
         DrainEvents(template);
 
         template.RemoveStep(Guid.NewGuid());
@@ -506,7 +506,7 @@ public class WorkflowTemplateAggregateTests
     {
         var template = CreateTemplate();
         DrainEvents(template);
-        var stepId = template.AddStep("Step 1", "Step Description", 1, []);
+        var stepId = template.AddStep("Step 1", "Step Description", 1);
         DrainEvents(template);
         return (template, stepId);
     }

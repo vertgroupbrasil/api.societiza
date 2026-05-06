@@ -53,7 +53,6 @@ public class GetWorkflowTemplateDetailByIdHandler(
                 step.Title,
                 step.Description,
                 step.Order,
-                step.AppliesTo,
                 stepFields.Where(field => field.StepId == step.Id).OrderBy(field => field.Order).Select(field => new WorkflowTemplateStepFieldDetailResponse(
                         field.Id,
                         field.Label,

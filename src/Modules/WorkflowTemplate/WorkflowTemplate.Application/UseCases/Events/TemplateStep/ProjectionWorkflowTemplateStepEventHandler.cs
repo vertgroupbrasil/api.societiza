@@ -28,7 +28,6 @@ public class ProjectionWorkflowTemplateStepEventHandler(
                 @event.Title,
                 @event.Description,
                 @event.Order,
-                @event.AppliesTo,
                 @event.CreatedAt,
                 null),
             cancellationToken);
@@ -48,7 +47,6 @@ public class ProjectionWorkflowTemplateStepEventHandler(
                 .Set(x => x.Title, @event.Title)
                 .Set(x => x.Description, @event.Description)
                 .Set(x => x.Order, @event.Order)
-                .Set(x => x.AppliesTo, @event.AppliesTo)
                 .Set(x => x.UpdatedAt, @event.UpdatedAt), cancellationToken);
         }
         catch (Exception ex)

@@ -24,6 +24,6 @@ public sealed class UpdateWorkflowTemplateStepValidator : AbstractValidator<Upda
             .MaximumLength(500).WithMessage("Description cannot exceed 500 characters");
 
         RuleFor(x => x.Order)
-            .GreaterThanOrEqualTo(0).WithMessage("Order must be greater than or equal to 0");
+            .GreaterThan(0).WithMessage("Order must be greater than 0");
     }
 }

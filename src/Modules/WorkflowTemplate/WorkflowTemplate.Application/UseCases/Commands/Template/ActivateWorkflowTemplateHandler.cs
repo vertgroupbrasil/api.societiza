@@ -26,8 +26,11 @@ public class ActivateWorkflowTemplateHandler(
                 from: template.Status.Name,
                 to: TemplateStatus.Active.Name));
 
-        if (!template.Steps.Any(step => step.Tasks.Count > 0))
-            return Result.Failure(WorkflowTemplateErrors.ActivationRequiresStepWithTask);
+        if (!template.Steps.Any())
+            return Result.Failure(WorkflowTemplateErrors.ActivationRequiresAtLeastOneStep);
+
+        if (template.Steps.Any(step => !step.Tasks.Any()))
+            return Result.Failure(WorkflowTemplateErrors.ActivationRequiresAllStepsToHaveTask);
 
         template.Activate();
 

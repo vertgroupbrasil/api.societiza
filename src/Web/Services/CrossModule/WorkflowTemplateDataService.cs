@@ -8,7 +8,7 @@ namespace Web.Services.CrossModule;
 public sealed class WorkflowTemplateDataService(ISender sender) : IWorkflowTemplateDataService
 {
     public async Task<(string Version, List<TemplateStepSnapshot> Steps)?> GetActiveTemplateSnapshotAsync(
-        Guid templateId, string processType, CancellationToken cancellationToken)
+        Guid templateId, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetWorkflowTemplateDetailByIdQuery(templateId), cancellationToken);
 
@@ -16,7 +16,6 @@ public sealed class WorkflowTemplateDataService(ISender sender) : IWorkflowTempl
             return null;
 
         var snapshots = result.Value.Steps
-            .Where(step => step.AppliesTo.Count == 0 || step.AppliesTo.Contains(processType))
             .Select(step => new TemplateStepSnapshot(
                 StepId: step.Id,
                 Title: step.Title,

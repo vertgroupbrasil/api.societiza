@@ -13,12 +13,12 @@ using WorkflowTemplate.Shared.Commands.TemplateStep.Fields;
 
 namespace Web.Endpoints.Modules.WorkflowTemplate.TemplateStep.Fields;
 
+[Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
 public sealed class UpdateTemplateStepFieldEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<UpdateTemplateStepFieldRequest>
     .WithActionResult
 {
     [ApiVersion("1.0")]
-    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPut(WorkflowTemplateRoutes.UpdateTemplateStepField)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

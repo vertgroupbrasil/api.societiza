@@ -1,6 +1,7 @@
 using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStep;
 
@@ -20,13 +21,20 @@ public class UpdateWorkflowTemplateStepHandler(
 
         var template = result.Value;
 
+        if (template.Status != TemplateStatus.Draft)
+            return Result.Failure(WorkflowTemplateErrors.TemplateNotEditable);
+
         if (!template.Steps.Any(step => step.Id == request.StepId))
             return Result.Failure(WorkflowTemplateErrors.StepNotFound(request.StepId));
 
-        if (template.Steps.Any(step => step.Id != request.StepId && step.Title == request.Title))
+        var normalizedTitle = request.Title.Trim();
+
+        if (template.Steps.Any(step => step.Id != request.StepId && string.Equals(step.Title.Trim(), normalizedTitle, StringComparison.OrdinalIgnoreCase)))
             return Result.Failure(WorkflowTemplateErrors.StepTitleAlreadyExists(request.Title));
 
-        template.UpdateStep(request.StepId, request.Title, request.Description, request.Order, request.AppliesTo);
+        var clampedOrder = Math.Clamp(request.Order, 1, template.Steps.Count);
+
+        template.UpdateStep(request.StepId, request.Title, request.Description, clampedOrder);
 
         await applicationService.AppendEventsAsync(template, cancellationToken);
         return Result.Success();

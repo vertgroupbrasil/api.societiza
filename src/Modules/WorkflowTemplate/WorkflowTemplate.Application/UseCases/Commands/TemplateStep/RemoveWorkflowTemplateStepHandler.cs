@@ -1,6 +1,7 @@
 using Core.Application.Messaging.Commands;
 using Core.Shared.Results;
 using WorkflowTemplate.Application.Services;
+using WorkflowTemplate.Domain.Enumerations;
 using WorkflowTemplate.Shared.Errors;
 using WorkflowTemplate.Shared.Commands.TemplateStep;
 
@@ -19,6 +20,9 @@ public class RemoveWorkflowTemplateStepHandler(
             return Result.Failure(result.Error);
 
         var template = result.Value;
+
+        if (template.Status != TemplateStatus.Draft)
+            return Result.Failure(WorkflowTemplateErrors.TemplateNotEditable);
 
         if (!template.Steps.Any(step => step.Id == request.StepId))
             return Result.Failure(WorkflowTemplateErrors.StepNotFound(request.StepId));

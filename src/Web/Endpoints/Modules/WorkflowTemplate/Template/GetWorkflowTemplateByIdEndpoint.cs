@@ -13,12 +13,12 @@ using WorkflowTemplate.Shared.Response.Template;
 
 namespace Web.Endpoints.Modules.WorkflowTemplate.Template;
 
+[Authorize]
 public sealed class GetWorkflowTemplateByIdEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<GetWorkflowTemplateByIdRequest>
     .WithActionResult<WorkflowTemplateDetailResponse>
 {
     [ApiVersion("1.0")]
-    [Authorize]
     [HttpGet(WorkflowTemplateRoutes.GetWorkflowTemplateById)]
     [ProducesResponseType(typeof(WorkflowTemplateDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -1,3 +1,5 @@
+using Core.Application.Services.Interfaces;
+using Core.Domain.Constants;
 using Moq;
 using System.Linq.Expressions;
 using WorkflowTemplate.Application.UseCases.Queries.Template;
@@ -10,12 +12,15 @@ namespace Web.Tests.Modules.WorkflowTemplate.Application.Queries;
 public class GetAllWorkflowTemplatesHandlerTests
 {
     private readonly Mock<IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplate>> _projectionGateway;
+    private readonly Mock<ICurrentUserService> _currentUserService;
     private readonly GetAllWorkflowTemplatesHandler _handler;
 
     public GetAllWorkflowTemplatesHandlerTests()
     {
         _projectionGateway = new Mock<IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplate>>();
-        _handler = new GetAllWorkflowTemplatesHandler(_projectionGateway.Object);
+        _currentUserService = new Mock<ICurrentUserService>();
+        _currentUserService.SetupGet(x => x.Role).Returns(IdentityRoles.SystemAdmin);
+        _handler = new GetAllWorkflowTemplatesHandler(_projectionGateway.Object, _currentUserService.Object);
     }
 
     [Fact]
@@ -34,7 +39,7 @@ public class GetAllWorkflowTemplatesHandlerTests
         var result = await _handler.Handle(new GetAllWorkflowTemplatesQuery(), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, result.Value.Count);
+        Assert.Equal(2, result.Value.Items.Count);
     }
 
     [Fact]
@@ -55,11 +60,12 @@ public class GetAllWorkflowTemplatesHandlerTests
         var result = await _handler.Handle(new GetAllWorkflowTemplatesQuery(), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal("Alpha Template", result.Value[0].Name);
-        Assert.Equal(createdAt, result.Value[0].CreatedAt);
-        Assert.Equal("Alpha Template", result.Value[1].Name);
-        Assert.Equal(createdAt.AddMinutes(1), result.Value[1].CreatedAt);
-        Assert.Equal("Zeta Template", result.Value[2].Name);
+        var items = result.Value.Items.ToList();
+        Assert.Equal("Alpha Template", items[0].Name);
+        Assert.Equal(createdAt, items[0].CreatedAt);
+        Assert.Equal("Alpha Template", items[1].Name);
+        Assert.Equal(createdAt.AddMinutes(1), items[1].CreatedAt);
+        Assert.Equal("Zeta Template", items[2].Name);
     }
 
     [Fact]
@@ -72,7 +78,7 @@ public class GetAllWorkflowTemplatesHandlerTests
         var result = await _handler.Handle(new GetAllWorkflowTemplatesQuery(), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Value);
+        Assert.Empty(result.Value.Items);
     }
 
     [Fact]
@@ -86,7 +92,7 @@ public class GetAllWorkflowTemplatesHandlerTests
 
         var result = await _handler.Handle(new GetAllWorkflowTemplatesQuery(), CancellationToken.None);
 
-        var response = result.Value.Single();
+        var response = result.Value.Items.Single();
         Assert.Equal(projection.Id, response.Id);
         Assert.Equal(projection.Name, response.Name);
         Assert.Equal(projection.Description, response.Description);

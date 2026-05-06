@@ -14,12 +14,12 @@ using WorkflowTemplate.Shared.Commands.TemplateStep;
 
 namespace Web.Endpoints.Modules.WorkflowTemplate.TemplateStep;
 
+[Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
 public sealed class AddWorkflowTemplateStepEndpoint(ISender sender) : EndpointBaseAsync
     .WithRequest<AddWorkflowTemplateStepRequest>
     .WithActionResult<IdentifierResponse>
 {
     [ApiVersion("1.0")]
-    [Authorize(Policy = IdentityPolicies.CanManageWorkflowTemplates)]
     [HttpPost(WorkflowTemplateRoutes.AddWorkflowTemplateStep)]
     [ProducesResponseType(typeof(IdentifierResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -34,7 +34,6 @@ public sealed class AddWorkflowTemplateStepEndpoint(ISender sender) : EndpointBa
 
             **Regras:**
             - Se a `order` solicitada já estiver ocupada, as etapas existentes são deslocadas para frente automaticamente.
-            - Valores aceitos para `appliesTo`: `Abertura`, `Alteracao`, `Baixa`. Lista vazia indica que a etapa se aplica a todos os tipos de processo. O backend não valida os valores enviados — valores inválidos são silenciosamente ignorados durante a filtragem do template.
 
             **Respostas:**
             - `200` - etapa criada; retorna o identificador gerado.
@@ -54,8 +53,7 @@ public sealed class AddWorkflowTemplateStepEndpoint(ISender sender) : EndpointBa
                 TemplateId: request.TemplateId,
                 Title: request.Body.Title,
                 Description: request.Body.Description,
-                Order: request.Body.Order,
-                AppliesTo: request.Body.AppliesTo))
+                Order: request.Body.Order))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

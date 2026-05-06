@@ -7,6 +7,5 @@ public sealed record AddWorkflowTemplateStepCommand(
     Guid TemplateId,
     string Title,
     string Description,
-    int Order,
-    List<string> AppliesTo
+    int Order
 ) : ICommand<IdentifierResponse>;
