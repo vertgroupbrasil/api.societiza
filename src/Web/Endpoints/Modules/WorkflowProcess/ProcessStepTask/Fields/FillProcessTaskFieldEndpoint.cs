@@ -57,7 +57,7 @@ public sealed class FillProcessTaskFieldEndpoint(ISender sender) : EndpointBaseA
                 StepInstanceId: r.StepInstanceId,
                 TaskInstanceId: r.TaskInstanceId,
                 FieldInstanceId: r.FieldInstanceId,
-                Value: r.Value))
+                Value: r.Body.Value))
             .Bind(command => sender.Send(command, cancellationToken))
             .Match(() => Ok(), this.HandleFailure);
 }
