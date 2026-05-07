@@ -9,9 +9,10 @@ internal static class WorkflowProcessRoutes
     internal const string TaskInstanceId = "taskInstanceId";
     internal const string FieldInstanceId = "fieldInstanceId";
 
-    internal const string CreateWorkflowProcess = BaseUri;
-    internal const string GetProcessBoard       = BaseUri;
-    internal const string GetProcessDetail      = $"{BaseUri}/{{{ProcessId}:guid}}";
+    internal const string CreateWorkflowProcess  = BaseUri;
+    internal const string GetProcessBoard        = BaseUri;
+    internal const string ListProcessesByStep    = $"{BaseUri}/by-step";
+    internal const string GetProcessDetail       = $"{BaseUri}/{{{ProcessId}:guid}}";
 
     internal const string CompleteProcessTask = $"{BaseUri}/{{{ProcessId}:guid}}/steps/{{{StepInstanceId}:guid}}/tasks/{{{TaskInstanceId}:guid}}/complete";
     internal const string SkipProcessTask     = $"{BaseUri}/{{{ProcessId}:guid}}/steps/{{{StepInstanceId}:guid}}/tasks/{{{TaskInstanceId}:guid}}/skip";

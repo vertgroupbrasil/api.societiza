@@ -92,9 +92,13 @@ public class CreateInvitationLinkHandler(
             cancellationToken);
 
         if (activeLink is not null)
-            return Result.Failure<CreateInvitationLinkResponse>(
-                new ConflictError(new("InvitationLink.AlreadyActiveInScope",
-                    "An active link already exists for this scope — revoke the current one before creating another.")));
+        {
+            var existingLinkResult = await applicationService.LoadAggregateAsync<InvitationLinkAggregate>(activeLink.Id, cancellationToken);
+            if (!existingLinkResult.IsSuccess)
+                return Result.Failure<CreateInvitationLinkResponse>(existingLinkResult.Error);
+            existingLinkResult.Value.Expire();
+            await applicationService.AppendEventsAsync(existingLinkResult.Value, cancellationToken);
+        }
 
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var tokenHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
