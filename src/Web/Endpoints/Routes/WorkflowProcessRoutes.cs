@@ -13,6 +13,7 @@ internal static class WorkflowProcessRoutes
     internal const string GetProcessBoard        = BaseUri;
     internal const string ListProcessesByStep    = $"{BaseUri}/by-step";
     internal const string GetProcessDetail       = $"{BaseUri}/{{{ProcessId}:guid}}";
+    internal const string DeleteWorkflowProcess  = $"{BaseUri}/{{{ProcessId}:guid}}";
 
     internal const string CompleteProcessTask = $"{BaseUri}/{{{ProcessId}:guid}}/steps/{{{StepInstanceId}:guid}}/tasks/{{{TaskInstanceId}:guid}}/complete";
     internal const string SkipProcessTask     = $"{BaseUri}/{{{ProcessId}:guid}}/steps/{{{StepInstanceId}:guid}}/tasks/{{{TaskInstanceId}:guid}}/skip";

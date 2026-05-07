@@ -265,6 +265,13 @@ public class WorkflowProcess : AggregateRoot
         ));
     }
 
+    public void Delete()
+    {
+        RaiseEvent<DomainEvents.WorkflowProcessDeleted>(version => new(
+            Id: Id,
+            Version: version));
+    }
+
     public void FillTaskField(Guid stepInstanceId, Guid taskInstanceId, Guid fieldInstanceId, string value)
     {
         RaiseEvent<DomainEvents.ProcessStepTaskFieldInstanceFilled>(version => new(
@@ -305,6 +312,8 @@ public class WorkflowProcess : AggregateRoot
         Status = ProcessStatus.InProgress;
         CompletedAt = null;
     }
+
+    private void When(DomainEvents.WorkflowProcessDeleted @event) { }
     #endregion
 
     #region Process Step Instance Event Handlers

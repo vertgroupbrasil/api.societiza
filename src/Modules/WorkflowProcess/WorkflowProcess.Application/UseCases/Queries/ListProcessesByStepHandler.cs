@@ -32,49 +32,76 @@ public sealed class ListProcessesByStepHandler(
         var paging = new Paging(request.PageSize, request.PageNumber);
 
         var processes = await processProjection.ListAsync(
-            x => x.AccountancyId == accountancyId && !x.IsDeleted,
+            x => x.AccountancyId == accountancyId
+                 && !x.IsDeleted
+                 && (request.TemplateId == null || x.TemplateId == request.TemplateId),
             cancellationToken);
-
-        if (!processes.Any())
-            return Result.Success(PagedResult<ProcessStepGroupResponse>.Create(
-                paging,
-                Enumerable.Empty<ProcessStepGroupResponse>().AsQueryable()));
 
         var processIds = processes.Select(p => p.Id).ToList();
         var processById = processes.ToDictionary(p => p.Id);
 
-        var allSteps = await stepProjection.ListAsync(
-            x => processIds.Contains(x.ProcessId),
-            cancellationToken);
+        var allSteps = processIds.Any()
+            ? await stepProjection.ListAsync(x => processIds.Contains(x.ProcessId), cancellationToken)
+            : [];
 
-        var stepGroups = allSteps
+        // All unique (Title, Order) pairs from step instances define the full column list.
+        // When a process is created all step instances are created upfront, so this gives
+        // us the complete template step structure even if some columns have no processes.
+        var allUniqueSteps = allSteps
             .GroupBy(s => new { s.Title, s.Order })
-            .Select(g =>
+            .Select(g => new { g.Key.Title, g.Key.Order })
+            .OrderBy(s => s.Order)
+            .ToList();
+
+        if (!allUniqueSteps.Any())
+            return Result.Success(PagedResult<ProcessStepGroupResponse>.Create(
+                paging,
+                Enumerable.Empty<ProcessStepGroupResponse>().AsQueryable()));
+
+        // For each process, pick its single "current" step:
+        // InProgress > first NotStarted (by Order) > last Completed (fallback when done).
+        var currentStepByProcess = allSteps
+            .GroupBy(s => s.ProcessId)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var inProgress = g.FirstOrDefault(s => s.Status == "InProgress");
+                    if (inProgress is not null) return inProgress;
+
+                    var firstNotStarted = g.OrderBy(s => s.Order).FirstOrDefault(s => s.Status == "NotStarted");
+                    if (firstNotStarted is not null) return firstNotStarted;
+
+                    return g.OrderByDescending(s => s.Order).First();
+                });
+
+        var stepGroups = allUniqueSteps
+            .Select(step =>
             {
-                var processItems = g
+                var processItems = currentStepByProcess.Values
+                    .Where(s => s.Title == step.Title && s.Order == step.Order)
                     .OrderByDescending(s => processById.TryGetValue(s.ProcessId, out var p) ? p.CreatedAt : default)
                     .Select(s =>
                     {
                         var proc = processById[s.ProcessId];
                         return new ProcessByStepItemResponse(
-                            ProcessId:     proc.Id,
+                            ProcessId:      proc.Id,
                             StepInstanceId: s.Id,
-                            ProcessType:   proc.ProcessType,
-                            TargetClient:  proc.TargetClient,
-                            ProcessStatus: proc.Status,
-                            StepStatus:    s.Status,
-                            CreatedAt:     proc.CreatedAt,
-                            CompletedAt:   proc.CompletedAt);
+                            ProcessType:    proc.ProcessType,
+                            TargetClient:   proc.TargetClient,
+                            ProcessStatus:  proc.Status,
+                            StepStatus:     s.Status,
+                            CreatedAt:      proc.CreatedAt,
+                            CompletedAt:    proc.CompletedAt);
                     })
                     .ToList();
 
                 return new ProcessStepGroupResponse(
-                    StepTitle:    g.Key.Title,
-                    StepOrder:    g.Key.Order,
+                    StepTitle:    step.Title,
+                    StepOrder:    step.Order,
                     ProcessCount: processItems.Count,
                     Processes:    processItems);
             })
-            .OrderBy(g => g.StepOrder)
             .AsQueryable();
 
         return Result.Success(PagedResult<ProcessStepGroupResponse>.Create(paging, stepGroups));

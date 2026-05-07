@@ -29,6 +29,11 @@ public static class DomainEvents
         DateTimeOffset RevertedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record WorkflowProcessDeleted(
+        Guid Id,
+        ulong Version
+    ) : Message, IDomainEvent;
     #endregion
 
     #region Process Step Instance Events

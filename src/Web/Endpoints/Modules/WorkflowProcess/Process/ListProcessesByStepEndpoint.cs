@@ -61,7 +61,8 @@ public sealed class ListProcessesByStepEndpoint(ISender sender) : EndpointBaseAs
             .Map(r => new ListProcessesByStepQuery(
                 AccountancyId: r.AccountancyId,
                 PageNumber:    r.PageNumber,
-                PageSize:      r.PageSize))
+                PageSize:      r.PageSize,
+                TemplateId:    r.TemplateId))
             .Bind(query => sender.Send(query, cancellationToken))
             .Match(Ok, this.HandleFailure);
 }

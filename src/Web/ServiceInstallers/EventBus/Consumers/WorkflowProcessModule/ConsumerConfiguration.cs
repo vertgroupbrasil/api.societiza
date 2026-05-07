@@ -14,6 +14,7 @@ internal sealed class ConsumerConfiguration : IEventReceiveEndpointConfiguration
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowProcessConsumer, WorkflowProcessDomainEvent.WorkflowProcessCreated>(registrationContext, MODULE_NAME);
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowProcessConsumer, WorkflowProcessDomainEvent.WorkflowProcessCompleted>(registrationContext, MODULE_NAME);
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowProcessConsumer, WorkflowProcessDomainEvent.WorkflowProcessReverted>(registrationContext, MODULE_NAME);
+        rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionWorkflowProcessConsumer, WorkflowProcessDomainEvent.WorkflowProcessDeleted>(registrationContext, MODULE_NAME);
 
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionProcessStepInstanceConsumer, WorkflowProcessDomainEvent.ProcessStepInstanceMaterialized>(registrationContext, MODULE_NAME);
         rabbitMqBusFactoryConfigurator.ConfigureEventReceiveEndpoint<ProjectionProcessStepInstanceConsumer, WorkflowProcessDomainEvent.ProcessStepInstanceStarted>(registrationContext, MODULE_NAME);

@@ -10,7 +10,8 @@ namespace WorkflowProcess.Application.UseCases.Events.Process;
 public interface IProjectionWorkflowProcessEventHandler :
     IEventHandler<DomainEvents.WorkflowProcessCreated>,
     IEventHandler<DomainEvents.WorkflowProcessCompleted>,
-    IEventHandler<DomainEvents.WorkflowProcessReverted> { }
+    IEventHandler<DomainEvents.WorkflowProcessReverted>,
+    IEventHandler<DomainEvents.WorkflowProcessDeleted> { }
 
 public class ProjectionWorkflowProcessEventHandler(
     IWorkflowProcessProjection<ProjectionModel.WorkflowProcess> workflowProcessProjection,
@@ -64,6 +65,23 @@ public class ProjectionWorkflowProcessEventHandler(
         {
             logger.LogError(ex, "Failed to project workflow process creation: {Id}.", @event.Id);
             throw new InvalidOperationException($"Failed to project {nameof(DomainEvents.WorkflowProcessCreated)}: {ex.Message}", ex);
+        }
+    }
+
+    public async Task Handle(DomainEvents.WorkflowProcessDeleted @event, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await workflowProcessProjection.UpdateOneFieldAsync(
+                x => x.Id == @event.Id,
+                x => x.IsDeleted,
+                true,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to project workflow process deletion: {Id}.", @event.Id);
+            throw new InvalidOperationException($"Failed to project {nameof(DomainEvents.WorkflowProcessDeleted)}: {ex.Message}", ex);
         }
     }
 
