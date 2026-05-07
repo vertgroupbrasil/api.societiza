@@ -17,5 +17,11 @@ public sealed class FillProcessTaskFieldRequest
     [FromRoute(Name = WorkflowProcessRoutes.FieldInstanceId)]
     public Guid FieldInstanceId { get; set; }
 
+    [FromBody]
+    public FillProcessTaskFieldBody Body { get; set; } = null!;
+}
+
+public sealed class FillProcessTaskFieldBody
+{
     public string Value { get; set; } = string.Empty;
 }

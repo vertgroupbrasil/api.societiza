@@ -47,7 +47,13 @@ public sealed class ListProcessesByStepHandler(
             x => processIds.Contains(x.ProcessId),
             cancellationToken);
 
-        var stepGroups = allSteps
+        var currentSteps = allSteps
+            .GroupBy(s => s.ProcessId)
+            .Select(g => g.Where(s => s.Status != "Completed").OrderBy(s => s.Order).FirstOrDefault())
+            .Where(s => s is not null)
+            .Select(s => s!);
+
+        var stepGroups = currentSteps
             .GroupBy(s => new { s.Title, s.Order })
             .Select(g =>
             {
