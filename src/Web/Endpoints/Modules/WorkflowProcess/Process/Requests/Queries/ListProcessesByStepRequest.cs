@@ -8,6 +8,9 @@ public sealed class ListProcessesByStepRequest
     public Guid AccountancyId { get; set; }
 
     [FromQuery]
+    public Guid? TemplateId { get; set; }
+
+    [FromQuery]
     public int PageNumber { get; set; } = 1;
 
     [FromQuery]

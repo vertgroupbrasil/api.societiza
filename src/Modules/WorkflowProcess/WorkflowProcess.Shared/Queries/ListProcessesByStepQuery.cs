@@ -7,5 +7,6 @@ namespace WorkflowProcess.Shared.Queries;
 public sealed record ListProcessesByStepQuery(
     Guid AccountancyId,
     int PageNumber,
-    int PageSize
+    int PageSize,
+    Guid? TemplateId = null
 ) : IQuery<IPagedResult<ProcessStepGroupResponse>>;

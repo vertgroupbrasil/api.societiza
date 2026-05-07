@@ -3,6 +3,11 @@ using Web.Endpoints.Routes;
 
 namespace Web.Endpoints.Modules.WorkflowProcess.ProcessStep.Fields.Requests.Commands;
 
+public sealed class FillProcessStepFieldBody
+{
+    public string Value { get; set; } = string.Empty;
+}
+
 public sealed class FillProcessStepFieldRequest
 {
     [FromRoute(Name = WorkflowProcessRoutes.ProcessId)]
@@ -15,10 +20,5 @@ public sealed class FillProcessStepFieldRequest
     public Guid FieldInstanceId { get; set; }
 
     [FromBody]
-    public FillProcessStepFieldBody Body { get; set; } = null!;
-}
-
-public sealed class FillProcessStepFieldBody
-{
-    public string Value { get; set; } = string.Empty;
+    public FillProcessStepFieldBody Body { get; set; } = new();
 }
