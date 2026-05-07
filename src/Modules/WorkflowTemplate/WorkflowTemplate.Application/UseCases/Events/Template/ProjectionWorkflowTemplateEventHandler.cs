@@ -11,7 +11,8 @@ public interface IProjectionWorkflowTemplateEventHandler :
     IEventHandler<DomainEvents.WorkflowTemplateCreated>,
     IEventHandler<DomainEvents.WorkflowTemplateUpdated>,
     IEventHandler<DomainEvents.WorkflowTemplateActivated>,
-    IEventHandler<DomainEvents.WorkflowTemplateArchived>;
+    IEventHandler<DomainEvents.WorkflowTemplateArchived>,
+    IEventHandler<DomainEvents.WorkflowTemplateDeleted>;
 
 public class ProjectionWorkflowTemplateEventHandler(
     IWorkflowTemplateProjection<ProjectionModel.WorkflowTemplate> workflowProjection,
@@ -77,13 +78,28 @@ public class ProjectionWorkflowTemplateEventHandler(
         {
             await workflowProjection.UpdateFieldsAsync(@event.Id, builder => builder
                 .Set(x => x.Status, TemplateStatus.Archived.Name)
-                .Set(x => x.UpdatedAt, @event.UpdatedAt), 
+                .Set(x => x.UpdatedAt, @event.UpdatedAt),
             cancellationToken);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to archive workflow template: {Id}.", @event.Id);
             throw new InvalidOperationException($"Failed to archive workflow template: {@event.Id}.", ex);
+        }
+    }
+
+    public async Task Handle(DomainEvents.WorkflowTemplateDeleted @event, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await workflowProjection.UpdateFieldsAsync(@event.Id, builder => builder
+                .Set(x => x.IsDeleted, true),
+            cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to delete workflow template: {Id}.", @event.Id);
+            throw new InvalidOperationException($"Failed to delete workflow template: {@event.Id}.", ex);
         }
     }
 }

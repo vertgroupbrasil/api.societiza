@@ -59,6 +59,13 @@ public class WorkflowTemplate : AggregateRoot
             UpdatedAt: DateTimeOffset.UtcNow,
             Version: version));
     }
+
+    public void Delete()
+    {
+        RaiseEvent<DomainEvents.WorkflowTemplateDeleted>(version => new(
+            Id: Id,
+            Version: version));
+    }
     #endregion
 
     #region Workflow Template Step Methods
@@ -423,6 +430,8 @@ public class WorkflowTemplate : AggregateRoot
         Status = TemplateStatus.Archived;
         UpdatedAt = @event.UpdatedAt;
     }
+
+    private void When(DomainEvents.WorkflowTemplateDeleted @event) { }
     #endregion
 
     #region Workflow Template Step Event Handlers

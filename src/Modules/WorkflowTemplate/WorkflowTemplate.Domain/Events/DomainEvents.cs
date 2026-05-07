@@ -35,6 +35,11 @@ public static class DomainEvents
         DateTimeOffset UpdatedAt,
         ulong Version
     ) : Message, IDomainEvent;
+
+    public sealed record WorkflowTemplateDeleted(
+        Guid Id,
+        ulong Version
+    ) : Message, IDomainEvent;
     #endregion
 
     #region Workflow Template Step Events
